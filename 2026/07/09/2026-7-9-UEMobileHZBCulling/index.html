@@ -1,0 +1,371 @@
+<!DOCTYPE html><html class="dark" lang="en"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#0078E7"><meta name="author" content="mx"><meta name="copyright" content="mx"><meta name="generator" content="Hexo 6.3.0"><meta name="theme" content="hexo-theme-yun"><title>2026-7-9-UEMobileHZBCulling | MX的花海小屋与玩具恐龙</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@900&amp;display=swap" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/star-markdown-css@0.4.1/dist/yun/yun-markdown.min.css"><link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/prism-theme-vars/base.css"><script src="https://fastly.jsdelivr.net/npm/scrollreveal/dist/scrollreveal.min.js" defer></script><script>function initScrollReveal() {
+  [".post-card",".markdown-body img"].forEach((target)=> {
+    ScrollReveal().reveal(target);
+  })
+}
+document.addEventListener("DOMContentLoaded", initScrollReveal);
+document.addEventListener("pjax:success", initScrollReveal);
+</script><link rel="icon" type="image/svg+xml" href="/yun.svg"><link rel="mask-icon" href="/yun.svg" color="#0078E7"><link rel="preload" href="/css/hexo-theme-yun.css" as="style"><link rel="prefetch" href="/js/sidebar.js" as="script"><link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="preconnect" href="https://fastly.jsdelivr.net/npm/" crossorigin><script id="yun-config">
+    window.Yun = {}
+    window.CONFIG = {"hostname":"1393650770.github.io","root":"/","title":"MX的花海小屋与玩具恐龙","version":"1.10.9","mode":"dark","copycode":true,"page":{"isPost":true},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}.","hits":"${hits} results found","hits_time":"${hits} results found in ${time} ms"},"anonymous_image":"https://cdn.yunyoujun.cn/img/avatar/none.jpg","fireworks":{"colors":null},"vendors":{"host":"https://fastly.jsdelivr.net/npm/","darken":"https://fastly.jsdelivr.net/npm/darken@1.5.0"}};
+  </script><link rel="stylesheet" href="/css/hexo-theme-yun.css"><script src="/js/hexo-theme-yun.js" type="module"></script><meta name="description" content="UE5 移动端 HZB Occlusion Culling概述在 UE5 移动端渲染管线中启用 HZB（Hierarchical Z-Buffer）遮挡剔除，替代传统的 OcclusionFeedback &#x2F; GPU Query 方案。  适用平台: Android (Vulkan &#x2F; GLES ES 3.1)、iOS (Metal) 预期收益: 遮挡率高场景 GPU 耗时降低">
+<meta property="og:type" content="article">
+<meta property="og:title" content="2026-7-9-UEMobileHZBCulling">
+<meta property="og:url" content="https://1393650770.github.io/2026/07/09/2026-7-9-UEMobileHZBCulling/index.html">
+<meta property="og:site_name" content="MX的花海小屋与玩具恐龙">
+<meta property="og:description" content="UE5 移动端 HZB Occlusion Culling概述在 UE5 移动端渲染管线中启用 HZB（Hierarchical Z-Buffer）遮挡剔除，替代传统的 OcclusionFeedback &#x2F; GPU Query 方案。  适用平台: Android (Vulkan &#x2F; GLES ES 3.1)、iOS (Metal) 预期收益: 遮挡率高场景 GPU 耗时降低">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2026-07-09T14:54:23.000Z">
+<meta property="article:modified_time" content="2026-07-09T15:03:30.563Z">
+<meta property="article:author" content="mx">
+<meta property="article:tag" content="技术简要">
+<meta property="article:tag" content="技术">
+<meta name="twitter:card" content="summary"><script>(function() {
+  if (CONFIG.mode !== 'auto') return
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+  const setting = localStorage.getItem('darken-mode') || 'auto'
+  if (setting === 'dark' || (prefersDark && setting !== 'light'))
+    document.documentElement.classList.toggle('dark', true)
+})()</script></head><body><script src="https://code.iconify.design/2/2.1.1/iconify.min.js"></script><script>// Define global variable
+IconifyProviders = {
+  // Empty prefix: overwrite default API provider configuration
+  '': {
+    // Use custom API first, use Iconify public API as backup
+    resources: [
+        'https://api.iconify.design',
+    ],
+    // Wait for 1 second before switching API hosts
+    rotate: 1000,
+  },
+};</script><script defer src="https://fastly.jsdelivr.net/npm/animejs@latest"></script><script defer src="/js/ui/fireworks.js" type="module"></script><canvas class="fireworks"></canvas><div class="container"><a class="sidebar-toggle hty-icon-button" id="menu-btn"><div class="hamburger hamburger--spin" type="button"><span class="hamburger-box"><span class="hamburger-inner"></span></span></div></a><div class="sidebar-toggle sidebar-overlay"></div><aside class="sidebar"><script src="/js/sidebar.js" type="module"></script><ul class="sidebar-nav"><li class="sidebar-nav-item sidebar-nav-toc hty-icon-button sidebar-nav-active" data-target="post-toc-wrap" title="Table of Contents"><span class="icon iconify" data-icon="ri:list-ordered"></span></li><li class="sidebar-nav-item sidebar-nav-overview hty-icon-button" data-target="site-overview-wrap" title="Overview"><span class="icon iconify" data-icon="ri:passport-line"></span></li></ul><div class="sidebar-panel" id="site-overview-wrap"><div class="site-info fix-top"><a class="site-author-avatar" href="/about/" title="mx"><img width="96" loading="lazy" src="/images/avatar.jpg" alt="mx"></a><div class="site-author-name"><a href="/about/">mx</a></div><span class="site-name">MX的花海小屋与玩具恐龙</span><sub class="site-subtitle">这里对于我来说什么都有</sub><div class="site-description">希望不断成长、不断进步</div></div><nav class="site-state"><a class="site-state-item hty-icon-button icon-home" href="/" title="Home"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:home-4-line"></span></span></a><div class="site-state-item"><a href="/archives/" title="Archives"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:archive-line"></span></span><span class="site-state-item-count">17</span></a></div><div class="site-state-item"><a href="/categories/" title="Categories"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:folder-2-line"></span></span><span class="site-state-item-count">3</span></a></div><div class="site-state-item"><a href="/tags/" title="Tags"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:price-tag-3-line"></span></span><span class="site-state-item-count">5</span></a></div><a class="site-state-item hty-icon-button" href="/about" title="about"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:clipboard-line"></span></span></a></nav><hr style="margin-bottom:0.5rem"><div class="links-of-author"><a class="links-of-author-item hty-icon-button" rel="noopener" href="https://github.com/1393650770" title="GitHub" target="_blank" style="color:undefined"><span class="icon iconify" data-icon="ri:github-line"></span></a><a class="links-of-author-item hty-icon-button" rel="noopener" href="https://github.com/1393650770" title="知乎" target="_blank" style="color:undefined"><span class="icon iconify" data-icon="ri:zhihu-line"></span></a></div><hr style="margin:0.5rem 1rem"><div class="links"><a class="links-item hty-icon-button" href="/" style="color:dodgerblue"><span class="icon iconify" data-icon="ri:genderless-line"></span></a></div></div><div class="sidebar-panel sidebar-panel-active" id="post-toc-wrap"><div class="post-toc"><div class="post-toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#UE5-%E7%A7%BB%E5%8A%A8%E7%AB%AF-HZB-Occlusion-Culling"><span class="toc-number">1.</span> <span class="toc-text">UE5 移动端 HZB Occlusion Culling</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A6%82%E8%BF%B0"><span class="toc-number">1.1.</span> <span class="toc-text">概述</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E5%BC%80%E5%90%AF"><span class="toc-number">1.2.</span> <span class="toc-text">如何开启</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BC%96%E8%BE%91%E5%99%A8%E9%A2%84%E8%A7%88"><span class="toc-number">1.2.1.</span> <span class="toc-text">编辑器预览</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9C%9F%E6%9C%BA%E9%83%A8%E7%BD%B2"><span class="toc-number">1.2.2.</span> <span class="toc-text">真机部署</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%94%B9%E5%8A%A8%E6%B8%85%E5%8D%95"><span class="toc-number">1.3.</span> <span class="toc-text">改动清单</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%A0%B8%E5%BF%83%E4%BF%AE%E6%94%B9"><span class="toc-number">1.3.1.</span> <span class="toc-text">核心修改</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%9D%9E%E9%98%BB%E5%A1%9E-Readback-%E4%BC%98%E5%8C%96"><span class="toc-number">1.3.2.</span> <span class="toc-text">非阻塞 Readback 优化</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1"><span class="toc-number">1.4.</span> <span class="toc-text">架构设计</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%8C%E6%95%B4%E5%B8%A7%E6%B5%81%E7%A8%8B"><span class="toc-number">1.4.1.</span> <span class="toc-text">完整帧流程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%B3%E9%94%AE-CVars"><span class="toc-number">1.4.2.</span> <span class="toc-text">关键 CVars</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#HZB-%E6%9E%84%E5%BB%BA%E6%A8%A1%E5%BC%8F"><span class="toc-number">1.4.3.</span> <span class="toc-text">HZB 构建模式</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%9D%9E%E9%98%BB%E5%A1%9E-Readback-%E8%AE%BE%E8%AE%A1"><span class="toc-number">1.5.</span> <span class="toc-text">非阻塞 Readback 设计</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%97%AE%E9%A2%98"><span class="toc-number">1.5.1.</span> <span class="toc-text">问题</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%96%B9%E6%A1%88"><span class="toc-number">1.5.2.</span> <span class="toc-text">方案</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%8E%AF%E5%BD%A2%E7%BC%93%E5%AD%98"><span class="toc-number">1.5.3.</span> <span class="toc-text">环形缓存</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%AA%8C%E8%AF%81%E6%96%B9%E6%B3%95"><span class="toc-number">1.6.</span> <span class="toc-text">验证方法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BC%96%E8%BE%91%E5%99%A8%E5%86%85"><span class="toc-number">1.6.1.</span> <span class="toc-text">编辑器内</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#RenderDoc-%E6%8A%93%E5%B8%A7"><span class="toc-number">1.6.2.</span> <span class="toc-text">RenderDoc 抓帧</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9C%9F%E6%9C%BA"><span class="toc-number">1.6.3.</span> <span class="toc-text">真机</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B9%B3%E5%8F%B0%E5%85%BC%E5%AE%B9%E6%80%A7"><span class="toc-number">1.7.</span> <span class="toc-text">平台兼容性</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B7%B2%E7%9F%A5%E9%97%AE%E9%A2%98-%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9"><span class="toc-number">1.8.</span> <span class="toc-text">已知问题 &amp; 注意事项</span></a></li></ol></li></ol></div></div></div></aside><main class="sidebar-translate" id="content"><div id="post"><article class="hty-card post-block" itemscope itemtype="https://schema.org/Article" style="--smc-primary:#0078E7;"><link itemprop="mainEntityOfPage" href="https://1393650770.github.io/2026/07/09/2026-7-9-UEMobileHZBCulling/"><span hidden itemprop="author" itemscope itemtype="https://schema.org/Person"><meta itemprop="name" content="mx"><meta itemprop="description"></span><span hidden itemprop="publisher" itemscope itemtype="https://schema.org/Organization"><meta itemprop="name" content="MX的花海小屋与玩具恐龙"></span><header class="post-header"><h1 class="post-title" itemprop="name headline">2026-7-9-UEMobileHZBCulling</h1><div class="post-meta"><div class="post-time"><span class="post-meta-item-icon"><span class="icon iconify" data-icon="ri:calendar-line"></span></span> <time title="Created: 2026-07-09 22:54:23" itemprop="dateCreated datePublished" datetime="2026-07-09T22:54:23+08:00">2026-07-09</time></div><div class="post-classify"><span class="post-category"> <span class="post-meta-item-icon" style="margin-right:3px;"><span class="icon iconify" data-icon="ri:folder-line"></span></span><span itemprop="about" itemscope itemtype="https://schema.org/Thing"><a class="category-item" href="/categories/mx%E7%9A%84%E8%AE%B0%E5%BD%95/" style="--text-color:var(--hty-text-color)" itemprop="url" rel="index"><span itemprop="text">mx的记录</span></a></span></span><span class="post-tag"><span class="post-meta-divider">-</span><a class="tag-item" href="/tags/%E6%8A%80%E6%9C%AF%E7%AE%80%E8%A6%81/" style="--text-color:var(--hty-text-color)"><span class="post-meta-item-icon"><span class="icon iconify" data-icon="ri:price-tag-3-line"></span></span><span class="tag-name">技术简要</span></a><a class="tag-item" href="/tags/%E6%8A%80%E6%9C%AF/" style="--text-color:var(--hty-text-color)"><span class="post-meta-item-icon"><span class="icon iconify" data-icon="ri:price-tag-3-line"></span></span><span class="tag-name">技术</span></a></span></div></div></header><section class="post-body" itemprop="articleBody"><div class="post-content markdown-body"><h1 id="UE5-移动端-HZB-Occlusion-Culling"><a href="#UE5-移动端-HZB-Occlusion-Culling" class="headerlink" title="UE5 移动端 HZB Occlusion Culling"></a>UE5 移动端 HZB Occlusion Culling</h1><h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>在 UE5 移动端渲染管线中启用 HZB（Hierarchical Z-Buffer）遮挡剔除，替代传统的 OcclusionFeedback &#x2F; GPU Query 方案。</p>
+<ul>
+<li><strong>适用平台</strong>: Android (Vulkan &#x2F; GLES ES 3.1)、iOS (Metal)</li>
+<li><strong>预期收益</strong>: 遮挡率高场景 GPU 耗时降低 10-25%，Draw Call 减少 15-30%</li>
+<li><strong>延迟</strong>: 1 帧（与桌面端一致）</li>
+<li><strong>改动范围</strong>: 9 个文件，~500 行净增</li>
+</ul>
+<hr>
+<h2 id="如何开启"><a href="#如何开启" class="headerlink" title="如何开启"></a>如何开启</h2><h3 id="编辑器预览"><a href="#编辑器预览" class="headerlink" title="编辑器预览"></a>编辑器预览</h3><ol>
+<li>编译编辑器后启动</li>
+<li>视口工具栏 → Settings → Preview Rendering Level → 选择 <strong>Android Vulkan</strong> 或 <strong>Android OpenGL</strong></li>
+<li>控制台输入：</li>
+</ol>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">r.HZBOcclusion 1          <span class="comment"># 开启 HZB Occlusion</span></span><br><span class="line">r.HZBOcclusion 0          <span class="comment"># 关闭（回退到 OcclusionFeedback）</span></span><br><span class="line">r.HZBOcclusion 2          <span class="comment"># 强制模式（忽略所有平台检查）</span></span><br><span class="line"></span><br><span class="line">r.VisualizeOccludedPrimitives 1  <span class="comment"># 可视化被剔除物体（绿色线框）</span></span><br><span class="line"><span class="built_in">stat</span> rhi                         <span class="comment"># 对比 Draw Call 数量</span></span><br><span class="line"><span class="built_in">stat</span> gpu                         <span class="comment"># 对比 GPU 各 Pass 耗时</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="真机部署"><a href="#真机部署" class="headerlink" title="真机部署"></a>真机部署</h3><p>已通过配置文件默认开启：</p>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>配置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Engine/Config/Android/AndroidEngine.ini</code></td>
+<td><code>r.HZBOcclusion=1</code></td>
+</tr>
+<tr>
+<td><code>Engine/Config/IOS/BaseIOSEngine.ini</code></td>
+<td><code>r.HZBOcclusion=1</code></td>
+</tr>
+<tr>
+<td><code>Engine/Config/BaseDeviceProfiles.ini</code></td>
+<td><code>Android</code> 基类: <code>r.HZB.BuildUseCompute=0</code><br><code>Android_High</code>: <code>r.HZB.BuildUseCompute=1</code>（覆盖为 compute shader）<br><code>Android_Preview_Vulkan_SM5</code>: <code>r.HZB.BuildUseCompute=1</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>注意：<code>AndroidEngine.ini</code> 在编辑器预览模式下<strong>不会</strong>加载。编辑器预览通过 C++ 默认值 (<code>GHZBOcclusion=1</code>) 生效。</p>
+</blockquote>
+<hr>
+<h2 id="改动清单"><a href="#改动清单" class="headerlink" title="改动清单"></a>改动清单</h2><h3 id="核心修改"><a href="#核心修改" class="headerlink" title="核心修改"></a>核心修改</h3><table>
+<thead>
+<tr>
+<th>#</th>
+<th>文件</th>
+<th>改动</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><code>SceneVisibility.cpp</code></td>
+<td><code>GHZBOcclusion</code> 默认值改为 1</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>SceneVisibility.cpp</code></td>
+<td><code>!IsOpenGLPlatform() || IsMobilePlatform()</code> 放行移动端 GLES</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>SceneVisibility.cpp</code></td>
+<td><code>bUseOcclusionFeedback</code> 增加 <code>&amp;&amp; !bHZBOcclusion</code>，HZB 优先</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>MobileShadingRenderer.cpp</code></td>
+<td><code>ShouldRenderHZB()</code> 增加 <code>r.HZBOcclusion</code> 检查</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>MobileShadingRenderer.cpp</code></td>
+<td>新增 <code>SubmitHZBOcclusionTests()</code>，在 4 处 <code>RenderHZB()</code> 后调用</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>MobileShadingRenderer.cpp</code></td>
+<td>6 处 GPU Query 路径增加 <code>!IsHZBOcclusionEnabled()</code> 互斥</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>SceneOcclusion.cpp</code></td>
+<td><code>FHZBTestPS::ShouldCompilePermutation</code> 放宽到 <code>IsMobilePlatform</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>SceneOcclusion.cpp</code></td>
+<td><code>InitRHI</code> &#x2F; <code>ReleaseRHI</code> 阈值从 <code>SM5</code> → <code>ES3_1</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>SceneOcclusion.cpp</code></td>
+<td>Bounds 纹理去掉 <code>TexCreate_RenderTargetable</code>（ES3.1 兼容）</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>SceneRendering.h</code></td>
+<td><code>SubmitHZBOcclusionTests</code> 函数声明 + 类成员</td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>SceneTextureReductions.cpp</code></td>
+<td><code>HZBBuildUseCompute()</code> 增加 FeatureLevel 自动检测</td>
+</tr>
+</tbody></table>
+<h3 id="非阻塞-Readback-优化"><a href="#非阻塞-Readback-优化" class="headerlink" title="非阻塞 Readback 优化"></a>非阻塞 Readback 优化</h3><table>
+<thead>
+<tr>
+<th>#</th>
+<th>文件</th>
+<th>改动</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>12</td>
+<td><code>SceneRendering.h</code></td>
+<td><code>FHZBOcclusionTester</code> 新增 4 槽环形缓存 + <code>bLockCalled</code></td>
+</tr>
+<tr>
+<td>13</td>
+<td><code>SceneOcclusion.cpp</code></td>
+<td><code>MapResults()</code> 改为 <code>IsReady()</code> 预检 + 环形缓存回退</td>
+</tr>
+<tr>
+<td>14</td>
+<td><code>SceneOcclusion.cpp</code></td>
+<td><code>UnmapResults()</code> 增加 <code>bLockCalled</code> 保护</td>
+</tr>
+<tr>
+<td>15</td>
+<td><code>MetalRenderTarget.cpp</code></td>
+<td>Metal RHI <code>RHIMapStagingSurface</code> 非阻塞优化</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="架构设计"><a href="#架构设计" class="headerlink" title="架构设计"></a>架构设计</h2><h3 id="完整帧流程"><a href="#完整帧流程" class="headerlink" title="完整帧流程"></a>完整帧流程</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">Frame N:</span><br><span class="line">  InitViews:</span><br><span class="line">    ┌─ Visibility ─────────────────────────────────────────┐</span><br><span class="line">    │  OcclusionFrameCounter++                             │</span><br><span class="line">    │  FGPUOcclusion::Configure() → bHZBOcclusion=true     │</span><br><span class="line">    │  MapResults() → IsReady()? → Lock() 或 环形缓存      │</span><br><span class="line">    │  OcclusionCullPrimitive:                             │</span><br><span class="line">    │    IsValidFrame(LastTestFrameNumber)?                │</span><br><span class="line">    │      → IsVisible(HZBTestIndex)  ← 读回结果           │</span><br><span class="line">    │      → AddBounds()              ← 收集新测试         │</span><br><span class="line">    │  UnmapResults() → Unlock() → SetValidFrameNumber(N) │</span><br><span class="line">    └──────────────────────────────────────────────────────┘</span><br><span class="line">  Render:</span><br><span class="line">    ┌─ Main RenderPass (Subpass 0→1→2) ───────────────────┐</span><br><span class="line">    │  BasePass → Decals → Lighting → Fog → Translucency  │</span><br><span class="line">    └──────────────────────────────────────────────────────┘</span><br><span class="line">    ┌─ Post Passes ───────────────────────────────────────┐</span><br><span class="line">    │  ResolveDepth                                        │</span><br><span class="line">    │  BuildHZB (HZB 深度金字塔)                            │</span><br><span class="line">    │  SubmitHZBOcclusionTests:                            │</span><br><span class="line">    │    UpdateTextures (bounds 上传)                       │</span><br><span class="line">    │    TestHZB (256×256 pixel shader)                    │</span><br><span class="line">    │    EnqueueCopy (GPU→CPU readback)                    │</span><br><span class="line">    │  SSAO / Bloom / Tonemap / FXAA                      │</span><br><span class="line">    └──────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+
+<h3 id="关键-CVars"><a href="#关键-CVars" class="headerlink" title="关键 CVars"></a>关键 CVars</h3><table>
+<thead>
+<tr>
+<th>CVar</th>
+<th>默认</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>r.HZBOcclusion</code></td>
+<td><strong>1</strong> (原 0)</td>
+<td>0&#x3D;GPU Query, 1&#x3D;HZB, 2&#x3D;强制 HZB</td>
+</tr>
+<tr>
+<td><code>r.HZB.BuildUseCompute</code></td>
+<td>1</td>
+<td>0&#x3D;pixel shader, 1&#x3D;compute shader</td>
+</tr>
+<tr>
+<td><code>r.OcclusionFeedback.Enable</code></td>
+<td>1</td>
+<td>移动端 OcclusionFeedback 系统</td>
+</tr>
+</tbody></table>
+<h3 id="HZB-构建模式"><a href="#HZB-构建模式" class="headerlink" title="HZB 构建模式"></a>HZB 构建模式</h3><table>
+<thead>
+<tr>
+<th>预览模式</th>
+<th>FeatureLevel</th>
+<th>HZB 构建</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Android OpenGL&#x2F;Vulkan Low&#x2F;Mid</td>
+<td>ES3.1</td>
+<td>pixel shader (<code>DownsampleHZB</code>, 8 pass)</td>
+</tr>
+<tr>
+<td>Android Vulkan High</td>
+<td>ES3.1</td>
+<td>pixel shader (继承基类)</td>
+</tr>
+<tr>
+<td>Android VK SM5</td>
+<td>SM5</td>
+<td>compute shader (<code>ReduceHZB</code>, 2 pass)</td>
+</tr>
+<tr>
+<td>iOS</td>
+<td>Metal</td>
+<td>compute shader</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="非阻塞-Readback-设计"><a href="#非阻塞-Readback-设计" class="headerlink" title="非阻塞 Readback 设计"></a>非阻塞 Readback 设计</h2><h3 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h3><p><code>FHZBOcclusionTester::MapResults()</code> 调用 <code>FRHIGPUTextureReadback::Lock()</code> 时，如果 GPU 未完成写入，会阻塞 RenderThread 等待。</p>
+<h3 id="方案"><a href="#方案" class="headerlink" title="方案"></a>方案</h3><p>利用 <code>FRHIGPUMemoryReadback::IsReady()</code> 进行非阻塞轮询：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// IsReady() 底层实现:</span></span><br><span class="line"><span class="comment">// OpenGL ES:  glClientWaitSync(sync, 0, 0)  // 零超时，立即返回</span></span><br><span class="line"><span class="comment">// Vulkan:     vkGetFenceStatus(fence)        // 非阻塞</span></span><br><span class="line"><span class="comment">// Metal:      MTLSharedEvent 轮询</span></span><br><span class="line"><span class="comment">// D3D12:      Fence::Poll()</span></span><br></pre></td></tr></table></figure>
+
+<p>Lock() 行为（<code>IsReady()=true</code> 时调用）：</p>
+<table>
+<thead>
+<tr>
+<th>RHI</th>
+<th>Lock() 是否阻塞</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>OpenGL ES</td>
+<td><code>ImmediateFlush</code>（RHI 命令刷新，不等 GPU）</td>
+</tr>
+<tr>
+<td>Vulkan</td>
+<td><code>GetMappedPointer()</code> 立即返回</td>
+</tr>
+<tr>
+<td><strong>Metal</strong></td>
+<td><strong>改前</strong>：<code>SubmitAndBlockUntilGPUIdle()</code> 无条件阻塞；<strong>改后</strong>：Fence 已 signal 时跳过，直接 Lock Surface</td>
+</tr>
+<tr>
+<td>D3D12</td>
+<td>Fence::Wait + Map，Fence 已 signal 时 Wait 不阻塞</td>
+</tr>
+</tbody></table>
+<p>Metal 改动（<code>MetalRenderTarget.cpp</code>）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 改前: 无条件阻塞</span></span><br><span class="line">RHICmdList.<span class="built_in">SubmitAndBlockUntilGPUIdle</span>();</span><br><span class="line"></span><br><span class="line"><span class="comment">// 改后: Fence 已 ready 时跳过</span></span><br><span class="line"><span class="type">const</span> <span class="type">bool</span> bFenceReady = (FenceRHI != <span class="literal">nullptr</span>) &amp;&amp; FenceRHI-&gt;<span class="built_in">Poll</span>();</span><br><span class="line"><span class="keyword">if</span> (!bFenceReady) &#123; <span class="built_in">SubmitAndBlockUntilGPUIdle</span>(); &#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>GPU 就绪</strong> → Lock() 读回（非阻塞） → 写入环形缓存 → 1 帧延迟</li>
+<li><strong>GPU 未就绪</strong> → 从环形缓存取最近有效结果 → 2~4 帧延迟但不阻塞</li>
+</ul>
+<h3 id="环形缓存"><a href="#环形缓存" class="headerlink" title="环形缓存"></a>环形缓存</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="keyword">constexpr</span> int32 MaxCachedResults = <span class="number">4</span>;</span><br><span class="line">FCachedResult CachedResults[<span class="number">4</span>];  <span class="comment">// &#123; TArray&lt;uint8&gt; Buffer, uint32 FrameNumber &#125;</span></span><br></pre></td></tr></table></figure>
+
+<p><code>IsValidFrame(PrimitiveOcclusionHistory-&gt;LastTestFrameNumber)</code> 确保只有被缓存帧测试过的 primitive 才会用缓存结果，防止 index 映射错误。</p>
+<hr>
+<h2 id="验证方法"><a href="#验证方法" class="headerlink" title="验证方法"></a>验证方法</h2><h3 id="编辑器内"><a href="#编辑器内" class="headerlink" title="编辑器内"></a>编辑器内</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 1. 确认 HZB 已启用</span></span><br><span class="line">r.HZBOcclusion          <span class="comment"># 应返回 1</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 2. 可视化被剔除物体</span></span><br><span class="line">r.VisualizeOccludedPrimitives 1</span><br><span class="line"></span><br><span class="line"><span class="comment"># 3. 性能对比</span></span><br><span class="line">r.HZBOcclusion 0        <span class="comment"># 关闭</span></span><br><span class="line"><span class="built_in">stat</span> rhi                <span class="comment"># 记 Draw Call 数</span></span><br><span class="line">r.HZBOcclusion 1        <span class="comment"># 开启</span></span><br><span class="line"><span class="built_in">stat</span> rhi                <span class="comment"># 对比</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="RenderDoc-抓帧"><a href="#RenderDoc-抓帧" class="headerlink" title="RenderDoc 抓帧"></a>RenderDoc 抓帧</h3><p>在 Event Browser 搜索关键字：</p>
+<table>
+<thead>
+<tr>
+<th>Pass 名称</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>HZB</code></td>
+<td>HZB 构建 group</td>
+</tr>
+<tr>
+<td><code>BuildHZB(ViewId=0)</code></td>
+<td>HZB 金字塔逐 mip 构建</td>
+</tr>
+<tr>
+<td><code>DownsampleHZB(mip=N)</code></td>
+<td>pixel shader mip 降采样</td>
+</tr>
+<tr>
+<td><code>ReduceHZB(mips=[N;M])</code></td>
+<td>compute shader 批处理 mip</td>
+</tr>
+<tr>
+<td><strong><code>SubmitHZB</code></strong></td>
+<td><strong>HZB 遮挡测试提交</strong></td>
+</tr>
+<tr>
+<td><code>UpdateTextures</code></td>
+<td>bounds 数据 CPU→GPU</td>
+</tr>
+<tr>
+<td><code>TestHZB</code></td>
+<td>FHZBTestPS 全屏测试 pass</td>
+</tr>
+</tbody></table>
+<h3 id="真机"><a href="#真机" class="headerlink" title="真机"></a>真机</h3><ol>
+<li>打包到 Android&#x2F;iOS 设备</li>
+<li>RenderDoc 无线抓帧</li>
+<li>ARM Streamline &#x2F; Snapdragon Profiler 分析 GPU 耗时</li>
+<li><code>stat unit</code> + <code>stat gpu</code> 对比</li>
+</ol>
+<hr>
+<h2 id="平台兼容性"><a href="#平台兼容性" class="headerlink" title="平台兼容性"></a>平台兼容性</h2><table>
+<thead>
+<tr>
+<th>平台</th>
+<th>ShaderPlatform</th>
+<th>HZB Culling</th>
+<th>HZB 构建</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Android GLES ES 3.1</td>
+<td><code>OPENGL_ES3_1_ANDROID</code></td>
+<td>✅</td>
+<td>pixel shader</td>
+</tr>
+<tr>
+<td>Android Vulkan ES 3.1</td>
+<td><code>VULKAN_ES3_1_ANDROID</code></td>
+<td>✅</td>
+<td>pixel shader</td>
+</tr>
+<tr>
+<td>Android Vulkan SM5</td>
+<td><code>VULKAN_SM5_ANDROID</code></td>
+<td>✅</td>
+<td>compute shader</td>
+</tr>
+<tr>
+<td>iOS Metal ES 3.1</td>
+<td><code>METAL_ES3_1_IOS</code></td>
+<td>✅</td>
+<td>pixel shader</td>
+</tr>
+<tr>
+<td>iOS Metal SM5+</td>
+<td><code>METAL_SM5_IOS</code> &#x2F; <code>METAL_SM6_IOS</code></td>
+<td>✅</td>
+<td>compute shader</td>
+</tr>
+<tr>
+<td>Desktop OpenGL</td>
+<td>—</td>
+<td>❌ 保持禁用</td>
+<td>—</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="已知问题-注意事项"><a href="#已知问题-注意事项" class="headerlink" title="已知问题 &amp; 注意事项"></a>已知问题 &amp; 注意事项</h2><ol>
+<li><strong>首帧无遮挡</strong>: 环形缓存为空时回退到 <code>FirstFrameBuffer</code>（全可见），首帧不剔除。</li>
+<li><strong>OpenGL ES readback</strong>: <code>ImmediateFlush</code> + <code>glMapBufferRange</code> 在 GLES 上有固有开销，通过 <code>IsReady()</code> 预检 + 环形缓存缓解。</li>
+<li><strong>Index 映射</strong>: 每帧 primitive→index 映射会变，通过 <code>IsValidFrame(FrameNumber)</code> 确保只有匹配帧的 primitive 使用缓存。</li>
+<li><strong>Vulkan ES 3.1</strong>: 编辑器预览中 <code>PF_A32B32G32R32F</code> 格式通过去掉 <code>TexCreate_RenderTargetable</code> 兼容。</li>
+</ol>
+</div></section><ul class="post-copyright"><li class="post-copyright-author"><strong>Post author: </strong>mx</li><li class="post-copyright-link"><strong>Post link: </strong><a href="https://1393650770.github.io/2026/07/09/2026-7-9-UEMobileHZBCulling/" title="2026-7-9-UEMobileHZBCulling">https://1393650770.github.io/2026/07/09/2026-7-9-UEMobileHZBCulling/</a></li><li class="post-copyright-license"><strong>Copyright Notice: </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank" rel="noopener" title="CC BY-NC-SA 4.0 "><span class="icon iconify" data-icon="ri:creative-commons-line"></span><span class="icon iconify" data-icon="ri:creative-commons-by-line"></span><span class="icon iconify" data-icon="ri:creative-commons-nc-line"></span><span class="icon iconify" data-icon="ri:creative-commons-sa-line"></span></a> unless otherwise stated.</li></ul></article><div class="post-nav"><div class="post-nav-item"></div><div class="post-nav-item"><a class="post-nav-next" href="/2026/06/14/new-hello-world/" rel="next" title="也许再见也是再见"><span class="post-nav-text">也许再见也是再见</span><span class="icon iconify" data-icon="ri:arrow-right-s-line"></span></a></div></div></div><div class="hty-card" id="comment"><style>.utterances {
+  max-width: 100%;
+}</style><script src="https://utteranc.es/client.js" repo="1393650770/1393650770.github.io" issue-term="title" label="comment" theme="dark-blue" crossorigin="anonymous" async></script></div></main><footer class="sidebar-translate" id="footer"><div class="copyright"><span>&copy; 2019 – 2026 </span><span class="with-love" id="animate"><span class="icon iconify" data-icon="ri:cloud-line"></span></span><span class="author"> mx</span></div><div class="powered"><span>Powered by <a href="https://hexo.io" target="_blank" rel="noopener">Hexo</a> v6.3.0</span><span class="footer-separator">|</span><span>Theme - <a rel="noopener" href="https://github.com/YunYouJun/hexo-theme-yun" target="_blank"><span>Yun</span></a> v1.10.9</span></div></footer></div><a class="hty-icon-button" id="back-to-top" aria-label="back-to-top" href="#"><span class="icon iconify" data-icon="ri:arrow-up-s-line"></span><svg class="progress-circle-container" viewBox="0 0 100 100"><circle class="progress-circle" id="progressCircle" cx="50" cy="50" r="48" fill="none" stroke="#0078E7" stroke-width="2" stroke-linecap="round"></circle></svg></a><a class="popup-trigger hty-icon-button icon-search" id="search" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:https://1393650770.github.io/" title="Search"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:search-line"></span></span></a></body></html>
