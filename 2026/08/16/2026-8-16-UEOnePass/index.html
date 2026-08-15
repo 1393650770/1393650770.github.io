@@ -8,15 +8,15 @@ document.addEventListener("pjax:success", initScrollReveal);
 </script><link rel="icon" type="image/svg+xml" href="/yun.svg"><link rel="mask-icon" href="/yun.svg" color="#0078E7"><link rel="preload" href="/css/hexo-theme-yun.css" as="style"><link rel="prefetch" href="/js/sidebar.js" as="script"><link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="preconnect" href="https://fastly.jsdelivr.net/npm/" crossorigin><script id="yun-config">
     window.Yun = {}
     window.CONFIG = {"hostname":"1393650770.github.io","root":"/","title":"MX的花海小屋与玩具恐龙","version":"1.10.9","mode":"dark","copycode":true,"page":{"isPost":true},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}.","hits":"${hits} results found","hits_time":"${hits} results found in ${time} ms"},"anonymous_image":"https://cdn.yunyoujun.cn/img/avatar/none.jpg","fireworks":{"colors":null},"vendors":{"host":"https://fastly.jsdelivr.net/npm/","darken":"https://fastly.jsdelivr.net/npm/darken@1.5.0"}};
-  </script><link rel="stylesheet" href="/css/hexo-theme-yun.css"><script src="/js/hexo-theme-yun.js" type="module"></script><meta name="description" content="UE5 移动端全 OnePass 渲染管线概述在 UE5 移动端渲染管线中实现全 OnePass：主视图的全部光栅阶段（Base&#x2F;GBuffer → Decals → Lighting → Fog → Translucency → Tonemap）在一次物理 Vulkan RenderPass 内完成，主 SceneColor&#x2F;GBuffer 全程保持在 GPU tile me">
+  </script><link rel="stylesheet" href="/css/hexo-theme-yun.css"><script src="/js/hexo-theme-yun.js" type="module"></script><meta name="description" content="UE5 移动端全 OnePass 渲染管线概述在 UE5 移动端渲染管线中实现全 OnePass：主视图的全部光栅阶段（Base&#x2F;GBuffer → Decals → Lighting → Fog → Translucency → Tonemap）在一次物理 RenderPass 内完成，主 SceneColor&#x2F;GBuffer 全程保持在 GPU tile memory（Me">
 <meta property="og:type" content="article">
 <meta property="og:title" content="2026-8-16-UEOnePass">
 <meta property="og:url" content="https://1393650770.github.io/2026/08/16/2026-8-16-UEOnePass/index.html">
 <meta property="og:site_name" content="MX的花海小屋与玩具恐龙">
-<meta property="og:description" content="UE5 移动端全 OnePass 渲染管线概述在 UE5 移动端渲染管线中实现全 OnePass：主视图的全部光栅阶段（Base&#x2F;GBuffer → Decals → Lighting → Fog → Translucency → Tonemap）在一次物理 Vulkan RenderPass 内完成，主 SceneColor&#x2F;GBuffer 全程保持在 GPU tile me">
+<meta property="og:description" content="UE5 移动端全 OnePass 渲染管线概述在 UE5 移动端渲染管线中实现全 OnePass：主视图的全部光栅阶段（Base&#x2F;GBuffer → Decals → Lighting → Fog → Translucency → Tonemap）在一次物理 RenderPass 内完成，主 SceneColor&#x2F;GBuffer 全程保持在 GPU tile memory（Me">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2026-08-15T16:49:08.000Z">
-<meta property="article:modified_time" content="2026-08-15T16:55:28.241Z">
+<meta property="article:modified_time" content="2026-08-15T17:44:32.602Z">
 <meta property="article:author" content="mx">
 <meta property="article:tag" content="技术简要">
 <meta property="article:tag" content="技术">
@@ -37,12 +37,16 @@ IconifyProviders = {
     // Wait for 1 second before switching API hosts
     rotate: 1000,
   },
-};</script><script defer src="https://fastly.jsdelivr.net/npm/animejs@latest"></script><script defer src="/js/ui/fireworks.js" type="module"></script><canvas class="fireworks"></canvas><div class="container"><a class="sidebar-toggle hty-icon-button" id="menu-btn"><div class="hamburger hamburger--spin" type="button"><span class="hamburger-box"><span class="hamburger-inner"></span></span></div></a><div class="sidebar-toggle sidebar-overlay"></div><aside class="sidebar"><script src="/js/sidebar.js" type="module"></script><ul class="sidebar-nav"><li class="sidebar-nav-item sidebar-nav-toc hty-icon-button sidebar-nav-active" data-target="post-toc-wrap" title="Table of Contents"><span class="icon iconify" data-icon="ri:list-ordered"></span></li><li class="sidebar-nav-item sidebar-nav-overview hty-icon-button" data-target="site-overview-wrap" title="Overview"><span class="icon iconify" data-icon="ri:passport-line"></span></li></ul><div class="sidebar-panel" id="site-overview-wrap"><div class="site-info fix-top"><a class="site-author-avatar" href="/about/" title="mx"><img width="96" loading="lazy" src="/images/avatar.jpg" alt="mx"></a><div class="site-author-name"><a href="/about/">mx</a></div><span class="site-name">MX的花海小屋与玩具恐龙</span><sub class="site-subtitle">这里对于我来说什么都有</sub><div class="site-description">希望不断成长、不断进步</div></div><nav class="site-state"><a class="site-state-item hty-icon-button icon-home" href="/" title="Home"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:home-4-line"></span></span></a><div class="site-state-item"><a href="/archives/" title="Archives"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:archive-line"></span></span><span class="site-state-item-count">18</span></a></div><div class="site-state-item"><a href="/categories/" title="Categories"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:folder-2-line"></span></span><span class="site-state-item-count">3</span></a></div><div class="site-state-item"><a href="/tags/" title="Tags"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:price-tag-3-line"></span></span><span class="site-state-item-count">5</span></a></div><a class="site-state-item hty-icon-button" href="/about" title="about"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:clipboard-line"></span></span></a></nav><hr style="margin-bottom:0.5rem"><div class="links-of-author"><a class="links-of-author-item hty-icon-button" rel="noopener" href="https://github.com/1393650770" title="GitHub" target="_blank" style="color:undefined"><span class="icon iconify" data-icon="ri:github-line"></span></a><a class="links-of-author-item hty-icon-button" rel="noopener" href="https://github.com/1393650770" title="知乎" target="_blank" style="color:undefined"><span class="icon iconify" data-icon="ri:zhihu-line"></span></a></div><hr style="margin:0.5rem 1rem"><div class="links"><a class="links-item hty-icon-button" href="/" style="color:dodgerblue"><span class="icon iconify" data-icon="ri:genderless-line"></span></a></div></div><div class="sidebar-panel sidebar-panel-active" id="post-toc-wrap"><div class="post-toc"><div class="post-toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#UE5-%E7%A7%BB%E5%8A%A8%E7%AB%AF%E5%85%A8-OnePass-%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF"><span class="toc-number">1.</span> <span class="toc-text">UE5 移动端全 OnePass 渲染管线</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A6%82%E8%BF%B0"><span class="toc-number">1.1.</span> <span class="toc-text">概述</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E5%8E%9F%E6%9C%AC%E7%AE%A1%E7%BA%BF%E7%9A%84%E7%97%9B%E7%82%B9"><span class="toc-number">1.2.</span> <span class="toc-text">一、原本管线的痛点</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-MultiPass-%E4%B8%8B-SceneColor-GBuffer-%E5%8F%8D%E5%A4%8D-Store-Reload"><span class="toc-number">1.2.1.</span> <span class="toc-text">1. MultiPass 下 SceneColor&#x2F;GBuffer 反复 Store&#x2F;Reload</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-UE-%E5%B7%B2%E6%9C%89-SinglePass-%E7%9A%84%E5%B1%80%E9%99%90"><span class="toc-number">1.2.2.</span> <span class="toc-text">2. UE 已有 SinglePass 的局限</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E5%B7%B2%E6%9C%89%E5%B0%9D%E8%AF%95%E7%9A%84%E7%BC%BA%E9%99%B7"><span class="toc-number">1.2.3.</span> <span class="toc-text">3. 已有尝试的缺陷</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E6%88%91%E4%BB%AC%E7%9A%84%E4%BF%AE%E6%94%B9%E8%A7%A3%E5%86%B3%E4%BA%86%E4%BB%80%E4%B9%88"><span class="toc-number">1.3.</span> <span class="toc-text">二、我们的修改解决了什么</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E6%96%B0%E5%A2%9E%E5%A4%8D%E5%90%88-SubPass-%E6%8B%93%E6%89%91%EF%BC%88RHI-%E5%B1%82%EF%BC%89"><span class="toc-number">1.3.1.</span> <span class="toc-text">1. 新增复合 SubPass 拓扑（RHI 层）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%85%B3%E9%94%AE%E6%94%B6%E7%9B%8A"><span class="toc-number">1.3.2.</span> <span class="toc-text">2. 关键收益</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E5%A6%82%E4%BD%95%E4%BF%AE%E6%94%B9%EF%BC%88%E5%88%86%E5%B1%82%E6%96%B9%E6%A1%88%EF%BC%89"><span class="toc-number">1.4.</span> <span class="toc-text">三、如何修改（分层方案）</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-1-%E5%B1%82%EF%BC%9ARHI-%E6%9E%9A%E4%B8%BE%EF%BC%88RHI-Public-RHIResources-h%EF%BC%89"><span class="toc-number">1.4.1.</span> <span class="toc-text">第 1 层：RHI 枚举（RHI&#x2F;Public&#x2F;RHIResources.h）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-2-%E5%B1%82%EF%BC%9AVulkan-RenderPass-Builder%EF%BC%88VulkanRenderpass-h%EF%BC%89"><span class="toc-number">1.4.2.</span> <span class="toc-text">第 2 层：Vulkan RenderPass Builder（VulkanRenderpass.h）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-3-%E5%B1%82%EF%BC%9A%E6%B8%B2%E6%9F%93%E5%99%A8%E5%87%BD%E6%95%B0%EF%BC%88MobileShadingRenderer-cpp%EF%BC%89"><span class="toc-number">1.4.3.</span> <span class="toc-text">第 3 层：渲染器函数（MobileShadingRenderer.cpp）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-4-%E5%B1%82%EF%BC%9APSO-%E9%A2%84%E7%BC%93%E5%AD%98%E4%B8%80%E8%87%B4%E6%80%A7"><span class="toc-number">1.4.4.</span> <span class="toc-text">第 4 层：PSO 预缓存一致性</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E5%81%9A%E2%80%9D%E6%AF%8F%E5%B8%A7%E4%B8%80%E4%B8%AA-Pass%E2%80%9D"><span class="toc-number">1.4.5.</span> <span class="toc-text">为什么不做”每帧一个 Pass”</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E6%94%B9%E5%8A%A8%E6%B8%85%E5%8D%95"><span class="toc-number">1.5.</span> <span class="toc-text">四、改动清单</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#RHI-%E5%B1%82"><span class="toc-number">1.5.1.</span> <span class="toc-text">RHI 层</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B8%B2%E6%9F%93%E5%99%A8%E5%B1%82"><span class="toc-number">1.5.2.</span> <span class="toc-text">渲染器层</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE%E4%B8%8E%E6%96%87%E6%A1%A3"><span class="toc-number">1.5.3.</span> <span class="toc-text">配置与文档</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E5%8F%82%E8%80%83%E4%B8%8E%E5%80%9F%E9%89%B4"><span class="toc-number">1.6.</span> <span class="toc-text">五、参考与借鉴</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E9%80%82%E5%90%88%E4%BB%80%E4%B9%88%E6%A0%B7%E7%9A%84%E9%A1%B9%E7%9B%AE"><span class="toc-number">1.7.</span> <span class="toc-text">六、适合什么样的项目</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E2%9C%85-%E9%80%82%E5%90%88"><span class="toc-number">1.7.1.</span> <span class="toc-text">✅ 适合</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E2%9D%8C-%E4%B8%8D%E9%80%82%E5%90%88"><span class="toc-number">1.7.2.</span> <span class="toc-text">❌ 不适合</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%83%E3%80%81%E9%AA%8C%E8%AF%81%E6%96%B9%E6%B3%95"><span class="toc-number">1.8.</span> <span class="toc-text">七、验证方法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9E%84%E5%BB%BA%E9%AA%8C%E8%AF%81%EF%BC%88%E5%B7%B2%E5%AE%8C%E6%88%90%EF%BC%89"><span class="toc-number">1.8.1.</span> <span class="toc-text">构建验证（已完成）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#RenderDoc-%E6%8A%93%E5%B8%A7%EF%BC%88%E5%BE%85%E7%9C%9F%E6%9C%BA%EF%BC%89"><span class="toc-number">1.8.2.</span> <span class="toc-text">RenderDoc 抓帧（待真机）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9C%9F%E6%9C%BA"><span class="toc-number">1.8.3.</span> <span class="toc-text">真机</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AB%E3%80%81%E5%B9%B3%E5%8F%B0%E5%85%BC%E5%AE%B9%E6%80%A7"><span class="toc-number">1.9.</span> <span class="toc-text">八、平台兼容性</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B9%9D%E3%80%81%E5%B7%B2%E7%9F%A5%E9%97%AE%E9%A2%98-%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9"><span class="toc-number">1.10.</span> <span class="toc-text">九、已知问题 &amp; 注意事项</span></a></li></ol></li></ol></div></div></div></aside><main class="sidebar-translate" id="content"><div id="post"><article class="hty-card post-block" itemscope itemtype="https://schema.org/Article" style="--smc-primary:#0078E7;"><link itemprop="mainEntityOfPage" href="https://1393650770.github.io/2026/08/16/2026-8-16-UEOnePass/"><span hidden itemprop="author" itemscope itemtype="https://schema.org/Person"><meta itemprop="name" content="mx"><meta itemprop="description"></span><span hidden itemprop="publisher" itemscope itemtype="https://schema.org/Organization"><meta itemprop="name" content="MX的花海小屋与玩具恐龙"></span><header class="post-header"><h1 class="post-title" itemprop="name headline">2026-8-16-UEOnePass</h1><div class="post-meta"><div class="post-time"><span class="post-meta-item-icon"><span class="icon iconify" data-icon="ri:calendar-line"></span></span> <time title="Created: 2026-08-16 00:49:08" itemprop="dateCreated datePublished" datetime="2026-08-16T00:49:08+08:00">2026-08-16</time></div><div class="post-classify"><span class="post-category"> <span class="post-meta-item-icon" style="margin-right:3px;"><span class="icon iconify" data-icon="ri:folder-line"></span></span><span itemprop="about" itemscope itemtype="https://schema.org/Thing"><a class="category-item" href="/categories/mx%E7%9A%84%E8%AE%B0%E5%BD%95/" style="--text-color:var(--hty-text-color)" itemprop="url" rel="index"><span itemprop="text">mx的记录</span></a></span></span><span class="post-tag"><span class="post-meta-divider">-</span><a class="tag-item" href="/tags/%E6%8A%80%E6%9C%AF%E7%AE%80%E8%A6%81/" style="--text-color:var(--hty-text-color)"><span class="post-meta-item-icon"><span class="icon iconify" data-icon="ri:price-tag-3-line"></span></span><span class="tag-name">技术简要</span></a><a class="tag-item" href="/tags/%E6%8A%80%E6%9C%AF/" style="--text-color:var(--hty-text-color)"><span class="post-meta-item-icon"><span class="icon iconify" data-icon="ri:price-tag-3-line"></span></span><span class="tag-name">技术</span></a></span></div></div></header><section class="post-body" itemprop="articleBody"><div class="post-content markdown-body"><h1 id="UE5-移动端全-OnePass-渲染管线"><a href="#UE5-移动端全-OnePass-渲染管线" class="headerlink" title="UE5 移动端全 OnePass 渲染管线"></a>UE5 移动端全 OnePass 渲染管线</h1><h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>在 UE5 移动端渲染管线中实现<strong>全 OnePass</strong>：主视图的全部光栅阶段（Base&#x2F;GBuffer → Decals → Lighting → Fog → Translucency → Tonemap）在<strong>一次物理 Vulkan RenderPass</strong> 内完成，主 SceneColor&#x2F;GBuffer 全程保持在 GPU tile memory（Memoryless），永不 Store&#x2F;Reload。</p>
+};</script><script defer src="https://fastly.jsdelivr.net/npm/animejs@latest"></script><script defer src="/js/ui/fireworks.js" type="module"></script><canvas class="fireworks"></canvas><div class="container"><a class="sidebar-toggle hty-icon-button" id="menu-btn"><div class="hamburger hamburger--spin" type="button"><span class="hamburger-box"><span class="hamburger-inner"></span></span></div></a><div class="sidebar-toggle sidebar-overlay"></div><aside class="sidebar"><script src="/js/sidebar.js" type="module"></script><ul class="sidebar-nav"><li class="sidebar-nav-item sidebar-nav-toc hty-icon-button sidebar-nav-active" data-target="post-toc-wrap" title="Table of Contents"><span class="icon iconify" data-icon="ri:list-ordered"></span></li><li class="sidebar-nav-item sidebar-nav-overview hty-icon-button" data-target="site-overview-wrap" title="Overview"><span class="icon iconify" data-icon="ri:passport-line"></span></li></ul><div class="sidebar-panel" id="site-overview-wrap"><div class="site-info fix-top"><a class="site-author-avatar" href="/about/" title="mx"><img width="96" loading="lazy" src="/images/avatar.jpg" alt="mx"></a><div class="site-author-name"><a href="/about/">mx</a></div><span class="site-name">MX的花海小屋与玩具恐龙</span><sub class="site-subtitle">这里对于我来说什么都有</sub><div class="site-description">希望不断成长、不断进步</div></div><nav class="site-state"><a class="site-state-item hty-icon-button icon-home" href="/" title="Home"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:home-4-line"></span></span></a><div class="site-state-item"><a href="/archives/" title="Archives"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:archive-line"></span></span><span class="site-state-item-count">18</span></a></div><div class="site-state-item"><a href="/categories/" title="Categories"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:folder-2-line"></span></span><span class="site-state-item-count">3</span></a></div><div class="site-state-item"><a href="/tags/" title="Tags"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:price-tag-3-line"></span></span><span class="site-state-item-count">5</span></a></div><a class="site-state-item hty-icon-button" href="/about" title="about"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:clipboard-line"></span></span></a></nav><hr style="margin-bottom:0.5rem"><div class="links-of-author"><a class="links-of-author-item hty-icon-button" rel="noopener" href="https://github.com/1393650770" title="GitHub" target="_blank" style="color:undefined"><span class="icon iconify" data-icon="ri:github-line"></span></a><a class="links-of-author-item hty-icon-button" rel="noopener" href="https://github.com/1393650770" title="知乎" target="_blank" style="color:undefined"><span class="icon iconify" data-icon="ri:zhihu-line"></span></a></div><hr style="margin:0.5rem 1rem"><div class="links"><a class="links-item hty-icon-button" href="/" style="color:dodgerblue"><span class="icon iconify" data-icon="ri:genderless-line"></span></a></div></div><div class="sidebar-panel sidebar-panel-active" id="post-toc-wrap"><div class="post-toc"><div class="post-toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#UE5-%E7%A7%BB%E5%8A%A8%E7%AB%AF%E5%85%A8-OnePass-%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF"><span class="toc-number">1.</span> <span class="toc-text">UE5 移动端全 OnePass 渲染管线</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A6%82%E8%BF%B0"><span class="toc-number">1.1.</span> <span class="toc-text">概述</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80%E3%80%81%E5%8E%9F%E6%9C%AC%E7%AE%A1%E7%BA%BF%E7%9A%84%E7%97%9B%E7%82%B9"><span class="toc-number">1.2.</span> <span class="toc-text">一、原本管线的痛点</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-MultiPass-%E4%B8%8B-SceneColor-GBuffer-%E5%8F%8D%E5%A4%8D-Store-Reload"><span class="toc-number">1.2.1.</span> <span class="toc-text">1. MultiPass 下 SceneColor&#x2F;GBuffer 反复 Store&#x2F;Reload</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-UE-%E5%B7%B2%E6%9C%89-SinglePass-%E7%9A%84%E5%B1%80%E9%99%90"><span class="toc-number">1.2.2.</span> <span class="toc-text">2. UE 已有 SinglePass 的局限</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E5%B7%B2%E6%9C%89%E5%B0%9D%E8%AF%95%E7%9A%84%E7%BC%BA%E9%99%B7"><span class="toc-number">1.2.3.</span> <span class="toc-text">3. 已有尝试的缺陷</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C%E3%80%81%E6%88%91%E4%BB%AC%E7%9A%84%E4%BF%AE%E6%94%B9%E8%A7%A3%E5%86%B3%E4%BA%86%E4%BB%80%E4%B9%88"><span class="toc-number">1.3.</span> <span class="toc-text">二、我们的修改解决了什么</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E6%96%B0%E5%A2%9E%E5%A4%8D%E5%90%88-SubPass-%E6%8B%93%E6%89%91%EF%BC%88RHI-%E5%B1%82%EF%BC%89"><span class="toc-number">1.3.1.</span> <span class="toc-text">1. 新增复合 SubPass 拓扑（RHI 层）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E5%85%B3%E9%94%AE%E6%94%B6%E7%9B%8A"><span class="toc-number">1.3.2.</span> <span class="toc-text">2. 关键收益</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89%E3%80%81%E5%A6%82%E4%BD%95%E4%BF%AE%E6%94%B9%EF%BC%88%E5%88%86%E5%B1%82%E6%96%B9%E6%A1%88%EF%BC%89"><span class="toc-number">1.4.</span> <span class="toc-text">三、如何修改（分层方案）</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-1-%E5%B1%82%EF%BC%9ARHI-%E6%9E%9A%E4%B8%BE%EF%BC%88RHI-Public-RHIResources-h%EF%BC%89"><span class="toc-number">1.4.1.</span> <span class="toc-text">第 1 层：RHI 枚举（RHI&#x2F;Public&#x2F;RHIResources.h）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-2-%E5%B1%82%EF%BC%9AVulkan-RenderPass-Builder%EF%BC%88VulkanRenderpass-h%EF%BC%89"><span class="toc-number">1.4.2.</span> <span class="toc-text">第 2 层：Vulkan RenderPass Builder（VulkanRenderpass.h）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-3-%E5%B1%82%EF%BC%9A%E6%B8%B2%E6%9F%93%E5%99%A8%E5%87%BD%E6%95%B0%EF%BC%88MobileShadingRenderer-cpp%EF%BC%89"><span class="toc-number">1.4.3.</span> <span class="toc-text">第 3 层：渲染器函数（MobileShadingRenderer.cpp）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AC%AC-4-%E5%B1%82%EF%BC%9APSO-%E9%A2%84%E7%BC%93%E5%AD%98%E4%B8%80%E8%87%B4%E6%80%A7"><span class="toc-number">1.4.4.</span> <span class="toc-text">第 4 层：PSO 预缓存一致性</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E4%B8%8D%E5%81%9A%E2%80%9D%E6%AF%8F%E5%B8%A7%E4%B8%80%E4%B8%AA-Pass%E2%80%9D"><span class="toc-number">1.4.5.</span> <span class="toc-text">为什么不做”每帧一个 Pass”</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9B%9B%E3%80%81%E6%94%B9%E5%8A%A8%E6%B8%85%E5%8D%95"><span class="toc-number">1.5.</span> <span class="toc-text">四、改动清单</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#RHI-%E5%B1%82"><span class="toc-number">1.5.1.</span> <span class="toc-text">RHI 层</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B8%B2%E6%9F%93%E5%99%A8%E5%B1%82"><span class="toc-number">1.5.2.</span> <span class="toc-text">渲染器层</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE%E4%B8%8E%E6%96%87%E6%A1%A3"><span class="toc-number">1.5.3.</span> <span class="toc-text">配置与文档</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%94%E3%80%81%E5%8F%82%E8%80%83%E4%B8%8E%E5%80%9F%E9%89%B4"><span class="toc-number">1.6.</span> <span class="toc-text">五、参考与借鉴</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AD%E3%80%81%E9%80%82%E5%90%88%E4%BB%80%E4%B9%88%E6%A0%B7%E7%9A%84%E9%A1%B9%E7%9B%AE"><span class="toc-number">1.7.</span> <span class="toc-text">六、适合什么样的项目</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E2%9C%85-%E9%80%82%E5%90%88"><span class="toc-number">1.7.1.</span> <span class="toc-text">✅ 适合</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E2%9D%8C-%E4%B8%8D%E9%80%82%E5%90%88"><span class="toc-number">1.7.2.</span> <span class="toc-text">❌ 不适合</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%83%E3%80%81%E9%AA%8C%E8%AF%81%E6%96%B9%E6%B3%95"><span class="toc-number">1.8.</span> <span class="toc-text">七、验证方法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9E%84%E5%BB%BA%E9%AA%8C%E8%AF%81%EF%BC%88%E5%B7%B2%E5%AE%8C%E6%88%90%EF%BC%89"><span class="toc-number">1.8.1.</span> <span class="toc-text">构建验证（已完成）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#RenderDoc-%E6%8A%93%E5%B8%A7%EF%BC%88%E5%BE%85%E7%9C%9F%E6%9C%BA%EF%BC%89"><span class="toc-number">1.8.2.</span> <span class="toc-text">RenderDoc 抓帧（待真机）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9C%9F%E6%9C%BA"><span class="toc-number">1.8.3.</span> <span class="toc-text">真机</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%AB%E3%80%81GLES-%E5%85%A8-OnePass%EF%BC%88Android-OpenGL-ES%EF%BC%89"><span class="toc-number">1.9.</span> <span class="toc-text">八、GLES 全 OnePass（Android OpenGL ES）</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#GLES-%E4%B8%8E-Vulkan-%E7%9A%84%E5%B7%AE%E5%BC%82"><span class="toc-number">1.9.1.</span> <span class="toc-text">GLES 与 Vulkan 的差异</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#GLES-%E6%94%B9%E5%8A%A8%E6%B8%85%E5%8D%95%EF%BC%885-%E4%B8%AA%E6%96%87%E4%BB%B6%EF%BC%89"><span class="toc-number">1.9.2.</span> <span class="toc-text">GLES 改动清单（5 个文件）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#GLES-%E8%A1%8C%E4%B8%BA%E7%9F%A9%E9%98%B5"><span class="toc-number">1.9.3.</span> <span class="toc-text">GLES 行为矩阵</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B9%9D%E3%80%81%E5%B9%B3%E5%8F%B0%E5%85%BC%E5%AE%B9%E6%80%A7"><span class="toc-number">1.10.</span> <span class="toc-text">九、平台兼容性</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8D%81%E3%80%81%E5%B7%B2%E7%9F%A5%E9%97%AE%E9%A2%98-%E6%B3%A8%E6%84%8F%E4%BA%8B%E9%A1%B9"><span class="toc-number">1.11.</span> <span class="toc-text">十、已知问题 &amp; 注意事项</span></a></li></ol></li></ol></div></div></div></aside><main class="sidebar-translate" id="content"><div id="post"><article class="hty-card post-block" itemscope itemtype="https://schema.org/Article" style="--smc-primary:#0078E7;"><link itemprop="mainEntityOfPage" href="https://1393650770.github.io/2026/08/16/2026-8-16-UEOnePass/"><span hidden itemprop="author" itemscope itemtype="https://schema.org/Person"><meta itemprop="name" content="mx"><meta itemprop="description"></span><span hidden itemprop="publisher" itemscope itemtype="https://schema.org/Organization"><meta itemprop="name" content="MX的花海小屋与玩具恐龙"></span><header class="post-header"><h1 class="post-title" itemprop="name headline">2026-8-16-UEOnePass</h1><div class="post-meta"><div class="post-time"><span class="post-meta-item-icon"><span class="icon iconify" data-icon="ri:calendar-line"></span></span> <time title="Created: 2026-08-16 00:49:08" itemprop="dateCreated datePublished" datetime="2026-08-16T00:49:08+08:00">2026-08-16</time></div><div class="post-classify"><span class="post-category"> <span class="post-meta-item-icon" style="margin-right:3px;"><span class="icon iconify" data-icon="ri:folder-line"></span></span><span itemprop="about" itemscope itemtype="https://schema.org/Thing"><a class="category-item" href="/categories/mx%E7%9A%84%E8%AE%B0%E5%BD%95/" style="--text-color:var(--hty-text-color)" itemprop="url" rel="index"><span itemprop="text">mx的记录</span></a></span></span><span class="post-tag"><span class="post-meta-divider">-</span><a class="tag-item" href="/tags/%E6%8A%80%E6%9C%AF%E7%AE%80%E8%A6%81/" style="--text-color:var(--hty-text-color)"><span class="post-meta-item-icon"><span class="icon iconify" data-icon="ri:price-tag-3-line"></span></span><span class="tag-name">技术简要</span></a><a class="tag-item" href="/tags/%E6%8A%80%E6%9C%AF/" style="--text-color:var(--hty-text-color)"><span class="post-meta-item-icon"><span class="icon iconify" data-icon="ri:price-tag-3-line"></span></span><span class="tag-name">技术</span></a></span></div></div></header><section class="post-body" itemprop="articleBody"><div class="post-content markdown-body"><h1 id="UE5-移动端全-OnePass-渲染管线"><a href="#UE5-移动端全-OnePass-渲染管线" class="headerlink" title="UE5 移动端全 OnePass 渲染管线"></a>UE5 移动端全 OnePass 渲染管线</h1><h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>在 UE5 移动端渲染管线中实现<strong>全 OnePass</strong>：主视图的全部光栅阶段（Base&#x2F;GBuffer → Decals → Lighting → Fog → Translucency → Tonemap）在<strong>一次物理 RenderPass</strong> 内完成，主 SceneColor&#x2F;GBuffer 全程保持在 GPU tile memory（Memoryless），永不 Store&#x2F;Reload。</p>
 <ul>
-<li><strong>适用平台</strong>: Android Vulkan（Metal&#x2F;GLES 保持现有 SinglePass 路径）</li>
+<li><strong>适用平台</strong>: Android Vulkan（5&#x2F;6-subpass 拓扑）+ Android OpenGL ES（FBF barrier 序列 + inline tonemap）；Metal 保持现有 framebuffer fetch 路径</li>
 <li><strong>预期收益</strong>: 消除 2~4 次 SceneColor&#x2F;GBuffer 的 Store&#x2F;Reload 带宽；TBDR GPU（Adreno&#x2F;Mali）收益最大</li>
-<li><strong>核心机制</strong>: 新增 <code>ESubpassHint</code> 复合拓扑 —— Forward 5-subpass &#x2F; Deferred 6-subpass</li>
-<li><strong>改动范围</strong>: 16 个文件，+341&#x2F;-138 行（Win64 构建验证通过，真机待验证）</li>
+<li><strong>核心机制</strong>:<ul>
+<li>Vulkan: 新增 <code>ESubpassHint</code> 复合拓扑 —— Forward 5-subpass &#x2F; Deferred 6-subpass</li>
+<li>GLES: 无 subpass API，同一渲染函数 + <code>NextSubpass()</code> &#x3D; non-coherent FBF barrier 序列 + <code>gl_LastFragColor</code> inline tonemap</li>
+</ul>
+</li>
+<li><strong>改动范围</strong>: 21 个文件（Vulkan 版 16 个 + GLES 版 5 个），构建验证中（编译通过，链接等待编辑器关闭）</li>
 </ul>
 <hr>
 <h2 id="一、原本管线的痛点"><a href="#一、原本管线的痛点" class="headerlink" title="一、原本管线的痛点"></a>一、原本管线的痛点</h2><h3 id="1-MultiPass-下-SceneColor-GBuffer-反复-Store-Reload"><a href="#1-MultiPass-下-SceneColor-GBuffer-反复-Store-Reload" class="headerlink" title="1. MultiPass 下 SceneColor&#x2F;GBuffer 反复 Store&#x2F;Reload"></a>1. MultiPass 下 SceneColor&#x2F;GBuffer 反复 Store&#x2F;Reload</h3><p>移动端默认 Forward 路径在部分平台强制 MultiPass（<code>RequiresMultiPass()</code> 判定）：</p>
@@ -284,10 +288,14 @@ IconifyProviders = {
 </thead>
 <tbody><tr>
 <td><strong>Android Vulkan 为目标平台</strong></td>
-<td>新拓扑只在 Vulkan 实现</td>
+<td>原生 5&#x2F;6-subpass 拓扑，收益最完整</td>
 </tr>
 <tr>
-<td><strong>TBDR GPU（Adreno 6xx+ &#x2F; Mali G-series+）</strong></td>
+<td><strong>Android GLES + FBF 设备（Adreno 6xx+ &#x2F; Mali G-series+）</strong></td>
+<td>同一渲染函数 + barrier 序列 + FBF inline tonemap（MSAA≤1）</td>
+</tr>
+<tr>
+<td><strong>TBDR GPU</strong></td>
 <td>Store&#x2F;Load 带宽是主要瓶颈，OnePass 收益最大</td>
 </tr>
 <tr>
@@ -320,7 +328,7 @@ IconifyProviders = {
 </tr>
 <tr>
 <td><strong>GLES 兼容范围广（低端安卓机群）</strong></td>
-<td>GLES 走 PLS 路径，限 128-bit GBuffer，未接入新拓扑</td>
+<td>无 FBF&#x2F;PLS 设备只能 MultiPass；PLS 限 128-bit GBuffer</td>
 </tr>
 <tr>
 <td><strong>大量 PostOpaque Extensions &#x2F; 第三方渲染扩展</strong></td>
@@ -364,7 +372,91 @@ IconifyProviders = {
 <li>RenderDoc 无线抓帧验证 subpass 拓扑</li>
 </ol>
 <hr>
-<h2 id="八、平台兼容性"><a href="#八、平台兼容性" class="headerlink" title="八、平台兼容性"></a>八、平台兼容性</h2><table>
+<h2 id="八、GLES-全-OnePass（Android-OpenGL-ES）"><a href="#八、GLES-全-OnePass（Android-OpenGL-ES）" class="headerlink" title="八、GLES 全 OnePass（Android OpenGL ES）"></a>八、GLES 全 OnePass（Android OpenGL ES）</h2><h3 id="GLES-与-Vulkan-的差异"><a href="#GLES-与-Vulkan-的差异" class="headerlink" title="GLES 与 Vulkan 的差异"></a>GLES 与 Vulkan 的差异</h3><p>GLES <strong>没有 subpass API</strong> —— 全 OnePass 在 GLES 上的形态：</p>
+<table>
+<thead>
+<tr>
+<th>概念</th>
+<th>GLES 等效</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一次物理 RenderPass</td>
+<td>一次 framebuffer 绑定 + 连续绘制（TBDR 上即一次 tile pass）</td>
+</tr>
+<tr>
+<td>5&#x2F;6 阶段序列</td>
+<td><strong>与 Vulkan 同一渲染函数</strong>（<code>RenderForwardFullOnePass</code> &#x2F; <code>RenderDeferredFullOnePass</code>），每次 <code>NextSubpass()</code> &#x3D; non-coherent FBF barrier</td>
+</tr>
+<tr>
+<td>input attachment（读当前像素）</td>
+<td><code>GL_EXT_shader_framebuffer_fetch</code>（<code>gl_LastFragColor</code>）&#x2F; PLS</td>
+</tr>
+<tr>
+<td>Memoryless GBuffer</td>
+<td><code>GL_EXT_shader_pixel_local_storage</code>（PLS，128-bit）</td>
+</tr>
+</tbody></table>
+<h3 id="GLES-改动清单（5-个文件）"><a href="#GLES-改动清单（5-个文件）" class="headerlink" title="GLES 改动清单（5 个文件）"></a>GLES 改动清单（5 个文件）</h3><table>
+<thead>
+<tr>
+<th>#</th>
+<th>文件</th>
+<th>改动</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><code>Engine/Private/SceneUtils.cpp</code></td>
+<td><code>IsMobileTonemapSubpassEnabledInline</code> 放开 GLES（FBF 设备）；MSAA 收窄为 ≤1（GLES 无 shader MSAA resolve，<code>gl_LastFragColor</code> 只能读当前 sample）</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>Renderer/Private/MobileShadingRenderer.cpp</code></td>
+<td><code>bFullOnePass</code> 判定加入 <code>IsAndroidOpenGLESPlatform &amp;&amp; GSupportsShaderFramebufferFetch</code> → GLES 上 dispatch 进入 FullOnePass 函数</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>Engine/Shaders/Private/PostProcessTonemap.usf</code></td>
+<td><code>FetchAndResolveSceneColor</code> 新增 <code>COMPILER_GLSL_ES3_1</code> 分支：<code>FramebufferFetchES2()</code>（<code>gl_LastFragColor</code>）读 SceneColor</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>OpenGLDrv/Private/OpenGLRenderTarget.cpp</code></td>
+<td><code>RHINextSubpass</code> 的 FBF barrier 覆盖 3 个新 hint（每阶段边界）；PLS <code>glEnable/glDisable</code> 覆盖 <code>DeferredFullOnePassSubpass</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>Renderer/Private/MobileDeferredShadingPass.cpp</code></td>
+<td><strong>修复 CVar-only bug</strong>：PSO 预缓存 bFullOnePass 补上能力门槛，与运行时一致</td>
+</tr>
+</tbody></table>
+<h3 id="GLES-行为矩阵"><a href="#GLES-行为矩阵" class="headerlink" title="GLES 行为矩阵"></a>GLES 行为矩阵</h3><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GLES + FBF + MSAA≤1 + OnePass&#x3D;1</td>
+<td>✅ 完整全 OnePass：单 framebuffer、5&#x2F;6 段 barrier 序列、inline tonemap（FBF fetch）</td>
+</tr>
+<tr>
+<td>GLES + PLS + MSAA≤1 + OnePass&#x3D;1（Deferred）</td>
+<td>✅ 完整全 OnePass：PLS GBuffer + CopyBuffer + inline tonemap</td>
+</tr>
+<tr>
+<td>GLES + FBF + MSAA&gt;1 + OnePass&#x3D;1</td>
+<td>主链全 OnePass（单 pass），tonemap 段回退独立 <code>AddMobileCustomResolvePass</code>（硬件限制：无 shader MSAA resolve）</td>
+</tr>
+<tr>
+<td>GLES 无 FBF&#x2F;PLS</td>
+<td><code>RequiresMultiPass=true</code> → 回退 MultiPass</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="九、平台兼容性"><a href="#九、平台兼容性" class="headerlink" title="九、平台兼容性"></a>九、平台兼容性</h2><table>
 <thead>
 <tr>
 <th>平台</th>
@@ -378,14 +470,19 @@ IconifyProviders = {
 <td>需 <code>maxColorAttachments&gt;=5</code>、<code>AllowFramebufferFetch=1</code></td>
 </tr>
 <tr>
-<td>Android GLES</td>
-<td>❌ 保持现有 SinglePass&#x2F;MultiPass</td>
-<td>PLS 限 128-bit GBuffer；non-coherent fetch 需 barrier</td>
+<td>Android GLES + FBF&#x2F;PLS</td>
+<td>✅（同一渲染函数 + barrier 序列 + FBF inline tonemap）</td>
+<td>MSAA≤1 才 inline；PLS 限 128-bit GBuffer；non-coherent fetch 需 barrier</td>
+</tr>
+<tr>
+<td>Android GLES 无 FBF</td>
+<td>❌ 回退 MultiPass</td>
+<td>—</td>
 </tr>
 <tr>
 <td>iOS Metal</td>
 <td>❌ 保持现有 framebuffer fetch encoder</td>
-<td>Metal 无真实 subpass；inline tonemap 仅 Vulkan</td>
+<td>Metal 无真实 subpass；inline tonemap 未移植</td>
 </tr>
 <tr>
 <td>Desktop PC</td>
@@ -394,12 +491,13 @@ IconifyProviders = {
 </tr>
 </tbody></table>
 <hr>
-<h2 id="九、已知问题-注意事项"><a href="#九、已知问题-注意事项" class="headerlink" title="九、已知问题 &amp; 注意事项"></a>九、已知问题 &amp; 注意事项</h2><ol>
-<li><strong>真机验证未完成</strong>：subpass 拓扑&#x2F;依赖链只通过编译器验证，需 RenderDoc + validation layer 真机确认（当前 0 GPU 执行记录）。</li>
+<h2 id="十、已知问题-注意事项"><a href="#十、已知问题-注意事项" class="headerlink" title="十、已知问题 &amp; 注意事项"></a>十、已知问题 &amp; 注意事项</h2><ol>
+<li><strong>真机验证未完成</strong>：subpass 拓扑&#x2F;依赖链&#x2F;GLES FBF barrier 只通过编译器验证，需 RenderDoc + validation layer 真机确认（当前 0 GPU 执行记录）。</li>
+<li><strong>GLES MSAA 限制</strong>：<code>gl_LastFragColor</code> 无法做多采样平均（无 Vulkan <code>SubpassInputMS</code> 等效）→ MSAA&gt;1 时 tonemap 自动回退独立 resolve pass（主链单 pass 收益保留）。</li>
 <li><strong>Deferred shadowed point light</strong>：仍走 MultiPass 的 per-light mask 流程（SinglePass 路径本就不支持，非新增回归）。</li>
-<li><strong>Dynamic Rendering</strong>：新 hint 强制 classic RenderPass；<code>KHR_dynamic_rendering_local_read</code> 实现后才能解锁。</li>
+<li><strong>Dynamic Rendering（Vulkan）</strong>：新 hint 强制 classic RenderPass；<code>KHR_dynamic_rendering_local_read</code> 实现后才能解锁。</li>
 <li><strong>功能降级</strong>（与现有 Forward inline-tonemap 路径一致）：Distortion &#x2F; SceneColorCopy 折射材质 &#x2F; SingleLayerWater 折射不采样主 SceneColor；FXAA 用 MSAA 替代；PostOpaque Extensions 不调用。</li>
-<li><strong>PSO 一致性</strong>：<code>GetSubpassHint()</code>（预缓存）与 <code>bFullOnePass</code>（运行时）必须保持同一组判定条件，后续若给 OnePass 增加 per-view 守卫（如禁用 SceneColorCopy 材质时），必须同步镜像到预缓存侧。</li>
+<li><strong>PSO 一致性</strong>：<code>GetSubpassHint()</code>（预缓存）与 <code>bFullOnePass</code>（运行时）必须保持同一组判定条件；本次已修复 <code>MobileDeferredShadingPass</code> 只判 CVar 导致 GLES 预缓存错误 PSO 的 bug。</li>
 </ol>
 </div></section><ul class="post-copyright"><li class="post-copyright-author"><strong>Post author: </strong>mx</li><li class="post-copyright-link"><strong>Post link: </strong><a href="https://1393650770.github.io/2026/08/16/2026-8-16-UEOnePass/" title="2026-8-16-UEOnePass">https://1393650770.github.io/2026/08/16/2026-8-16-UEOnePass/</a></li><li class="post-copyright-license"><strong>Copyright Notice: </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank" rel="noopener" title="CC BY-NC-SA 4.0 "><span class="icon iconify" data-icon="ri:creative-commons-line"></span><span class="icon iconify" data-icon="ri:creative-commons-by-line"></span><span class="icon iconify" data-icon="ri:creative-commons-nc-line"></span><span class="icon iconify" data-icon="ri:creative-commons-sa-line"></span></a> unless otherwise stated.</li></ul></article><div class="post-nav"><div class="post-nav-item"></div><div class="post-nav-item"><a class="post-nav-next" href="/2026/07/09/2026-7-9-UEMobileHZBCulling/" rel="next" title="2026-7-9-UEMobileHZBCulling"><span class="post-nav-text">2026-7-9-UEMobileHZBCulling</span><span class="icon iconify" data-icon="ri:arrow-right-s-line"></span></a></div></div></div><div class="hty-card" id="comment"><style>.utterances {
   max-width: 100%;
