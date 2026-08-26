@@ -1,0 +1,2084 @@
+<!DOCTYPE html><html class="dark" lang="en"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#0078E7"><meta name="author" content="mx"><meta name="copyright" content="mx"><meta name="generator" content="Hexo 6.3.0"><meta name="theme" content="hexo-theme-yun"><title>Unreal Engine 网络架构完全教程 | MX的花海小屋与玩具恐龙</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@900&amp;display=swap" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/star-markdown-css@0.4.1/dist/yun/yun-markdown.min.css"><link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/prism-theme-vars/base.css"><script src="https://fastly.jsdelivr.net/npm/scrollreveal/dist/scrollreveal.min.js" defer></script><script>function initScrollReveal() {
+  [".post-card",".markdown-body img"].forEach((target)=> {
+    ScrollReveal().reveal(target);
+  })
+}
+document.addEventListener("DOMContentLoaded", initScrollReveal);
+document.addEventListener("pjax:success", initScrollReveal);
+</script><link rel="icon" type="image/svg+xml" href="/yun.svg"><link rel="mask-icon" href="/yun.svg" color="#0078E7"><link rel="preload" href="/css/hexo-theme-yun.css" as="style"><link rel="prefetch" href="/js/sidebar.js" as="script"><link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="preconnect" href="https://fastly.jsdelivr.net/npm/" crossorigin><script id="yun-config">
+    window.Yun = {}
+    window.CONFIG = {"hostname":"1393650770.github.io","root":"/","title":"MX的花海小屋与玩具恐龙","version":"1.10.9","mode":"dark","copycode":true,"page":{"isPost":true},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}.","hits":"${hits} results found","hits_time":"${hits} results found in ${time} ms"},"anonymous_image":"https://cdn.yunyoujun.cn/img/avatar/none.jpg","fireworks":{"colors":null},"vendors":{"host":"https://fastly.jsdelivr.net/npm/","darken":"https://fastly.jsdelivr.net/npm/darken@1.5.0"}};
+  </script><link rel="stylesheet" href="/css/hexo-theme-yun.css"><script src="/js/hexo-theme-yun.js" type="module"></script><meta name="description" content="从”普通程序员能听懂”到”能改 UE 网络源码”——基于源码逐行考证，六架构全覆盖：网络 &#x2F; 同步 &#x2F; RPC &#x2F; 通信 &#x2F; 分发 &#x2F; 网关，附移动端优化 &#x2F; 大世界分发 &#x2F; 调试工具链三大专题   文档版本：1.0（2026-08-26） 源码快照：本地仓库 d:\Project\GameDevelop\UnrealEngi">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Unreal Engine 网络架构完全教程">
+<meta property="og:url" content="https://1393650770.github.io/2026/08/26/2026-8-26-UENetworkArchitecture/index.html">
+<meta property="og:site_name" content="MX的花海小屋与玩具恐龙">
+<meta property="og:description" content="从”普通程序员能听懂”到”能改 UE 网络源码”——基于源码逐行考证，六架构全覆盖：网络 &#x2F; 同步 &#x2F; RPC &#x2F; 通信 &#x2F; 分发 &#x2F; 网关，附移动端优化 &#x2F; 大世界分发 &#x2F; 调试工具链三大专题   文档版本：1.0（2026-08-26） 源码快照：本地仓库 d:\Project\GameDevelop\UnrealEngi">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2026-08-26T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-08-26T01:13:29.471Z">
+<meta property="article:author" content="mx">
+<meta property="article:tag" content="技术">
+<meta property="article:tag" content="技术简要">
+<meta name="twitter:card" content="summary"><script>(function() {
+  if (CONFIG.mode !== 'auto') return
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+  const setting = localStorage.getItem('darken-mode') || 'auto'
+  if (setting === 'dark' || (prefersDark && setting !== 'light'))
+    document.documentElement.classList.toggle('dark', true)
+})()</script></head><body><script src="https://code.iconify.design/2/2.1.1/iconify.min.js"></script><script>// Define global variable
+IconifyProviders = {
+  // Empty prefix: overwrite default API provider configuration
+  '': {
+    // Use custom API first, use Iconify public API as backup
+    resources: [
+        'https://api.iconify.design',
+    ],
+    // Wait for 1 second before switching API hosts
+    rotate: 1000,
+  },
+};</script><script defer src="https://fastly.jsdelivr.net/npm/animejs@latest"></script><script defer src="/js/ui/fireworks.js" type="module"></script><canvas class="fireworks"></canvas><div class="container"><a class="sidebar-toggle hty-icon-button" id="menu-btn"><div class="hamburger hamburger--spin" type="button"><span class="hamburger-box"><span class="hamburger-inner"></span></span></div></a><div class="sidebar-toggle sidebar-overlay"></div><aside class="sidebar"><script src="/js/sidebar.js" type="module"></script><ul class="sidebar-nav"><li class="sidebar-nav-item sidebar-nav-toc hty-icon-button sidebar-nav-active" data-target="post-toc-wrap" title="Table of Contents"><span class="icon iconify" data-icon="ri:list-ordered"></span></li><li class="sidebar-nav-item sidebar-nav-overview hty-icon-button" data-target="site-overview-wrap" title="Overview"><span class="icon iconify" data-icon="ri:passport-line"></span></li></ul><div class="sidebar-panel" id="site-overview-wrap"><div class="site-info fix-top"><a class="site-author-avatar" href="/about/" title="mx"><img width="96" loading="lazy" src="/images/avatar.jpg" alt="mx"></a><div class="site-author-name"><a href="/about/">mx</a></div><span class="site-name">MX的花海小屋与玩具恐龙</span><sub class="site-subtitle">这里对于我来说什么都有</sub><div class="site-description">希望不断成长、不断进步</div></div><nav class="site-state"><a class="site-state-item hty-icon-button icon-home" href="/" title="Home"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:home-4-line"></span></span></a><div class="site-state-item"><a href="/archives/" title="Archives"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:archive-line"></span></span><span class="site-state-item-count">21</span></a></div><div class="site-state-item"><a href="/categories/" title="Categories"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:folder-2-line"></span></span><span class="site-state-item-count">3</span></a></div><div class="site-state-item"><a href="/tags/" title="Tags"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:price-tag-3-line"></span></span><span class="site-state-item-count">5</span></a></div><a class="site-state-item hty-icon-button" href="/about" title="about"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:clipboard-line"></span></span></a></nav><hr style="margin-bottom:0.5rem"><div class="links-of-author"><a class="links-of-author-item hty-icon-button" rel="noopener" href="https://github.com/1393650770" title="GitHub" target="_blank" style="color:undefined"><span class="icon iconify" data-icon="ri:github-line"></span></a><a class="links-of-author-item hty-icon-button" rel="noopener" href="https://github.com/1393650770" title="知乎" target="_blank" style="color:undefined"><span class="icon iconify" data-icon="ri:zhihu-line"></span></a></div><hr style="margin:0.5rem 1rem"><div class="links"><a class="links-item hty-icon-button" href="/" style="color:dodgerblue"><span class="icon iconify" data-icon="ri:genderless-line"></span></a></div></div><div class="sidebar-panel sidebar-panel-active" id="post-toc-wrap"><div class="post-toc"><div class="post-toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-0-%E7%AB%A0-%E5%AF%BC%E8%AF%BB%EF%BC%9A%E8%BF%99%E4%BB%BD%E6%96%87%E6%A1%A3%E6%80%8E%E4%B9%88%E8%AF%BB"><span class="toc-number">1.</span> <span class="toc-text">第 0 章 导读：这份文档怎么读</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#0-1-%E7%9B%AE%E6%A0%87%E8%AF%BB%E8%80%85%E4%B8%8E%E5%89%8D%E7%BD%AE%E7%9F%A5%E8%AF%86"><span class="toc-number">1.1.</span> <span class="toc-text">0.1 目标读者与前置知识</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0-2-%E4%B8%89%E6%9D%A1%E9%98%85%E8%AF%BB%E8%B7%AF%E5%BE%84"><span class="toc-number">1.2.</span> <span class="toc-text">0.2 三条阅读路径</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0-3-%E5%9D%97%E6%A0%87%E8%AE%B0%E7%BA%A6%E5%AE%9A"><span class="toc-number">1.3.</span> <span class="toc-text">0.3 块标记约定</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0-4-%E4%B8%80%E5%BC%A0%E5%9B%BE%E7%9C%8B%E6%87%82%E5%85%A8%E5%B1%80"><span class="toc-number">1.4.</span> <span class="toc-text">0.4 一张图看懂全局</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0-5-%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE"><span class="toc-number">1.5.</span> <span class="toc-text">0.5 章节地图</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-1-%E7%AB%A0-%E7%BD%91%E7%BB%9C%E4%B8%96%E7%95%8C%E8%A7%82%EF%BC%9A%E6%9D%83%E5%A8%81%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%B8%8E%E4%B8%A4%E5%A4%A7%E6%89%8B%E6%AE%B5"><span class="toc-number">2.</span> <span class="toc-text">第 1 章 网络世界观：权威服务器与两大手段</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-1-%E4%B8%A4%E7%A7%8D%E4%B8%96%E7%95%8C%E8%A7%82%EF%BC%9A%E7%8A%B6%E6%80%81%E5%90%8C%E6%AD%A5-vs-%E5%B8%A7%E5%90%8C%E6%AD%A5"><span class="toc-number">2.1.</span> <span class="toc-text">1.1 两种世界观：状态同步 vs 帧同步</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-2-%E6%9D%83%E5%A8%81%E6%A8%A1%E5%9E%8B%EF%BC%9A%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%98%AF%E5%94%AF%E4%B8%80%E7%9C%9F%E7%9B%B8"><span class="toc-number">2.2.</span> <span class="toc-text">1.2 权威模型：服务器是唯一真相</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-3-%E5%9B%9B%E7%A7%8D%E6%A8%A1%E5%BC%8F%EF%BC%9A%E6%9C%AC%E8%B4%A8%E5%8F%AA%E6%9C%89%E4%B8%A4%E7%B1%BB"><span class="toc-number">2.3.</span> <span class="toc-text">1.3 四种模式：本质只有两类</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-4-Actor-%E7%9A%84%E7%BD%91%E7%BB%9C%E8%A7%92%E8%89%B2"><span class="toc-number">2.4.</span> <span class="toc-text">1.4 Actor 的网络角色</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-5-%E4%B8%A4%E5%A4%A7%E6%89%8B%E6%AE%B5%E5%AF%B9%E6%AF%94%EF%BC%9A%E4%BB%80%E4%B9%88%E6%97%B6%E5%80%99%E7%94%A8%E5%93%AA%E4%B8%AA"><span class="toc-number">2.5.</span> <span class="toc-text">1.5 两大手段对比：什么时候用哪个</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-6-%E4%B8%80%E5%B8%A7%E7%9A%84%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%EF%BC%9A%E6%94%B6-%E2%86%92-%E6%83%B3-%E2%86%92-%E5%8F%91"><span class="toc-number">2.6.</span> <span class="toc-text">1.6 一帧的生命周期：收 → 想 → 发</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-7-%E5%B0%8F%E7%BB%93"><span class="toc-number">2.7.</span> <span class="toc-text">1.7 小结</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-2-%E7%AB%A0-%E5%85%AD%E6%9E%B6%E6%9E%84%E9%80%9F%E8%A7%88%EF%BC%88%E6%AF%8F%E4%B8%AA%E6%9E%B6%E6%9E%84-%E4%B8%80%E4%B8%AA%E7%B1%BB%E6%AF%94%EF%BC%89"><span class="toc-number">3.</span> <span class="toc-text">第 2 章 六架构速览（每个架构 &#x3D; 一个类比）</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#2-1-%E7%BD%91%E7%BB%9C%E6%9E%B6%E6%9E%84-%E9%82%AE%E5%B1%80%E4%BD%93%E7%B3%BB"><span class="toc-number">3.1.</span> <span class="toc-text">2.1 网络架构 &#x3D; 邮局体系</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-2-%E9%80%9A%E4%BF%A1%E6%9E%B6%E6%9E%84-%E5%AE%89%E6%A3%80%E6%B5%81%E6%B0%B4%E7%BA%BF"><span class="toc-number">3.2.</span> <span class="toc-text">2.2 通信架构 &#x3D; 安检流水线</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-3-%E5%90%8C%E6%AD%A5%E6%9E%B6%E6%9E%84-%E4%BF%A1%E4%BB%B6%E6%8A%84%E9%80%81-%E6%94%B9%E5%8A%A8%E6%97%A5%E8%AE%B0"><span class="toc-number">3.3.</span> <span class="toc-text">2.3 同步架构 &#x3D; 信件抄送 + 改动日记</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-4-RPC-%E6%9E%B6%E6%9E%84-%E7%94%B5%E8%AF%9D"><span class="toc-number">3.4.</span> <span class="toc-text">2.4 RPC 架构 &#x3D; 电话</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-5-%E5%88%86%E5%8F%91%E6%9E%B6%E6%9E%84-%E5%88%86%E5%8C%BA%E5%BF%AB%E9%80%92%E5%91%98"><span class="toc-number">3.5.</span> <span class="toc-text">2.5 分发架构 &#x3D; 分区快递员</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-6-%E7%BD%91%E5%85%B3%E6%9E%B6%E6%9E%84-%E9%97%A8%E5%8D%AB%E4%B8%8E%E6%8D%A2%E4%B9%98%E7%AB%99"><span class="toc-number">3.6.</span> <span class="toc-text">2.6 网关架构 &#x3D; 门卫与换乘站</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-7-%E5%85%AD%E6%9E%B6%E6%9E%84%E4%B8%B2%E8%B5%B7%E6%9D%A5%EF%BC%9A%E4%B8%80%E5%B8%A7%E7%9A%84%E6%97%85%E7%A8%8B-%E8%90%BD%E7%82%B9%E9%A2%84%E5%91%8A"><span class="toc-number">3.7.</span> <span class="toc-text">2.7 六架构串起来：一帧的旅程 + 落点预告</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-3-%E7%AB%A0-%E7%BD%91%E7%BB%9C%E6%9E%B6%E6%9E%84%EF%BC%9A%E8%BF%9E%E6%8E%A5%E4%B8%8E%E9%80%9A%E9%81%93"><span class="toc-number">4.</span> <span class="toc-text">第 3 章 网络架构：连接与通道</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#3-1-UNetDriver%EF%BC%9A%E9%82%AE%E5%B1%80%E6%80%BB%E5%B1%80"><span class="toc-number">4.1.</span> <span class="toc-text">3.1 UNetDriver：邮局总局</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-2-%E8%BF%9E%E6%8E%A5%EF%BC%9AUNetConnection"><span class="toc-number">4.2.</span> <span class="toc-text">3.2 连接：UNetConnection</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-3-%E9%80%9A%E9%81%93%E4%BD%93%E7%B3%BB%EF%BC%9AUChannel"><span class="toc-number">4.3.</span> <span class="toc-text">3.3 通道体系：UChannel</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-4-%E8%BF%9E%E6%8E%A5%E7%8A%B6%E6%80%81%E6%9C%BA%E4%B8%8E%E6%8F%A1%E6%89%8B%E5%8D%8F%E8%AE%AE"><span class="toc-number">4.4.</span> <span class="toc-text">3.4 连接状态机与握手协议</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-5-%E5%8C%85%E7%BA%A7%E5%8F%AF%E9%9D%A0%E6%80%A7%EF%BC%9A14-%E4%BD%8D%E5%BA%8F%E5%8F%B7-ACK-%E5%8E%86%E5%8F%B2"><span class="toc-number">4.5.</span> <span class="toc-text">3.5 包级可靠性：14 位序号 + ACK 历史</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-6-%E5%B8%A6%E5%AE%BD%E7%AE%A1%E7%90%86%EF%BC%9A%E4%BB%A4%E7%89%8C%E6%A1%B6%E4%B8%8E%E8%87%AA%E9%80%82%E5%BA%94%E9%A2%91%E7%8E%87"><span class="toc-number">4.6.</span> <span class="toc-text">3.6 带宽管理：令牌桶与自适应频率</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-7-%E6%BA%90%E7%A0%81%E8%80%83%E5%8F%A4%EF%BC%9ANetDriver-%E9%AA%A8%E6%9E%B6%E4%B8%8E-TickFlush-%E7%9A%84%E5%B8%A7%E4%BD%8D%E7%BD%AE"><span class="toc-number">4.7.</span> <span class="toc-text">3.7 源码考古：NetDriver 骨架与 TickFlush 的帧位置</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-4-%E7%AB%A0-%E9%80%9A%E4%BF%A1%E6%9E%B6%E6%9E%84%EF%BC%9APacketHandler-%E4%B8%8E%E5%8C%85%E6%A0%BC%E5%BC%8F"><span class="toc-number">5.</span> <span class="toc-text">第 4 章 通信架构：PacketHandler 与包格式</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#4-1-%E5%88%86%E5%B1%82%E6%A8%A1%E5%9E%8B%EF%BC%9A%E6%95%B0%E6%8D%AE%E6%8A%A5-%E2%86%92-%E6%9D%9F-%E2%86%92-%E6%B6%88%E6%81%AF-%E2%86%92-%E6%B8%B8%E6%88%8F%E8%AF%AD%E4%B9%89"><span class="toc-number">5.1.</span> <span class="toc-text">4.1 分层模型：数据报 → 束 → 消息 → 游戏语义</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-2-PacketHandler%EF%BC%9A%E5%AE%89%E6%A3%80%E6%B5%81%E6%B0%B4%E7%BA%BF"><span class="toc-number">5.2.</span> <span class="toc-text">4.2 PacketHandler：安检流水线</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-3-%E6%97%A0%E7%8A%B6%E6%80%81%E6%8F%A1%E6%89%8B%EF%BC%9A%E9%AA%8C%E6%98%8E%E6%AD%A3%E8%BA%AB"><span class="toc-number">5.3.</span> <span class="toc-text">4.3 无状态握手：验明正身</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-4-%E5%8A%A0%E5%AF%86%E4%B8%8E%E5%8E%8B%E7%BC%A9"><span class="toc-number">5.4.</span> <span class="toc-text">4.4 加密与压缩</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-5-%E5%AE%89%E5%85%A8%E5%85%9C%E5%BA%95%EF%BC%9ADDoS-%E4%B8%8E-RPC-%E6%BB%A5%E7%94%A8%E6%A3%80%E6%B5%8B"><span class="toc-number">5.5.</span> <span class="toc-text">4.5 安全兜底：DDoS 与 RPC 滥用检测</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-6-%E6%BA%90%E7%A0%81%E8%80%83%E5%8F%A4%EF%BC%9APacketHandler-%E7%9A%84%E9%AA%A8%E6%9E%B6"><span class="toc-number">5.6.</span> <span class="toc-text">4.6 源码考古：PacketHandler 的骨架</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-5-%E7%AB%A0-%E5%90%8C%E6%AD%A5%E6%9E%B6%E6%9E%84%EF%BC%9A%E5%B1%9E%E6%80%A7%E5%A4%8D%E5%88%B6"><span class="toc-number">6.</span> <span class="toc-text">第 5 章 同步架构：属性复制</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#5-1-%E9%97%AE%E9%A2%98%E4%B8%8E%E5%BF%83%E6%99%BA%E6%A8%A1%E5%9E%8B"><span class="toc-number">6.1.</span> <span class="toc-text">5.1 问题与心智模型</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-2-%E4%B8%89%E5%BC%A0%E8%A1%A8%EF%BC%88%E6%9C%AC%E7%AB%A0%E6%A0%B8%E5%BF%83%EF%BC%89"><span class="toc-number">6.2.</span> <span class="toc-text">5.2 三张表（本章核心）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-3-%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%BE%A7%E5%85%A5%E5%8F%A3%E9%93%BE%EF%BC%9A%E4%B8%89%E6%9D%A1%E8%B7%B3%E6%9D%BF"><span class="toc-number">6.3.</span> <span class="toc-text">5.3 服务器侧入口链：三条跳板</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-4-%E5%8F%98%E5%8C%96%E8%BF%BD%E8%B8%AA%EF%BC%9A%E5%8F%AA%E8%AE%B0-handle%EF%BC%8C%E4%B8%8D%E8%AE%B0%E5%80%BC"><span class="toc-number">6.4.</span> <span class="toc-text">5.4 变化追踪：只记 handle，不记值</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-5-%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%8E%E5%85%B1%E4%BA%AB%EF%BC%9A%E5%8F%AA%E5%8F%91%E5%B7%AE%E5%BC%82%EF%BC%8C%E8%BF%98%E5%8F%AA%E5%BA%8F%E5%88%97%E5%8C%96%E4%B8%80%E6%AC%A1"><span class="toc-number">6.5.</span> <span class="toc-text">5.5 序列化与共享：只发差异，还只序列化一次</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-6-%E8%87%AA%E5%AE%9A%E4%B9%89%E5%BA%8F%E5%88%97%E5%8C%96%E8%AE%BE%E6%96%BD"><span class="toc-number">6.6.</span> <span class="toc-text">5.6 自定义序列化设施</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-7-%E5%AE%A2%E6%88%B7%E7%AB%AF%E6%8E%A5%E6%94%B6%E9%93%BE%EF%BC%9A%E4%BB%8E%E5%8C%85%E5%88%B0-OnRep"><span class="toc-number">6.7.</span> <span class="toc-text">5.7 客户端接收链：从包到 OnRep</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-8-%E6%BA%90%E7%A0%81%E8%80%83%E5%8F%A4%EF%BC%9A%E4%B8%89%E5%BC%A0%E8%A1%A8%E7%9A%84%E5%85%B3%E9%94%AE%E7%BB%93%E6%9E%84"><span class="toc-number">6.8.</span> <span class="toc-text">5.8 源码考古：三张表的关键结构</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-6-%E7%AB%A0-RPC-%E6%9E%B6%E6%9E%84%EF%BC%9A%E8%BF%9C%E7%A8%8B%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A8%E7%9A%84%E5%85%A8%E9%93%BE%E8%B7%AF"><span class="toc-number">7.</span> <span class="toc-text">第 6 章 RPC 架构：远程函数调用的全链路</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#6-1-RPC-%E4%B8%8E%E5%B1%9E%E6%80%A7%E5%A4%8D%E5%88%B6%E7%9A%84%E5%88%86%E5%B7%A5"><span class="toc-number">7.1.</span> <span class="toc-text">6.1 RPC 与属性复制的分工</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-2-%E5%9B%9B%E7%A7%8D%E7%B1%BB%E5%9E%8B%E7%9F%A9%E9%98%B5"><span class="toc-number">7.2.</span> <span class="toc-text">6.2 四种类型矩阵</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-3-%E5%8F%91%E9%80%81%E9%93%BE%EF%BC%9AProcessRemoteFunction-%E7%9A%84%E6%80%BB%E6%9C%BA%E9%80%BB%E8%BE%91"><span class="toc-number">7.3.</span> <span class="toc-text">6.3 发送链：ProcessRemoteFunction 的总机逻辑</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-4-Multicast-%E6%8E%92%E9%98%9F%E4%B8%8E%E9%99%90%E6%B5%81"><span class="toc-number">7.4.</span> <span class="toc-text">6.4 Multicast 排队与限流</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-5-%E6%8E%A5%E6%94%B6%E9%93%BE%EF%BC%9A%E4%BB%8E%E6%9D%9F%E5%88%B0%E6%89%A7%E8%A1%8C"><span class="toc-number">7.5.</span> <span class="toc-text">6.5 接收链：从束到执行</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-6-%E9%99%B7%E9%98%B1%E4%B8%8E%E8%BE%B9%E7%95%8C"><span class="toc-number">7.6.</span> <span class="toc-text">6.6 陷阱与边界</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-7-%E6%BA%90%E7%A0%81%E8%80%83%E5%8F%A4%EF%BC%9AProcessRemoteFunction-%E5%85%A8%E5%88%86%E6%94%AF"><span class="toc-number">7.7.</span> <span class="toc-text">6.7 源码考古：ProcessRemoteFunction 全分支</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-7-%E7%AB%A0-%E5%88%86%E5%8F%91%E6%9E%B6%E6%9E%84%EF%BC%9A%E5%86%B3%E7%AD%96%E9%93%BE%E3%80%81Replication-Graph-%E4%B8%8E-Dormancy"><span class="toc-number">8.</span> <span class="toc-text">第 7 章 分发架构：决策链、Replication Graph 与 Dormancy</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#7-1-%E9%97%AE%E9%A2%98%E5%AE%9A%E4%B9%89%EF%BC%9A%E5%86%B3%E7%AD%96%E4%B8%8E%E5%BA%8F%E5%88%97%E5%8C%96%E7%9A%84%E5%88%86%E5%B7%A5"><span class="toc-number">8.1.</span> <span class="toc-text">7.1 问题定义：决策与序列化的分工</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-2-Legacy-%E5%86%B3%E7%AD%96%E9%93%BE%EF%BC%9A%E5%9B%9B%E6%AD%A5"><span class="toc-number">8.2.</span> <span class="toc-text">7.2 Legacy 决策链：四步</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-3-Replication-Graph%EF%BC%9A%E5%88%86%E5%8C%BA%E5%BF%AB%E9%80%92%E5%91%98"><span class="toc-number">8.3.</span> <span class="toc-text">7.3 Replication Graph：分区快递员</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-4-Dormancy%EF%BC%9A%E4%BC%91%E7%9C%A0%E7%9A%84-Actor-%E5%81%9C%E6%AD%A2%E6%B4%BE%E4%BB%B6"><span class="toc-number">8.4.</span> <span class="toc-text">7.4 Dormancy：休眠的 Actor 停止派件</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-5-%E5%90%AF%E7%94%A8%E4%B8%8E%E5%88%87%E6%8D%A2"><span class="toc-number">8.5.</span> <span class="toc-text">7.5 启用与切换</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-6-%E6%BA%90%E7%A0%81%E8%80%83%E5%8F%A4%EF%BC%9A%E5%86%B3%E7%AD%96%E9%93%BE%E4%B8%8E%E4%BC%91%E7%9C%A0%E5%88%A4%E5%AE%9A"><span class="toc-number">8.6.</span> <span class="toc-text">7.6 源码考古：决策链与休眠判定</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-8-%E7%AB%A0-%E7%BD%91%E5%85%B3%E6%9E%B6%E6%9E%84%EF%BC%9A%E7%99%BB%E5%BD%95%E3%80%81Beacon%E3%80%81%E6%97%85%E8%A1%8C%E4%B8%8E%E9%A2%84%E6%B5%8B"><span class="toc-number">9.</span> <span class="toc-text">第 8 章 网关架构：登录、Beacon、旅行与预测</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#8-1-%E7%BD%91%E5%85%B3%E7%9A%84%E5%AE%9A%E4%BD%8D%EF%BC%9A%E5%BC%95%E6%93%8E%E9%87%8C%E6%B2%A1%E6%9C%89%E2%80%9D%E7%BD%91%E5%85%B3%E6%9C%8D%E5%8A%A1%E5%99%A8%E2%80%9D"><span class="toc-number">9.1.</span> <span class="toc-text">8.1 网关的定位：引擎里没有”网关服务器”</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-2-%E7%99%BB%E5%BD%95%E9%93%BE%EF%BC%9AGameMode-%E9%AA%8C%E7%A5%A8"><span class="toc-number">9.2.</span> <span class="toc-text">8.2 登录链：GameMode 验票</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-3-Beacon%EF%BC%9A%E5%B8%A6%E5%A4%96%E4%B8%93%E7%BA%BF"><span class="toc-number">9.3.</span> <span class="toc-text">8.3 Beacon：带外专线</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-4-Session%EF%BC%9A%E6%89%BE%E6%88%BF%E9%97%B4%EF%BC%88%E5%B7%B2%E6%8F%92%E4%BB%B6%E5%8C%96%EF%BC%89"><span class="toc-number">9.4.</span> <span class="toc-text">8.4 Session：找房间（已插件化）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-5-%E6%97%85%E8%A1%8C%E4%B8%8E%E5%85%B3%E5%8D%A1%E5%88%86%E5%8F%91%EF%BC%9A%E6%8D%A2%E4%B9%98%E4%B8%8E%E4%B8%8B%E8%BD%A6"><span class="toc-number">9.5.</span> <span class="toc-text">8.5 旅行与关卡分发：换乘与下车</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-6-PlayerController%EF%BC%9A%E7%8E%A9%E5%AE%B6%E7%9A%84%E6%9B%BF%E8%BA%AB"><span class="toc-number">9.6.</span> <span class="toc-text">8.6 PlayerController：玩家的替身</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-7-%E5%AE%A2%E6%88%B7%E7%AB%AF%E9%A2%84%E6%B5%8B%EF%BC%9A%E5%85%88%E6%96%A9%E5%90%8E%E5%A5%8F"><span class="toc-number">9.7.</span> <span class="toc-text">8.7 客户端预测：先斩后奏</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-8-%E6%BA%90%E7%A0%81%E8%80%83%E5%8F%A4%EF%BC%9AGameMode-%E7%99%BB%E5%BD%95%E5%9B%9B%E5%87%BD%E6%95%B0"><span class="toc-number">9.8.</span> <span class="toc-text">8.8 源码考古：GameMode 登录四函数</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-9-%E7%AB%A0-%E4%B8%93%E9%A2%98%E4%B8%80%EF%BC%9A%E7%A7%BB%E5%8A%A8%E7%AB%AF%E7%BD%91%E7%BB%9C%E4%BC%98%E5%8C%96"><span class="toc-number">10.</span> <span class="toc-text">第 9 章 专题一：移动端网络优化</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#9-1-%E7%A7%BB%E5%8A%A8%E7%BD%91%E7%BB%9C%E7%9A%84%E8%B4%A6%E6%9C%AC"><span class="toc-number">10.1.</span> <span class="toc-text">9.1 移动网络的账本</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-2-%E5%88%86%E5%B1%82%E8%B0%83%E5%8F%82%EF%BC%9A%E9%A2%91%E7%8E%87%E5%88%86%E5%B1%82"><span class="toc-number">10.2.</span> <span class="toc-text">9.2 分层调参：频率分层</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-3-%E5%B8%A6%E5%AE%BD%E5%8E%8B%E7%BC%A9%E4%B8%89%E6%9D%BF%E6%96%A7"><span class="toc-number">10.3.</span> <span class="toc-text">9.3 带宽压缩三板斧</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-4-%E6%9C%8D%E5%8A%A1%E5%99%A8-Tick-%E7%8E%87"><span class="toc-number">10.4.</span> <span class="toc-text">9.4 服务器 Tick 率</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-5-%E5%AE%9E%E6%88%98%E8%B0%83%E4%BC%98%E8%B7%AF%E7%BA%BF%E5%9B%BE%EF%BC%88%E4%BA%94%E6%AD%A5%E6%B3%95%EF%BC%89"><span class="toc-number">10.5.</span> <span class="toc-text">9.5 实战调优路线图（五步法）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-6-%E7%A7%BB%E5%8A%A8%E7%AB%AF%E9%81%BF%E5%9D%91%E6%B8%85%E5%8D%95"><span class="toc-number">10.6.</span> <span class="toc-text">9.6 移动端避坑清单</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-10-%E7%AB%A0-%E4%B8%93%E9%A2%98%E4%BA%8C%EF%BC%9A%E5%A4%A7%E4%B8%96%E7%95%8C%E5%A4%9A%E4%BA%BA%E5%88%86%E5%8F%91%E5%AE%9E%E6%88%98"><span class="toc-number">11.</span> <span class="toc-text">第 10 章 专题二：大世界多人分发实战</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#10-1-%E6%88%90%E6%9C%AC%E6%A8%A1%E5%9E%8B%EF%BC%9AO-N%C3%97M-%E7%9A%84%E8%B4%A6"><span class="toc-number">11.1.</span> <span class="toc-text">10.1 成本模型：O(N×M) 的账</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-2-RepGraph-%E8%90%BD%E5%9C%B0"><span class="toc-number">11.2.</span> <span class="toc-text">10.2 RepGraph 落地</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-3-Dormancy-%E7%AD%96%E7%95%A5"><span class="toc-number">11.3.</span> <span class="toc-text">10.3 Dormancy 策略</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-4-%E4%B8%8E-World-Partition-%E9%85%8D%E5%90%88"><span class="toc-number">11.4.</span> <span class="toc-text">10.4 与 World Partition 配合</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-5-%E5%AE%9E%E6%B5%8B%E8%B0%83%E5%8F%82%E8%B7%AF%E7%BA%BF%E5%9B%BE"><span class="toc-number">11.5.</span> <span class="toc-text">10.5 实测调参路线图</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-11-%E7%AB%A0-%E4%B8%93%E9%A2%98%E4%B8%89%EF%BC%9A%E8%B0%83%E8%AF%95%E5%B7%A5%E5%85%B7%E9%93%BE"><span class="toc-number">12.</span> <span class="toc-text">第 11 章 专题三：调试工具链</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#11-1-NetTrace%EF%BC%9A%E5%A4%8D%E5%88%B6%E6%98%8E%E7%BB%86%E8%BF%BD%E8%B8%AA"><span class="toc-number">12.1.</span> <span class="toc-text">11.1 NetTrace：复制明细追踪</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#11-2-%E6%8E%A7%E5%88%B6%E5%8F%B0%E4%B8%8E%E7%BB%9F%E8%AE%A1"><span class="toc-number">12.2.</span> <span class="toc-text">11.2 控制台与统计</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#11-3-%E7%97%87%E7%8A%B6-%E2%86%92-%E5%AE%9A%E4%BD%8D%E8%A1%A8"><span class="toc-number">12.3.</span> <span class="toc-text">11.3 症状 → 定位表</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#11-4-%E5%8C%85%E6%8D%95%E8%8E%B7%EF%BC%9A%E7%BB%88%E6%9E%81%E6%89%8B%E6%AE%B5"><span class="toc-number">12.4.</span> <span class="toc-text">11.4 包捕获：终极手段</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-12-%E7%AB%A0-%E5%B9%B3%E5%8F%B0%E6%94%AF%E6%8C%81%E4%B8%8E%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98"><span class="toc-number">13.</span> <span class="toc-text">第 12 章 平台支持与性能调优</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#12-1-CVar-%E9%80%9F%E6%9F%A5%E8%A1%A8%EF%BC%88%E5%86%99%E4%BD%9C%E6%97%B6%E4%BB%A5-grep-%E6%A0%B8%E5%AE%9E%E9%BB%98%E8%AE%A4%E5%80%BC%EF%BC%89"><span class="toc-number">13.1.</span> <span class="toc-text">12.1 CVar 速查表（写作时以 grep 核实默认值）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#12-2-%E8%B0%83%E4%BC%98%E5%B7%A5%E4%BD%9C%E6%B5%81"><span class="toc-number">13.2.</span> <span class="toc-text">12.2 调优工作流</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#12-3-%E5%B8%B8%E8%A7%81%E5%9D%91%E6%B8%85%E5%8D%95"><span class="toc-number">13.3.</span> <span class="toc-text">12.3 常见坑清单</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-13-%E7%AB%A0-%E5%B1%80%E9%99%90%E3%80%81%E6%9B%BF%E4%BB%A3%E6%96%B9%E6%A1%88%E4%B8%8E%E5%B1%95%E6%9C%9B"><span class="toc-number">14.</span> <span class="toc-text">第 13 章 局限、替代方案与展望</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#13-1-%E5%B1%80%E9%99%90%E4%B8%8E%E5%AF%B9%E7%AD%96"><span class="toc-number">14.1.</span> <span class="toc-text">13.1 局限与对策</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#13-2-Iris%EF%BC%9AEpic-%E7%9A%84%E9%87%8D%E5%86%99"><span class="toc-number">14.2.</span> <span class="toc-text">13.2 Iris：Epic 的重写</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#13-3-%E6%9B%BF%E4%BB%A3%E8%B7%AF%E5%BE%84"><span class="toc-number">14.3.</span> <span class="toc-text">13.3 替代路径</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#13-4-%E6%BC%94%E8%BF%9B%E6%97%B6%E9%97%B4%E7%BA%BF%E4%B8%8E%E9%98%85%E8%AF%BB%E8%BF%9B%E9%98%B6"><span class="toc-number">14.4.</span> <span class="toc-text">13.4 演进时间线与阅读进阶</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%99%84%E5%BD%95-A-%E6%BA%90%E7%A0%81%E5%9C%B0%E5%9B%BE"><span class="toc-number">15.</span> <span class="toc-text">附录 A 源码地图</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#A-1-%E7%BD%91%E7%BB%9C%E6%9E%B6%E6%9E%84%EF%BC%88%E8%BF%9E%E6%8E%A5%E4%B8%8E%E9%80%9A%E9%81%93%EF%BC%89"><span class="toc-number">15.1.</span> <span class="toc-text">A.1 网络架构（连接与通道）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#A-2-%E9%80%9A%E4%BF%A1%E6%9E%B6%E6%9E%84%EF%BC%88PacketHandler%EF%BC%89"><span class="toc-number">15.2.</span> <span class="toc-text">A.2 通信架构（PacketHandler）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#A-3-%E5%90%8C%E6%AD%A5%E6%9E%B6%E6%9E%84%EF%BC%88%E5%B1%9E%E6%80%A7%E5%A4%8D%E5%88%B6%EF%BC%89"><span class="toc-number">15.3.</span> <span class="toc-text">A.3 同步架构（属性复制）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#A-4-RPC-%E6%9E%B6%E6%9E%84"><span class="toc-number">15.4.</span> <span class="toc-text">A.4 RPC 架构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#A-5-%E5%88%86%E5%8F%91%E6%9E%B6%E6%9E%84%EF%BC%88%E5%86%B3%E7%AD%96%E9%93%BE-RepGraph-Dormancy%EF%BC%89"><span class="toc-number">15.5.</span> <span class="toc-text">A.5 分发架构（决策链 + RepGraph + Dormancy）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#A-6-%E7%BD%91%E5%85%B3%E6%9E%B6%E6%9E%84%EF%BC%88%E7%99%BB%E5%BD%95-Beacon-%E6%97%85%E8%A1%8C-%E9%A2%84%E6%B5%8B%EF%BC%89"><span class="toc-number">15.6.</span> <span class="toc-text">A.6 网关架构（登录&#x2F;Beacon&#x2F;旅行&#x2F;预测）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#A-7-Iris-%E4%B8%8E-NetCore-%E6%94%AF%E6%92%91"><span class="toc-number">15.7.</span> <span class="toc-text">A.7 Iris 与 NetCore 支撑</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%99%84%E5%BD%95-B-%E6%9C%AF%E8%AF%AD%E8%A1%A8%EF%BC%88%E4%B8%AD%E8%8B%B1%E5%AF%B9%E7%85%A7%EF%BC%89"><span class="toc-number">16.</span> <span class="toc-text">附录 B 术语表（中英对照）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%99%84%E5%BD%95-C-%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="toc-number">17.</span> <span class="toc-text">附录 C 参考资料</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%99%84%E5%BD%95-D-%E8%87%AA%E6%B5%8B%E7%BB%83%E4%B9%A0"><span class="toc-number">18.</span> <span class="toc-text">附录 D 自测练习</span></a></li></ol></div></div></div></aside><main class="sidebar-translate" id="content"><div id="post"><article class="hty-card post-block" itemscope itemtype="https://schema.org/Article" style="--smc-primary:#0078E7;"><link itemprop="mainEntityOfPage" href="https://1393650770.github.io/2026/08/26/2026-8-26-UENetworkArchitecture/"><span hidden itemprop="author" itemscope itemtype="https://schema.org/Person"><meta itemprop="name" content="mx"><meta itemprop="description"></span><span hidden itemprop="publisher" itemscope itemtype="https://schema.org/Organization"><meta itemprop="name" content="MX的花海小屋与玩具恐龙"></span><header class="post-header"><h1 class="post-title" itemprop="name headline">Unreal Engine 网络架构完全教程</h1><div class="post-meta"><div class="post-time"><span class="post-meta-item-icon"><span class="icon iconify" data-icon="ri:calendar-line"></span></span> <time title="Created: 2026-08-26 12:00:00" itemprop="dateCreated datePublished" datetime="2026-08-26T12:00:00+08:00">2026-08-26</time></div><div class="post-classify"><span class="post-category"> <span class="post-meta-item-icon" style="margin-right:3px;"><span class="icon iconify" data-icon="ri:folder-line"></span></span><span itemprop="about" itemscope itemtype="https://schema.org/Thing"><a class="category-item" href="/categories/mx%E7%9A%84%E8%AE%B0%E5%BD%95/" style="--text-color:var(--hty-text-color)" itemprop="url" rel="index"><span itemprop="text">mx的记录</span></a></span></span><span class="post-tag"><span class="post-meta-divider">-</span><a class="tag-item" href="/tags/%E6%8A%80%E6%9C%AF/" style="--text-color:var(--hty-text-color)"><span class="post-meta-item-icon"><span class="icon iconify" data-icon="ri:price-tag-3-line"></span></span><span class="tag-name">技术</span></a><a class="tag-item" href="/tags/%E6%8A%80%E6%9C%AF%E7%AE%80%E8%A6%81/" style="--text-color:var(--hty-text-color)"><span class="post-meta-item-icon"><span class="icon iconify" data-icon="ri:price-tag-3-line"></span></span><span class="tag-name">技术简要</span></a></span></div></div></header><section class="post-body" itemprop="articleBody"><div class="post-content markdown-body"><blockquote>
+<p>从”普通程序员能听懂”到”能改 UE 网络源码”——基于源码逐行考证，六架构全覆盖：<br><strong>网络 &#x2F; 同步 &#x2F; RPC &#x2F; 通信 &#x2F; 分发 &#x2F; 网关</strong>，附移动端优化 &#x2F; 大世界分发 &#x2F; 调试工具链三大专题</p>
+</blockquote>
+<ul>
+<li><strong>文档版本</strong>：1.0（2026-08-26）</li>
+<li><strong>源码快照</strong>：本地仓库 <code>d:\Project\GameDevelop\UnrealEngine</code>，UE 5.9 移动优化 fork，HEAD <code>6cea9bd20f8f</code></li>
+<li><strong>写作原则</strong>：文中所有”源码考古”块引用的文件路径、行号、函数名均在本仓库中实际验证过；行号只用于定位，请以 <code>路径:函数名</code> 为准</li>
+<li><strong>姊妹文档</strong>：本文是《Nanite 虚拟几何体完全教程》与《Virtual Shadow Maps 完全教程》的第三篇——同一写作体系，但网络是 <strong>CPU 侧、跨进程</strong>的世界（前两篇是 GPU 侧单进程），读者无需先读前两篇</li>
+<li><strong>符号说明</strong>：<code>Replication</code>&#x3D;复制，<code>Bunch</code>&#x3D;束，<code>Packet</code>&#x3D;数据报，<code>NetGUID</code>&#x2F;<code>RepGraph</code>&#x2F;<code>Changelist</code>&#x2F;<code>Beacon</code>&#x2F;<code>Iris</code> 不翻译，<code>Dormancy</code>&#x3D;休眠，<code>Relevancy</code>&#x3D;相关性</li>
+</ul>
+<hr>
+<h1 id="第-0-章-导读：这份文档怎么读"><a href="#第-0-章-导读：这份文档怎么读" class="headerlink" title="第 0 章 导读：这份文档怎么读"></a>第 0 章 导读：这份文档怎么读</h1><blockquote>
+<p><strong>TL;DR</strong>｜这份文档把 UE 网络架构拆成六个子系统讲透：<strong>网络</strong>（邮局：连接与通道）、<br><strong>同步</strong>（信件抄送：属性复制）、<strong>RPC</strong>（电话：远程函数调用）、<strong>通信</strong>（安检流水线：<br>PacketHandler 与包格式）、<strong>分发</strong>（分区快递员：谁该收到什么）、<strong>网关</strong>（门卫与换乘站：<br>登录&#x2F;Beacon&#x2F;旅行）。三个深度档位：30 秒看懂、半天学会调参、1 天读源码。</p>
+</blockquote>
+<h2 id="0-1-目标读者与前置知识"><a href="#0-1-目标读者与前置知识" class="headerlink" title="0.1 目标读者与前置知识"></a>0.1 目标读者与前置知识</h2><p>目标读者是<strong>普通程序员</strong>：写过 C++、用蓝图或代码摆弄过 Actor、知道”服务器和客户端”是什么但没深挖过 UE 的网络层。每个网络术语第一次出现都配一句直觉解释。</p>
+<p>前置知识三个：</p>
+<ol>
+<li><strong>UDP 与 TCP 的区别</strong>：UDP 快但会丢包乱序，TCP 可靠但慢（重传+拥塞控制）。UE 用 <strong>UDP 打底</strong>、自己实现可靠性——理解这一点是全文档的钥匙；</li>
+<li><strong>权威服务器</strong>：多人游戏里”谁说了算”——服务器是唯一真相，客户端只能建议；</li>
+<li><strong>Actor 与蓝图</strong>：UE 的场景对象与脚本基础。</li>
+</ol>
+<p><strong>与姊妹文档的关系</strong>：Nanite&#x2F;VSM 讲的是”一帧怎么画出来”，本文讲的是”多台机器怎么玩同一个游戏”——但思维方式一脉相承：<strong>理解分层、理解数据结构、理解决策链</strong>。</p>
+<h2 id="0-2-三条阅读路径"><a href="#0-2-三条阅读路径" class="headerlink" title="0.2 三条阅读路径"></a>0.2 三条阅读路径</h2><table>
+<thead>
+<tr>
+<th>通道</th>
+<th>读什么</th>
+<th>耗时</th>
+<th>读完能做什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>🚀 30 秒通道</td>
+<td>每章 TL;DR + 第 2 章六类比 + 图 F1</td>
+<td>10 分钟</td>
+<td>跟人讲清六架构分工、复制与 RPC 的区别、C&#x2F;S 权威模型</td>
+</tr>
+<tr>
+<td>📚 标准通道</td>
+<td>TL;DR + 正文 + 全部图 + 第 9~12 章</td>
+<td>6~8 小时</td>
+<td>完整数据流；会调 CVar 优化带宽；能设计属性复制方案；会用 NetTrace 排障</td>
+</tr>
+<tr>
+<td>🔬 源码考古通道</td>
+<td>全部 + 源码考古块 + 附录 A 对照</td>
+<td>1~2 天</td>
+<td>敢打开 <code>Engine/Private/</code> 对照着读，能定位任意子系统入口，能改网络源码</td>
+</tr>
+</tbody></table>
+<h2 id="0-3-块标记约定"><a href="#0-3-块标记约定" class="headerlink" title="0.3 块标记约定"></a>0.3 块标记约定</h2><p>与姊妹文档完全一致：</p>
+<ul>
+<li>**<code>TL;DR</code>**（每章开头）：30 秒读完本章，3~5 句、必须含类比名、不含源码路径；</li>
+<li>**<code>类比实验室</code>**（正文小节）：用普通程序员已懂的东西讲陌生概念；</li>
+<li>**<code>源码考古</code>**（每章末尾，折叠块）：贴真实源码（≤25 行&#x2F;段），逐行翻译。引用格式：<code>路径:行号（函数名）</code>；</li>
+<li>**<code>避坑</code>**（正文穿插）：版本差异、公开资料与当前代码不一致、易错点。</li>
+</ul>
+<h2 id="0-4-一张图看懂全局"><a href="#0-4-一张图看懂全局" class="headerlink" title="0.4 一张图看懂全局"></a>0.4 一张图看懂全局</h2><figure>
+<figcaption>图 F1　UE 网络全链路总览（六架构分工；此图贯穿全文，后文各章是对它的展开）</figcaption>
+<svg viewBox="0 0 1240 520" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, 'Microsoft YaHei', sans-serif">
+  <style>
+    .f1-box { fill: #ffffff; stroke: #b9b4a8; stroke-width: 1.5; rx: 8; }
+    .f1-step { fill: #fdf0e0; stroke: #c2702a; stroke-width: 1.5; rx: 8; }
+    .f1-txt { fill: #33312c; font-size: 13px; }
+    .f1-txt-s { fill: #6b675e; font-size: 11.5px; }
+    .f1-title { fill: #33312c; font-size: 13px; font-weight: bold; }
+    .f1-arrow { stroke: #8a857a; stroke-width: 2; marker-end: url(#f1arr); fill: none; }
+    .f1-loop { stroke: #0f766e; stroke-width: 2; stroke-dasharray: 6 4; marker-end: url(#f1arr); fill: none; }
+  </style>
+  <defs>
+    <marker id="f1arr" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#8a857a"/>
+    </marker>
+  </defs>
+
+  <!-- 顶部：游戏逻辑层 -->
+  <rect class="f1-box" x="10" y="10" width="1220" height="36"/>
+  <text class="f1-txt" x="620" y="34" text-anchor="middle">游戏逻辑层（World Tick：TickDispatch 收 → Actor Tick → TickFlush 发，LevelTick.cpp:1926-1938）</text>
+
+  <!-- 六块主流程 -->
+  <!-- ① 收包（网络架构） -->
+  <rect class="f1-box" x="10" y="70" width="190" height="300"/>
+  <text class="f1-title" x="105" y="92" text-anchor="middle">① 收包</text>
+  <text class="f1-txt-s" x="105" y="110" text-anchor="middle">网络架构（第 3 章）</text>
+  <rect class="f1-sub" x="25" y="124" width="160" height="30"/>
+  <text class="f1-txt-s" x="105" y="144" text-anchor="middle">Socket 收 UDP 数据报</text>
+  <rect class="f1-sub" x="25" y="160" width="160" height="30"/>
+  <text class="f1-txt-s" x="105" y="180" text-anchor="middle">UNetConnection::ReceivedPacket</text>
+  <rect class="f1-sub" x="25" y="196" width="160" height="30"/>
+  <text class="f1-txt-s" x="105" y="216" text-anchor="middle">包序号/ACK 处理（NetPacketNotify）</text>
+  <rect class="f1-sub" x="25" y="232" width="160" height="30"/>
+  <text class="f1-txt-s" x="105" y="252" text-anchor="middle">Channel 分发（DispatchPacket）</text>
+  <rect class="f1-sub" x="25" y="268" width="160" height="30"/>
+  <text class="f1-txt-s" x="105" y="288" text-anchor="middle">Bunch 重组（ReceivedNextBunch）</text>
+
+  <!-- ② 拆包验包（通信架构） -->
+  <rect class="f1-box" x="220" y="70" width="190" height="300"/>
+  <text class="f1-title" x="315" y="92" text-anchor="middle">② 拆包验包</text>
+  <text class="f1-txt-s" x="315" y="110" text-anchor="middle">通信架构（第 4 章）</text>
+  <rect class="f1-sub" x="235" y="124" width="160" height="30"/>
+  <text class="f1-txt-s" x="315" y="144" text-anchor="middle">PacketHandler 入向流水线</text>
+  <rect class="f1-sub" x="235" y="160" width="160" height="30"/>
+  <text class="f1-txt-s" x="315" y="180" text-anchor="middle">解密 / 解压 / 验签</text>
+  <rect class="f1-sub" x="235" y="196" width="160" height="30"/>
+  <text class="f1-txt-s" x="315" y="216" text-anchor="middle">无状态握手验证（StatelessConnect）</text>
+  <rect class="f1-sub" x="235" y="232" width="160" height="30"/>
+  <text class="f1-txt-s" x="315" y="252" text-anchor="middle">DDoS 检测兜底</text>
+
+  <!-- ③ 游戏逻辑 -->
+  <rect class="f1-box" x="430" y="70" width="190" height="300"/>
+  <text class="f1-title" x="525" y="92" text-anchor="middle">③ 游戏逻辑</text>
+  <text class="f1-txt-s" x="525" y="110" text-anchor="middle">第 1 章（世界观）</text>
+  <rect class="f1-sub" x="445" y="124" width="160" height="30"/>
+  <text class="f1-txt-s" x="525" y="144" text-anchor="middle">Actor Tick / 移动 / 伤害</text>
+  <rect class="f1-sub" x="445" y="160" width="160" height="30"/>
+  <text class="f1-txt-s" x="525" y="180" text-anchor="middle">服务器权威计算</text>
+  <rect class="f1-sub" x="445" y="196" width="160" height="30"/>
+  <text class="f1-txt-s" x="525" y="216" text-anchor="middle">客户端：预测 + 输入上报</text>
+  <rect class="f1-sub" x="445" y="232" width="160" height="30"/>
+  <text class="f1-txt-s" x="525" y="252" text-anchor="middle">（网关架构第 8 章：登录后进游戏）</text>
+
+  <!-- ④ 复制决策（分发架构） -->
+  <rect class="f1-box" x="640" y="70" width="190" height="300"/>
+  <text class="f1-title" x="735" y="92" text-anchor="middle">④ 复制决策</text>
+  <text class="f1-txt-s" x="735" y="110" text-anchor="middle">分发架构（第 7 章）</text>
+  <rect class="f1-step" x="655" y="124" width="160" height="30"/>
+  <text class="f1-txt-s" x="735" y="144" text-anchor="middle">ServerReplicateActors（决策链四步）</text>
+  <rect class="f1-sub" x="655" y="160" width="160" height="30"/>
+  <text class="f1-txt-s" x="735" y="180" text-anchor="middle">NetUpdateFrequency 门控</text>
+  <rect class="f1-sub" x="655" y="196" width="160" height="30"/>
+  <text class="f1-txt-s" x="735" y="216" text-anchor="middle">优先级排序 / 相关性判定</text>
+  <rect class="f1-sub" x="655" y="232" width="160" height="30"/>
+  <text class="f1-txt-s" x="735" y="252" text-anchor="middle">RepGraph：空间网格替代挨个查</text>
+  <rect class="f1-sub" x="655" y="268" width="160" height="30"/>
+  <text class="f1-txt-s" x="735" y="288" text-anchor="middle">Dormancy：休眠的 Actor 不派件</text>
+
+  <!-- ⑤ 序列化出包（同步+RPC） -->
+  <rect class="f1-box" x="850" y="70" width="190" height="300"/>
+  <text class="f1-title" x="945" y="92" text-anchor="middle">⑤ 序列化出包</text>
+  <text class="f1-txt-s" x="945" y="110" text-anchor="middle">同步+RPCA（第 5/6 章）</text>
+  <rect class="f1-step" x="865" y="124" width="160" height="30"/>
+  <text class="f1-txt-s" x="945" y="144" text-anchor="middle">FRepLayout：只发变化的属性</text>
+  <rect class="f1-sub" x="865" y="160" width="160" height="30"/>
+  <text class="f1-txt-s" x="945" y="180" text-anchor="middle">NetSerialize 量化压缩</text>
+  <rect class="f1-sub" x="865" y="196" width="160" height="30"/>
+  <text class="f1-txt-s" x="945" y="216" text-anchor="middle">ProcessRemoteFunction（RPC 分发）</text>
+  <rect class="f1-sub" x="865" y="232" width="160" height="30"/>
+  <text class="f1-txt-s" x="945" y="252" text-anchor="middle">FOutBunch 打包（可靠/部分标志）</text>
+
+  <!-- ⑥ 出厂（通信+网络） -->
+  <rect class="f1-box" x="1060" y="70" width="170" height="300"/>
+  <text class="f1-title" x="1145" y="92" text-anchor="middle">⑥ 出厂到客户端</text>
+  <text class="f1-txt-s" x="1145" y="110" text-anchor="middle">通信+网络（第 4/3 章）</text>
+  <rect class="f1-sub" x="1075" y="124" width="140" height="30"/>
+  <text class="f1-txt-s" x="1145" y="144" text-anchor="middle">PacketHandler 出向流水线</text>
+  <rect class="f1-sub" x="1075" y="160" width="140" height="30"/>
+  <text class="f1-txt-s" x="1145" y="180" text-anchor="middle">加密 / 压缩 / 打包</text>
+  <rect class="f1-sub" x="1075" y="196" width="140" height="30"/>
+  <text class="f1-txt-s" x="1145" y="216" text-anchor="middle">令牌桶限速（QueuedBits）</text>
+  <rect class="f1-sub" x="1075" y="232" width="140" height="30"/>
+  <text class="f1-txt-s" x="1145" y="252" text-anchor="middle">UDP 发出</text>
+
+  <!-- 主流程箭头 -->
+  <path class="f1-arrow" d="M200,220 L218,220"/>
+  <path class="f1-arrow" d="M410,220 L428,220"/>
+  <path class="f1-arrow" d="M620,220 L638,220"/>
+  <path class="f1-arrow" d="M830,220 L848,220"/>
+  <path class="f1-arrow" d="M1040,220 L1058,220"/>
+
+  <!-- 回环：客户端 ACK/输入 -->
+<p>  <text class="f1-txt-s" x="1145" y="400" text-anchor="middle">客户端：收包 → 应用状态（ReceiveProperties→OnRep）</text><br>  <path class="f1-loop" d="M1145,372 C1145,430 620,450 620,372"/><br>  <text class="f1-txt-s" x="620" y="468" text-anchor="middle">客户端 ACK &#x2F; 输入 &#x2F; 纠偏确认 → 服务器下一帧（拥塞控制：FNetworkCongestionControl）</text></p>
+  <!-- 底部章节标注 -->
+<p>  <text class="f1-txt-s" x="105" y="400" text-anchor="middle">第 3 章</text><br>  <text class="f1-txt-s" x="315" y="400" text-anchor="middle">第 4 章</text><br>  <text class="f1-txt-s" x="525" y="400" text-anchor="middle">第 1&#x2F;8 章</text><br>  <text class="f1-txt-s" x="735" y="400" text-anchor="middle">第 7 章</text><br>  <text class="f1-txt-s" x="945" y="400" text-anchor="middle">第 5&#x2F;6 章</text><br>  <text class="f1-txt-s" x="1145" y="400" text-anchor="middle">第 4&#x2F;3 章</text><br>  <text class="f1-txt-s" x="620" y="510" text-anchor="middle">左侧竖轴：客户端进门（网关架构 第 8 章：Hello→Challenge→Login→Welcome→Join）</text><br></svg></p>
+</figure>
+
+<p><strong>读图方法</strong>：一帧的服务器旅程——① 收到客户端的包（网络层认路）→ ② 拆包验包（通信层安检）→ ③ 游戏逻辑跑起来（世界观）→ ④ 决定”谁该收到什么”（分发层决策）→ ⑤ 把变化序列化成束（同步+RPC）→ ⑥ 出厂发回客户端（通信+网络）。底部回环是下一帧的燃料：客户端的 ACK 与输入。<strong>六块 &#x3D; 六章</strong>，图会随阅读展开。</p>
+<h2 id="0-5-章节地图"><a href="#0-5-章节地图" class="headerlink" title="0.5 章节地图"></a>0.5 章节地图</h2><table>
+<thead>
+<tr>
+<th>篇</th>
+<th>章节</th>
+<th>一句话</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>开篇</td>
+<td>第 0~1 章</td>
+<td>怎么读 + UE 网络世界观（权威服务器、两大手段）</td>
+</tr>
+<tr>
+<td>概念篇</td>
+<td>第 2 章</td>
+<td>六架构速览（每个架构一个类比）</td>
+</tr>
+<tr>
+<td>机制篇</td>
+<td>第 3~8 章</td>
+<td><strong>网络 &#x2F; 通信 &#x2F; 同步 &#x2F; RPC &#x2F; 分发 &#x2F; 网关</strong> 六大架构逐章拆解</td>
+</tr>
+<tr>
+<td>专题篇</td>
+<td>第 9~11 章</td>
+<td>移动端优化 &#x2F; 大世界分发 &#x2F; 调试工具链</td>
+</tr>
+<tr>
+<td>调优篇</td>
+<td>第 12~13 章</td>
+<td>CVar 速查与常见坑 &#x2F; 局限与展望</td>
+</tr>
+<tr>
+<td>附录</td>
+<td>A~D</td>
+<td>源码地图、术语表、参考资料、自测题</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="第-1-章-网络世界观：权威服务器与两大手段"><a href="#第-1-章-网络世界观：权威服务器与两大手段" class="headerlink" title="第 1 章 网络世界观：权威服务器与两大手段"></a>第 1 章 网络世界观：权威服务器与两大手段</h1><blockquote>
+<p><strong>TL;DR</strong>｜UE 网络的世界观是”<strong>服务器说了算</strong>“：一切游戏状态以权威服务器为准，客户端只能<br>“建议”（发输入）并”先斩后奏”（本地预测）。四种运行模式本质只有两类——服务器与客户端。<br>同步靠<strong>两大手段</strong>：<strong>属性复制 &#x3D; 信件抄送</strong>（状态定期送达）与 <strong>RPC &#x3D; 电话</strong>（事件即时触发）。<br>一句话：<strong>服务器是真相，客户端是建议者</strong>。</p>
+</blockquote>
+<h2 id="1-1-两种世界观：状态同步-vs-帧同步"><a href="#1-1-两种世界观：状态同步-vs-帧同步" class="headerlink" title="1.1 两种世界观：状态同步 vs 帧同步"></a>1.1 两种世界观：状态同步 vs 帧同步</h2><p>多人游戏同步有两种主流哲学：</p>
+<ul>
+<li><strong>帧同步（Lockstep）</strong>：所有客户端跑同一套确定性模拟，只同步”输入”——大家吃同样的输入、算同样的结果。优点是带宽极小；缺点是<strong>任何非确定性都会导致分歧</strong>（浮点差异、随机数、物理），且 RTT 高的玩家拖慢所有人（要等输入）。</li>
+<li><strong>状态同步（State Sync）</strong>：服务器跑权威模拟，把<strong>状态变化</strong>广播给客户端；客户端自行渲染（可预测）。带宽更高，但<strong>鲁棒</strong>：客户端掉帧、作弊、非确定性都不影响服务器。</li>
+</ul>
+<p><strong>UE 选的是状态同步</strong>（官方文档措辞：”The server is where the game actually happens”）。理解这个选择就理解了 UE 网络的一切设计：服务器是真相源，客户端是”远程操控的视图”。</p>
+<p><strong>P2P vs 权威 C&#x2F;S</strong>：UE 引擎层没有原生 P2P——所谓”P2P 游戏”（如大厅邀请制）是<strong>某客户端以 ListenServer 身份建主机</strong>，配合 OnlineSubsystem 会话实现的。权威服务器仍然是唯一真相源。</p>
+<h2 id="1-2-权威模型：服务器是唯一真相"><a href="#1-2-权威模型：服务器是唯一真相" class="headerlink" title="1.2 权威模型：服务器是唯一真相"></a>1.2 权威模型：服务器是唯一真相</h2><p><strong>权威服务器（Authoritative Server）</strong>的含义：</p>
+<ol>
+<li>服务器运行”真正的游戏”——伤害计算、移动结果、拾取判定全在服务器；</li>
+<li>客户端发来的东西是<strong>建议</strong>（Request），不是事实——客户端说”我跑到 (100,50) 了”，服务器验证后说”行”或”不对，你在 (98,50)”；</li>
+<li>客户端为了手感<strong>预测</strong>（Prediction）——先本地模拟，服务器纠偏时再改正（第 8.7 章）。</li>
+</ol>
+<blockquote>
+<p><strong>类比实验室：先斩后奏</strong><br>想象你向老板汇报工作：你先按自己的判断把活干了（预测），老板每周五核对一遍（服务器纠偏），<br>错了就改（纠偏&#x2F;回滚），对了就记下（确认）。老板是唯一权威——你的判断只是建议。<br>UE 的角色移动就是这样：客户端本地先跑（手感顺滑），服务器每帧校验（真相），<br>不一致时发”纠偏包”把客户端拽回正确位置（ClientAdjustPosition）。</p>
+</blockquote>
+<h2 id="1-3-四种模式：本质只有两类"><a href="#1-3-四种模式：本质只有两类" class="headerlink" title="1.3 四种模式：本质只有两类"></a>1.3 四种模式：本质只有两类</h2><p><code>ENetMode</code>（<code>EngineBaseTypes.h:978-996</code>），枚举注释原话：”<strong>every mode less than NM_Client is a kind of server</strong>“（小于 NM_Client 的都是服务器变体）：</p>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>是什么</th>
+<th>谁在跑游戏逻辑</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>NM_Standalone</code></td>
+<td>单机（无网络）</td>
+<td>本机（唯一真相）</td>
+</tr>
+<tr>
+<td><code>NM_DedicatedServer</code></td>
+<td>专用服务器</td>
+<td>无渲染的服务器进程</td>
+</tr>
+<tr>
+<td><code>NM_ListenServer</code></td>
+<td>主机兼玩家</td>
+<td>服务器进程 + 本地玩家</td>
+</tr>
+<tr>
+<td><code>NM_Client</code></td>
+<td>客户端</td>
+<td>只跑本地预测&#x2F;渲染</td>
+</tr>
+</tbody></table>
+<p><strong>关键推论</strong>：<code>UNetDriver::IsServer()</code>（NetDriver.cpp:2594）&#x3D; <code>ServerConnection == NULL</code>——<strong>没有”连出去的连接”就是服务器</strong>。Dedicated 服务器没有本地玩家、<code>NetServerMaxTickRate</code> 限帧（NetDriver.h:875-888）；Listen 服务器同时是客户端（有本地玩家）；Standalone 根本没有 NetDriver。</p>
+<h2 id="1-4-Actor-的网络角色"><a href="#1-4-Actor-的网络角色" class="headerlink" title="1.4 Actor 的网络角色"></a>1.4 Actor 的网络角色</h2><p>不是所有 Actor 都参与网络——Actor 的网络身份由几个属性决定（<code>Actor.h:593-914</code>）：</p>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>bReplicates</code></td>
+<td>参与复制（服务器→客户端）</td>
+</tr>
+<tr>
+<td><code>bAlwaysRelevant</code></td>
+<td>对所有连接始终相关（不看距离）</td>
+</tr>
+<tr>
+<td><code>bOnlyRelevantToOwner</code></td>
+<td>只发给拥有者（PlayerController&#x2F;Pawn 常用）</td>
+</tr>
+<tr>
+<td><code>bNetTemporary</code></td>
+<td>一次性复制（生成后不更新，如子弹特效）</td>
+</tr>
+<tr>
+<td><code>bNetStartup</code></td>
+<td>关卡加载时存在（Level 里的静态 Actor）</td>
+</tr>
+<tr>
+<td><code>NetUpdateFrequency</code></td>
+<td>每秒最多复制几次（默认 100）</td>
+</tr>
+<tr>
+<td><code>NetPriority</code></td>
+<td>带宽紧张时谁优先（默认 1.0）</td>
+</tr>
+<tr>
+<td><code>NetDormancy</code></td>
+<td>休眠策略（第 7.8 章）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>避坑</strong>：<code>NetUpdateFrequency</code>&#x2F;<code>NetPriority</code> 从 UE 5.5 起<strong>公开访问已废弃</strong><br>（Actor.h:903-914 带 UE_DEPRECATED 注释），必须用 <code>SetNetUpdateFrequency()</code>&#x2F;<br><code>GetNetUpdateFrequency()</code> 访问器。旧教程直接赋值会编译告警。</p>
+</blockquote>
+<p><strong>复制的最小单位是属性</strong>：<code>UPROPERTY(Replicated)</code> 标记的属性，配合 <code>DOREPLIFETIME</code> 宏注册——服务器变了它，客户端自动收到。这是第 5 章的主线。</p>
+<h2 id="1-5-两大手段对比：什么时候用哪个"><a href="#1-5-两大手段对比：什么时候用哪个" class="headerlink" title="1.5 两大手段对比：什么时候用哪个"></a>1.5 两大手段对比：什么时候用哪个</h2><table>
+<thead>
+<tr>
+<th></th>
+<th>属性复制（Replication）</th>
+<th>RPC（远程函数调用）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>类比</td>
+<td>信件抄送</td>
+<td>电话</td>
+</tr>
+<tr>
+<td>语义</td>
+<td><strong>状态</strong>（”这个值现在是 X”）</td>
+<td><strong>事件</strong>（”这件事发生了”）</td>
+</tr>
+<tr>
+<td>方向</td>
+<td>服务器 → 相关客户端</td>
+<td>双向（Server&#x2F;Client&#x2F;Multicast）</td>
+</tr>
+<tr>
+<td>频率</td>
+<td>按 NetUpdateFrequency 节流</td>
+<td>每次调用立即发送（可攒批）</td>
+</tr>
+<tr>
+<td>可靠性</td>
+<td>天然可靠（最新值覆盖旧值）</td>
+<td>默认不可靠，<code>bReliable</code> 修饰</td>
+</tr>
+<tr>
+<td>数据量</td>
+<td>只发变化的（changelist）</td>
+<td>参数全量序列化</td>
+</tr>
+<tr>
+<td>适用</td>
+<td>位置、血量、装备、游戏状态</td>
+<td>开火、开门、换武器、聊天</td>
+</tr>
+</tbody></table>
+<p><strong>决策口诀</strong>：**”是状态还是事件？”**——血量是状态（复制）；”被打了一枪”是事件（RPC）。二者可以配合：RPC 触发瞬间事件，属性复制跟进持续状态。</p>
+<h2 id="1-6-一帧的生命周期：收-→-想-→-发"><a href="#1-6-一帧的生命周期：收-→-想-→-发" class="headerlink" title="1.6 一帧的生命周期：收 → 想 → 发"></a>1.6 一帧的生命周期：收 → 想 → 发</h2><figure>
+<figcaption>图 F2　一帧的服务器/客户端网络生命周期（锚点：LevelTick.cpp:1926-1938）</figcaption>
+<pre>
+服务器一帧：
+  TickDispatch（收包）  ← 处理客户端发来的输入/请求（LevelTick 早期）
+  Actor Tick（想）      ← 游戏逻辑跑起来（移动/伤害/AI）
+  TickFlush（发包）     ← ServerReplicateActors 决定并发出复制（LevelTick.cpp:1930 附近）
+
+<p>客户端一帧：<br>  TickDispatch（收包）  ← 收到服务器的复制（属性&#x2F;RPC）<br>  Actor Tick（想）      ← 本地预测 + 渲染<br>  TickFlush（发包）     ← 发出输入（移动上报）&#x2F; Server RPC</p>
+<p>帧序保证：收包永远在发包之前 → 服务器先看到上一帧的输入，再决定本帧的真相<br></pre></p>
+</figure>
+
+<p><code>UNetDriver::TickFlush</code>（NetDriver.cpp:1097）里：<strong>Iris 优先</strong>（<code>InternalIrisUpdateTransactional</code>，:1141），否则 legacy <code>ServerReplicateActors</code>（:1159）。第 3~7 章全部围绕”TickFlush 里发生了什么”展开。</p>
+<h2 id="1-7-小结"><a href="#1-7-小结" class="headerlink" title="1.7 小结"></a>1.7 小结</h2><p>这一章记住三句话：</p>
+<ol>
+<li><strong>服务器是真相，客户端是建议者</strong>（状态同步 + 权威模型）；</li>
+<li><strong>四种模式本质两类</strong>：服务器（没有 ServerConnection）与客户端；</li>
+<li><strong>两大手段</strong>：属性复制传状态、RPC 传事件。</li>
+</ol>
+<p>下一章，六个架构各配一个类比，建立全书地图。</p>
+<h1 id="第-2-章-六架构速览（每个架构-一个类比）"><a href="#第-2-章-六架构速览（每个架构-一个类比）" class="headerlink" title="第 2 章 六架构速览（每个架构 &#x3D; 一个类比）"></a>第 2 章 六架构速览（每个架构 &#x3D; 一个类比）</h1><blockquote>
+<p><strong>TL;DR</strong>｜UE 网络拆成六个子系统，每个配一个你早就懂的东西：<strong>网络 &#x3D; 邮局体系</strong>、<br><strong>通信 &#x3D; 安检流水线</strong>、<strong>同步 &#x3D; 信件抄送</strong>、<strong>RPC &#x3D; 电话</strong>、<strong>分发 &#x3D; 分区快递员</strong>、<br><strong>网关 &#x3D; 门卫与换乘站</strong>。这一章只立类比不给代码——每个架构在源码里的落点<br>在第 3~8 章展开，末尾给”概念 → 源码”预告表。</p>
+</blockquote>
+<h2 id="2-1-网络架构-邮局体系"><a href="#2-1-网络架构-邮局体系" class="headerlink" title="2.1 网络架构 &#x3D; 邮局体系"></a>2.1 网络架构 &#x3D; 邮局体系</h2><p><strong>定义</strong>：连接与通道体系——<code>UNetDriver</code>（邮局总局）管着所有 <code>UNetConnection</code>（邮路），每条邮路上若干 <code>UChannel</code>（邮袋：控制袋&#x2F;语音袋&#x2F;数据袋&#x2F;Actor 袋），数据以 <code>Bunch</code>（信件）为单位流动，<code>NetGUID</code>（门牌号）标识收件对象。</p>
+<figure>
+<figcaption>图 F3　邮局体系层级（第 3 章展开）</figcaption>
+<pre>
+  邮局总局 UNetDriver（服务端一份，管所有邮路）
+  ├─ 邮路 UNetConnection（每玩家一条；客户端只有一条 ServerConnection）
+  │   ├─ 邮袋 UChannel#0 Control（握手/控制消息）
+  │   ├─ 邮袋 UChannel#1 Voice（语音）
+  │   ├─ 邮袋 UChannel#2 DataStream（Iris 数据流，本 fork 特性）
+  │   └─ 邮袋 UChannel#N Actor（每个被复制的 Actor 一个，动态开/关）
+  │        └─ 信件 Bunch（属性变化 / RPC / 生成信息）
+  │             └─ 门牌号 NetGUID（标识"这封信发给哪个对象"）
+  └─ 限速：令牌桶 QueuedBits（每帧恢复带宽配额，超额等下一帧）
+</pre>
+</figure>
+
+<p><strong>它在这条流水线里的位置</strong>：一切的骨架——数据从哪进（ReceivedPacket）、往哪出（FlushNet）、走哪条邮袋（Channel 分发）、多快（令牌桶）。</p>
+<h2 id="2-2-通信架构-安检流水线"><a href="#2-2-通信架构-安检流水线" class="headerlink" title="2.2 通信架构 &#x3D; 安检流水线"></a>2.2 通信架构 &#x3D; 安检流水线</h2><p><strong>定义</strong>：PacketHandler 体系——每个连接一条”安检流水线”（组件链：无状态握手 → 加密 → 压缩 → Oodle），出包时依次”盖章、封装、称重”，进包时反向”验真、解密、拆封”。连接建立前还有一道”验明正身”：无状态握手用 cookie 挑战应答防 UDP 放大攻击。</p>
+<blockquote>
+<p><strong>类比实验室：机场安检</strong><br>出包 &#x3D; 行李托运：安检（StatelessConnect 验身份）→ 盖章（加密）→ 装箱（压缩）→ 称重（限速）。<br>进包 &#x3D; 到达提取：拆箱 → 验章 → 过检。所有行李走同一条传送带（PacketHandler 流水线），<br>顺序不能乱——这就是”组件链”的含义。</p>
+</blockquote>
+<p><strong>它在这条流水线里的位置</strong>：网络层（第 3 章）与游戏层之间的一层”翻译与安检”——第 4 章。</p>
+<h2 id="2-3-同步架构-信件抄送-改动日记"><a href="#2-3-同步架构-信件抄送-改动日记" class="headerlink" title="2.3 同步架构 &#x3D; 信件抄送 + 改动日记"></a>2.3 同步架构 &#x3D; 信件抄送 + 改动日记</h2><p><strong>定义</strong>：属性复制体系——服务器为<strong>每个类型</strong>建一张 <code>FRepLayout</code>（”这封信格式怎么排”的类型蓝图），为<strong>每个对象</strong>记一本 <code>changelist</code> 改动日记（只记”哪个属性变了”，不记值），为<strong>每个连接</strong>备一份 <code>FRepState</code> 收件档案（上次发到哪）。<strong>只在变化时发差值，首帧发全量，客户端收完触发 OnRep 通知</strong>。</p>
+<blockquote>
+<p><strong>类比实验室：公司周报抄送</strong><br>服务器每周给所有分公司（连接）发周报：周报只写”这周改了什么”（changelist），<br>不重发全文；新分公司入职第一周收到”全部历史”（首帧全量）；分公司收到周报后<br>通知各科室（CallRepNotifies 触发 OnRep）。<strong>只发差异，是带宽的生命线</strong>。</p>
+</blockquote>
+<p><strong>它在这条流水线里的位置</strong>：第 5 章——“⑤ 序列化出包”的前半（状态部分）。</p>
+<h2 id="2-4-RPC-架构-电话"><a href="#2-4-RPC-架构-电话" class="headerlink" title="2.4 RPC 架构 &#x3D; 电话"></a>2.4 RPC 架构 &#x3D; 电话</h2><p><strong>定义</strong>：远程函数调用——<code>ProcessRemoteFunction</code> 是总机：先查”这个号能不能打”（销毁&#x2F;撕裂&#x2F;拦截），再分流 Iris 新线路或 legacy 老线路；四种线路（Server 上行 &#x2F; Client 下行 &#x2F; Multicast 广播）+ Reliable 可靠修饰。<strong>Server RPC 在服务器本地调用时直接本地执行</strong>（不绕电话线）。</p>
+<blockquote>
+<p><strong>类比实验室：电话与总机</strong><br>你拨号（调用 RPC）→ 总机接线员（ProcessRemoteFunction）查三件事：<br>① 这个号存在吗（Actor 活着吗）② 这个号打得通吗（Channel 开了吗，没开先”强制复制”<br>把 Actor 通道建起来）③ 走哪条线（本地直拨 &#x2F; 专线 &#x2F; 广播）。电话可以挂<br>（不可靠 RPC 丢了就算了）也可以要求回执（bReliable 可靠 RPC 保证送达）。</p>
+</blockquote>
+<p><strong>它在这条流水线里的位置</strong>：第 6 章——“⑤ 序列化出包”的后半（事件部分）。</p>
+<h2 id="2-5-分发架构-分区快递员"><a href="#2-5-分发架构-分区快递员" class="headerlink" title="2.5 分发架构 &#x3D; 分区快递员"></a>2.5 分发架构 &#x3D; 分区快递员</h2><p><strong>定义</strong>：复制决策体系——服务器每帧跑<strong>四步决策链</strong>（准备连接 → 按频率筛候选 → 按优先级排序 → 按相关性派件）；Replication Graph 把 O(N×M) 挨个检查换成<strong>预建的空间网格</strong>（每个 viewer 只查自己所在格子）；<strong>不动的 Actor 休眠（Dormancy）停止派件</strong>，动了再唤醒。</p>
+<blockquote>
+<p><strong>类比实验室：分区快递员</strong><br>传统方式：每个快递员每天挨家挨户问”这家人要不要收件”（O(N×M)）。<br>RepGraph 方式：城市划成网格，每个快递员只负责自己格子里的住户（空间网格），<br>长期没快递的住户标记”休眠”（Dormancy）——不问了，有包裹了再叫醒（FlushNetDormancy）。</p>
+</blockquote>
+<p><strong>它在这条流水线里的位置</strong>：第 7 章——“④ 复制决策”整块。</p>
+<h2 id="2-6-网关架构-门卫与换乘站"><a href="#2-6-网关架构-门卫与换乘站" class="headerlink" title="2.6 网关架构 &#x3D; 门卫与换乘站"></a>2.6 网关架构 &#x3D; 门卫与换乘站</h2><p><strong>定义</strong>：入口与旅程体系——<strong>门卫</strong>是 GameMode（PreLogin → Login → PostLogin 验票发门卡），<strong>带外专线</strong>是 Beacon（游戏服务器与匹配&#x2F;大厅服务的旁路连接），<strong>大巴换乘</strong>是 SeamlessTravel（无缝换图），进门后 PlayerController 是玩家在服务器上的替身，角色移动靠<strong>先斩后奏</strong>（客户端预测 + 服务器纠偏）。</p>
+<blockquote>
+<p><strong>类比实验室：机场航站楼</strong><br>安检（StatelessConnect 握手）→ 值机（GameMode Login）→ 登机口（PlayerController 生成）<br>→ 转机（SeamlessTravel 无缝换图）→ 飞机晚点纠偏（客户端预测被服务器纠正）。<br>还有一条”员工通道”（Beacon）：机场与航空公司内部系统之间的专线，不走旅客流程。</p>
+</blockquote>
+<p><strong>它在这条流水线里的位置</strong>：第 8 章——从”连上服务器”到”进游戏玩起来”的全部旅程。</p>
+<h2 id="2-7-六架构串起来：一帧的旅程-落点预告"><a href="#2-7-六架构串起来：一帧的旅程-落点预告" class="headerlink" title="2.7 六架构串起来：一帧的旅程 + 落点预告"></a>2.7 六架构串起来：一帧的旅程 + 落点预告</h2><p>对照图 F1 走一遍：客户端进门（网关，Ch8）→ 每帧收包拆包（网络+通信，Ch3&#x2F;4）→ 游戏逻辑（Ch1）→ 服务器决策发什么（分发，Ch7）→ 序列化状态与事件（同步+RPC，Ch5&#x2F;6）→ 出厂（通信+网络，Ch4&#x2F;3）→ 客户端应用状态触发 OnRep（Ch5）→ ACK 与输入回流（Ch3 拥塞控制）。</p>
+<table>
+<thead>
+<tr>
+<th>架构</th>
+<th>类比</th>
+<th>核心类&#x2F;函数</th>
+<th>章节</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>网络</td>
+<td>邮局体系</td>
+<td>UNetDriver &#x2F; UNetConnection &#x2F; UChannel &#x2F; FNetPacketNotify</td>
+<td>Ch3</td>
+</tr>
+<tr>
+<td>通信</td>
+<td>安检流水线</td>
+<td>FPacketHandler &#x2F; HandlerComponent &#x2F; StatelessConnectHandlerComponent</td>
+<td>Ch4</td>
+</tr>
+<tr>
+<td>同步</td>
+<td>信件抄送</td>
+<td>FRepLayout &#x2F; FRepChangelistState &#x2F; FRepState &#x2F; CallRepNotifies</td>
+<td>Ch5</td>
+</tr>
+<tr>
+<td>RPC</td>
+<td>电话</td>
+<td>ProcessRemoteFunction &#x2F; FObjectReplicator &#x2F; QueueRemoteFunctionBunch</td>
+<td>Ch6</td>
+</tr>
+<tr>
+<td>分发</td>
+<td>分区快递员</td>
+<td>ServerReplicateActors &#x2F; UReplicationGraph &#x2F; Dormancy</td>
+<td>Ch7</td>
+</tr>
+<tr>
+<td>网关</td>
+<td>门卫与换乘站</td>
+<td>AGameModeBase &#x2F; AOnlineBeacon &#x2F; SeamlessTravel &#x2F; 客户端预测</td>
+<td>Ch8</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="第-3-章-网络架构：连接与通道"><a href="#第-3-章-网络架构：连接与通道" class="headerlink" title="第 3 章 网络架构：连接与通道"></a>第 3 章 网络架构：连接与通道</h1><blockquote>
+<p><strong>TL;DR</strong>｜UE 网络的骨架：<strong>NetDriver&#x3D;邮局总局</strong>管着所有 <strong>Connection（邮路）</strong>，每条邮路上<br>若干 <strong>Channel（邮袋）</strong>，数据以 <strong>Bunch（信件）</strong> 为单位流动。客户端连服务器要过<br><strong>六关握手</strong>（Hello→Challenge→Login→Welcome→Netspeed→Join）；之后每条邮路用<br><strong>14 位包序号 + ACK 历史位图</strong>保证可靠，用<strong>令牌桶</strong>限速。</p>
+</blockquote>
+<h2 id="3-1-UNetDriver：邮局总局"><a href="#3-1-UNetDriver：邮局总局" class="headerlink" title="3.1 UNetDriver：邮局总局"></a>3.1 UNetDriver：邮局总局</h2><p><code>UNetDriver</code>（<code>NetDriver.h:809</code>）是网络的总管家，头文件自带官方架构文档（:34-324 的注释）。核心职责：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// NetDriver.h 头注释（节选翻译）：</span></span><br><span class="line"><span class="comment">// UNetDrivers 负责管理一组 UNetConnection 以及它们之间共享的数据。</span></span><br><span class="line"><span class="comment">// 服务端 NetDriver 维护一个 NetConnection 列表，每个连接代表一个在游戏中的玩家。</span></span><br><span class="line"><span class="comment">// 客户端 NetDriver 只有一个 NetConnection，代表到服务器的连接。</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><strong>连接管理</strong>：服务端 <code>ClientConnections</code>（每玩家一条）+ <code>FConnectionMap</code>（IP→连接，:980）；客户端单个 <code>ServerConnection</code>（:970）；</li>
+<li><strong>通道工厂</strong>：<code>ChannelDefinitions</code>&#x2F;<code>ChannelDefinitionMap</code>（可配置通道类型表，:1038-1044，来自 BaseEngine.ini 的 <code>+ChannelDefinitions</code>）；</li>
+<li><strong>五个职责虚函数</strong>（贯穿全书的钩子）：<ul>
+<li><code>InitConnect</code> &#x2F; <code>InitListen</code> —— 客户端&#x2F;服务端启动；</li>
+<li><code>TickDispatch</code> —— <strong>收</strong>（每帧最早）；</li>
+<li><code>TickFlush</code> —— <strong>发</strong>（每帧最晚，内部 Iris 优先否则 ServerReplicateActors）；</li>
+<li><code>ServerReplicateActors</code> —— 复制决策（第 7 章）；</li>
+<li><code>ProcessRemoteFunction</code> —— RPC 总机（第 6 章）。</li>
+</ul>
+</li>
+</ul>
+<h2 id="3-2-连接：UNetConnection"><a href="#3-2-连接：UNetConnection" class="headerlink" title="3.2 连接：UNetConnection"></a>3.2 连接：UNetConnection</h2><p><code>UNetConnection</code>（<code>NetConnection.h:283</code>，继承 UPlayer——连接天然关联玩家）是<strong>一条端到端邮路</strong>。核心成员（:283-380 区域）：</p>
+<table>
+<thead>
+<tr>
+<th>成员</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Channels[]</code></td>
+<td>通道表（每槽一个 UChannel，槽号 &#x3D; ChIndex）</td>
+</tr>
+<tr>
+<td><code>OutReliable[]</code> &#x2F; <code>InReliable[]</code></td>
+<td>每通道的可靠序列计数</td>
+</tr>
+<tr>
+<td><code>PacketNotify</code></td>
+<td>包级可靠&#x2F;ACK（FNetPacketNotify）</td>
+</tr>
+<tr>
+<td><code>SendBuffer</code></td>
+<td>发送缓冲（攒包）</td>
+</tr>
+<tr>
+<td><code>PackageMap</code></td>
+<td>对象↔NetGUID 映射</td>
+</tr>
+<tr>
+<td><code>Handler</code></td>
+<td>PacketHandler 流水线（第 4 章）</td>
+</tr>
+<tr>
+<td><code>QueuedBits</code></td>
+<td>令牌桶（带宽限速）</td>
+</tr>
+</tbody></table>
+<p><code>InitBase</code>（NetConnection.cpp:488）里创建 <code>UPackageMapClient</code> 并 <code>InitHandler()</code>——<strong>一条连接建好时，网络身份（PackageMap）与通信管道（Handler）同时就位</strong>。</p>
+<h2 id="3-3-通道体系：UChannel"><a href="#3-3-通道体系：UChannel" class="headerlink" title="3.3 通道体系：UChannel"></a>3.3 通道体系：UChannel</h2><p><code>UChannel</code>（<code>Channel.h:63</code>）是<strong>双向</strong>通道基类：<code>InRec</code>&#x2F;<code>OutRec</code> 可靠收&#x2F;发队列、<code>InPartialBunch</code> 部分束重组缓冲。</p>
+<p><strong>通道槽位</strong>（EChannelType，<code>Channel.h:25-36</code>；注册于 BaseEngine.ini:1841-1844）：</p>
+<table>
+<thead>
+<tr>
+<th>ChIndex</th>
+<th>通道</th>
+<th>谁开</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>Control</td>
+<td>客户端开（bClientOpen）</td>
+<td>握手与控制消息（NMT_*）</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Voice</td>
+<td>双方</td>
+<td>VoIP 语音</td>
+</tr>
+<tr>
+<td>2</td>
+<td>DataStream</td>
+<td>双方</td>
+<td><strong>Iris 数据流（本 fork 特性）</strong></td>
+</tr>
+<tr>
+<td>3+</td>
+<td>Actor</td>
+<td>服务器开（bServerOpen）</td>
+<td>每个被复制 Actor 一个，动态分配</td>
+</tr>
+</tbody></table>
+<p><code>CHTYPE_MAX = 8</code>（本 fork，上游 7）——多出的 1 位为 Iris 预留。Actor 通道是<strong>服务器主动开</strong>的（服务器决定谁值得复制），这呼应第 7 章的”分发架构”。</p>
+<h2 id="3-4-连接状态机与握手协议"><a href="#3-4-连接状态机与握手协议" class="headerlink" title="3.4 连接状态机与握手协议"></a>3.4 连接状态机与握手协议</h2><p><strong>连接状态</strong>（EConnectionState，<code>NetConnection.h:94-101</code>）：<code>USOCK_Invalid → Closed → Pending → Open → Closing</code>。握手期间处于 Pending，完成后 Open。</p>
+<p><strong>游戏层握手六关</strong>（消息定义 DataChannel.h:173-248，官方流程注释 NetDriver.h:80-183）：</p>
+<figure>
+<figcaption>图 F4　连接层握手时序（六消息）</figcaption>
+<pre>
+ 客户端（UPendingNetGame）                服务器（UWorld::NotifyControlMessage）
+     │                                          │
+     │ ① NMT_Hello（版本/特性位/加密token）       │
+     │ ──────────────────────────────────────▶   │
+     │                                          │ 版本/特性校验
+     │ ② NMT_Challenge（防重放 cookie）          │
+     │ ◀──────────────────────────────────────   │
+     │ ③ NMT_Login（URL/玩家ID/平台）            │
+     │ ──────────────────────────────────────▶   │
+     │                                          │ GameMode::PreLogin → WelcomePlayer
+     │ ④ NMT_Welcome（地图名/游戏名）             │
+     │ ◀──────────────────────────────────────   │
+     │ ⑤ NMT_Netspeed（上报带宽）                │
+     │ ──────────────────────────────────────▶   │
+     │ 加载地图 → TravelCompleted                │
+     │ ⑥ NMT_Join                                │
+     │ ──────────────────────────────────────▶   │
+     │                                          │ SpawnPlayActor → 生成 PlayerController
+     │                                          │ → 进入 Actor 通道复制阶段
+</pre>
+</figure>
+
+<blockquote>
+<p><strong>避坑</strong>：这里有<strong>两层握手</strong>，别混：① 底层 <strong>StatelessConnect 无状态握手</strong>（第 4 章，<br>cookie 挑战应答防放大攻击）在 PacketHandler 里；② 上层<strong>游戏层握手</strong>（本节的 NMT_* 六关）<br>走 ControlChannel。老教程经常把两层混为一谈——记住”先过安检（无状态握手），再走门卫<br>（游戏层握手）”。</p>
+</blockquote>
+<p>服务端用 <code>EClientLoginState</code>（<code>NetConnection.h:116-155</code>）+ <code>IsClientMsgTypeValid</code> 校验消息顺序——<strong>客户端不能跳关</strong>（没 Hello 就 Login 直接拒绝）。</p>
+<h2 id="3-5-包级可靠性：14-位序号-ACK-历史"><a href="#3-5-包级可靠性：14-位序号-ACK-历史" class="headerlink" title="3.5 包级可靠性：14 位序号 + ACK 历史"></a>3.5 包级可靠性：14 位序号 + ACK 历史</h2><p>UE 用 UDP，可靠性自己造。<code>FNetPacketNotify::WriteHeader</code>（<code>NetPacketNotify.cpp:203</code>）的打包头：</p>
+<figure>
+<figcaption>图 F5　包头发送布局（FNetPacketNotify::WriteHeader，14-bit Seq + 14-bit AckedSeq + 4-bit HistoryWordCount + 历史位图）</figcaption>
+<pre>
+ UDP 数据报（packet）
+ ┌──────────┬──────────┬──────────┬──────────────────────┬──────────────┐
+ │ Seq 14bit │ AckedSeq 14bit │ HistWC 4bit │ ACK 历史位图（每 word 16 位，1~16 word）│ 数据（bunch 流）│
+ └──────────┴──────────┴──────────┴──────────────────────┴──────────────┘
+  本包序号      确认到哪号       历史 word 数    哪些包被确认（滑动窗口）
+ （乱序检测用）   （丢包检测用）
+</pre>
+</figure>
+
+<ul>
+<li><strong>Seq（14 位）</strong>：本包序号，接收方检测乱序&#x2F;重复（配合 <code>PacketOrderCache</code> 乱序缓存修正，net.DoPacketOrderCorrection）；</li>
+<li><strong>AckedSeq + 历史位图</strong>：告诉对端”你的包我收到哪了、哪些丢了”——<strong>丢包由发送方重传可靠数据</strong>；</li>
+<li>另有扩展包头：1 bit 是否有 JitterClockTime + 10 bit 抖动时间、1 bit 服务端帧耗时（供 ping 计算）。</li>
+</ul>
+<p><strong>束（Bunch）层可靠性</strong>：<code>FOutBunch/FInBunch</code>（<code>DataBunch.h:29-204</code>）带 <code>bReliable</code>（可靠束，保证送达且有序）、<code>bPartial</code>（大束分片）等标志。部分束重组在 <code>ReceivedNextBunch</code>（<code>DataChannel.cpp:769-948</code>）——<strong>可靠束必须连续序号到达</strong>（ChSequence），不可靠束可以跳。</p>
+<h2 id="3-6-带宽管理：令牌桶与自适应频率"><a href="#3-6-带宽管理：令牌桶与自适应频率" class="headerlink" title="3.6 带宽管理：令牌桶与自适应频率"></a>3.6 带宽管理：令牌桶与自适应频率</h2><p><strong>令牌桶</strong>（<code>NetConnection.cpp:5110-5145</code>）：每帧按 <code>NetSpeed</code>（默认 2600 bps，下限 1800，InitBase 按 URL LAN&#x2F;Internet 选项）恢复配额 <code>DeltaBits = NetSpeed * DeltaTime * 8</code>；发包时 <code>QueuedBits += 包字节数*8</code>；<code>IsNetReady()</code> 检查饱和——<strong>饱和时服务器停止继续发</strong>（bIgnoreSaturation 参数）。</p>
+<p><strong>自适应更新频率</strong>：<code>FNetworkObjectInfo</code>（<code>NetworkObjectList.h:34-109</code>）的 <code>OptimalNetUpdateDelta</code> 根据实际发包间隔动态调整（<code>net.UseAdaptiveNetUpdateFrequency</code>）——<strong>不动的 Actor 自动降频</strong>。</p>
+<p><strong>拥塞控制</strong>（本 fork 已含）：<code>FNetworkCongestionControl</code>（<code>TrafficControl.h:78-98</code>）基于 <strong>BDP（带宽×RTT）</strong> 计算在途字节上限，<code>net.EnableCongestionControl</code>（默认 0）开启后由 <code>IsReadyToSend</code> 门控发包。</p>
+<h2 id="3-7-源码考古：NetDriver-骨架与-TickFlush-的帧位置"><a href="#3-7-源码考古：NetDriver-骨架与-TickFlush-的帧位置" class="headerlink" title="3.7 源码考古：NetDriver 骨架与 TickFlush 的帧位置"></a>3.7 源码考古：NetDriver 骨架与 TickFlush 的帧位置</h2><blockquote>
+<p><strong>源码考古</strong>：想看真东西的人进。</p>
+<p><strong>① 帧循环锚点</strong>，<code>LevelTick.cpp:1926-1938</code>：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Update net and flush networking.</span></span><br><span class="line"><span class="built_in">BroadcastPreTickFlush</span>(RealDeltaSeconds);</span><br><span class="line"><span class="built_in">BroadcastTickFlush</span>(RealDeltaSeconds); <span class="comment">// note: undilated time is being used here</span></span><br><span class="line"><span class="built_in">BroadcastPostTickFlush</span>(RealDeltaSeconds);</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：<code>UWorld::Tick</code> 在<strong>所有 Actor Tick 组跑完之后</strong>广播 TickFlush——<br><code>UNetDriver::InitBase</code>（NetDriver.cpp:2434-2435）把自己绑到这些事件上。<strong>收包（TickDispatch）<br>在帧前、发包（TickFlush）在帧后</strong>——服务器总是”先看输入、再想逻辑、后发真相”。</p>
+<p><strong>② TickFlush 的双路径</strong>，<code>NetDriver.cpp:1097-1159</code>：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">UNetDriver::TickFlush</span><span class="params">(<span class="type">float</span> DeltaSeconds)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	...</span><br><span class="line">	<span class="keyword">if</span> (ReplicationSystem)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="built_in">InternalIrisUpdateTransactional</span>(DeltaSeconds);   <span class="comment">// Iris 新复制系统（本 fork 已带骨架）</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> (ClientConnections.<span class="built_in">Num</span>() &gt; <span class="number">0</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="built_in">ServerReplicateActors</span>(DeltaSeconds);              <span class="comment">// legacy 复制（第 5/7 章主角）</span></span><br><span class="line">	&#125;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：<strong>Iris 优先，legacy 兜底</strong>——<code>ReplicationSystem</code> 存在就走新系统，<br>否则走 <code>ServerReplicateActors</code>。本 fork 的 Iris 是”骨架已装、默认不启用”（见第 13 章），<br>本文后面所有机制章讲的都是 legacy 路径——<strong>读懂 legacy 是读懂 UE 网络的必修课</strong>。</p>
+<p><strong>③ 通道注册表</strong>，BaseEngine.ini:1841-1844（节选）：</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">+<span class="attr">ChannelDefinitions</span>=(ChannelName=Control, ClassName=/Script/Engine.ControlChannel, StaticChannelIndex=<span class="number">0</span>, bServerOpen=<span class="literal">false</span>, bClientOpen=<span class="literal">true</span>, ...)</span><br><span class="line">+<span class="attr">ChannelDefinitions</span>=(ChannelName=Voice, ClassName=/Script/Engine.VoiceChannel, StaticChannelIndex=<span class="number">1</span>, ...)</span><br><span class="line">+<span class="attr">ChannelDefinitions</span>=(ChannelName=DataStream, ClassName=/Script/Engine.DataStreamChannel, StaticChannelIndex=<span class="number">2</span>, ...)</span><br><span class="line">+<span class="attr">ChannelDefinitions</span>=(ChannelName=Actor, ClassName=/Script/Engine.ActorChannel, StaticChannelIndex=-<span class="number">1</span>, bServerOpen=<span class="literal">true</span>, bClientOpen=<span class="literal">false</span>, ...)</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：通道<strong>配置化</strong>——类型、槽位、谁主动开都在 ini 里声明，引擎启动时<br>由 <code>LoadChannelDefinitions</code>（NetDriver.cpp:801）建成映射表。注意 <code>Actor</code> 通道<br><code>StaticChannelIndex=-1</code>（动态分配）且 <code>bServerOpen=true</code>（服务器主动开）——<br><strong>“服务器决定谁值得被复制”从这里就定死了</strong>。</p>
+</blockquote>
+<hr>
+<h1 id="第-4-章-通信架构：PacketHandler-与包格式"><a href="#第-4-章-通信架构：PacketHandler-与包格式" class="headerlink" title="第 4 章 通信架构：PacketHandler 与包格式"></a>第 4 章 通信架构：PacketHandler 与包格式</h1><blockquote>
+<p><strong>TL;DR</strong>｜通信架构管”数据怎么编”：每个连接一条 <strong>PacketHandler 安检流水线</strong>——出包时<br>压缩、加密、打包；进包时验真、解密、重组。<strong>无状态握手（StatelessConnect）用 cookie<br>挑战应答”验明正身”<strong>，防 UDP 放大攻击；DDoS 检测在外围兜底。可靠性</strong>不在这里</strong>——<br>它在连接层（第 3.5 章），别被旧教程带偏。</p>
+</blockquote>
+<h2 id="4-1-分层模型：数据报-→-束-→-消息-→-游戏语义"><a href="#4-1-分层模型：数据报-→-束-→-消息-→-游戏语义" class="headerlink" title="4.1 分层模型：数据报 → 束 → 消息 → 游戏语义"></a>4.1 分层模型：数据报 → 束 → 消息 → 游戏语义</h2><table>
+<thead>
+<tr>
+<th>层</th>
+<th>单位</th>
+<th>谁持有</th>
+<th>可靠性</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>传输</td>
+<td>UDP 数据报（Packet）</td>
+<td>Socket &#x2F; UNetConnection</td>
+<td>无（UDP）</td>
+</tr>
+<tr>
+<td>通信</td>
+<td>PacketHandler 组件链</td>
+<td>UNetConnection::Handler</td>
+<td>部分组件可加（已弃用）</td>
+</tr>
+<tr>
+<td>通道</td>
+<td>Bunch（束）</td>
+<td>UChannel（InRec&#x2F;OutRec）</td>
+<td>束级可靠（bReliable）</td>
+</tr>
+<tr>
+<td>控制</td>
+<td>NMT_* 控制消息</td>
+<td>UControlChannel</td>
+<td>可靠</td>
+</tr>
+<tr>
+<td>游戏</td>
+<td>属性&#x2F;RPC</td>
+<td>UActorChannel &#x2F; FObjectReplicator</td>
+<td>属性天然可靠、RPC 可选</td>
+</tr>
+</tbody></table>
+<p><strong>关键理解</strong>：UE 用 UDP 是因为<strong>游戏数据”最新的才重要”<strong>（旧位置包可以丢），但”命令类”数据（开火、切换状态）必须可靠——所以可靠性做在</strong>束层</strong>而不是包层：<code>FOutPacketTraits</code>（数据报元数据）与 <code>FOutBunch</code>（束标志）是两套东西。</p>
+<h2 id="4-2-PacketHandler：安检流水线"><a href="#4-2-PacketHandler：安检流水线" class="headerlink" title="4.2 PacketHandler：安检流水线"></a>4.2 PacketHandler：安检流水线</h2><p><code>FPacketHandler</code>（<code>PacketHandler.h</code>）是<strong>发送&#x2F;接收两向的组件流水线</strong>，<strong>每个连接一个</strong>。组件基类 <code>HandlerComponent</code>（:739）的四个虚接口：</p>
+<table>
+<thead>
+<tr>
+<th>接口</th>
+<th>方向</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Incoming</code> &#x2F; <code>Outgoing</code></td>
+<td>连接内</td>
+<td>正常收发数据（握手完成后）</td>
+</tr>
+<tr>
+<td><code>IncomingConnectionless</code> &#x2F; <code>OutgoingConnectionless</code></td>
+<td>连接外</td>
+<td>无连接数据（握手前的包！）</td>
+</tr>
+</tbody></table>
+<p><strong>关键机制</strong>：握手完成前（组件 <code>RequiresHandshake</code>），所有包缓冲在 <code>BufferedPacket</code> 里，<code>FPacketHandlerHandshakeComplete</code> 委托触发后才放行——<strong>没验明正身，数据不进门</strong>。</p>
+<p><strong>配置装配</strong>：<code>UPacketHandlerProfileConfig</code>（<code>PacketHandlerProfileConfig.h</code>，PerObjectConfig）按 NetDriver 从 ini 读取组件列表（<code>[&lt;NetDriverName&gt; PacketHandlerProfileConfig] Components=...</code>）。</p>
+<blockquote>
+<p><strong>避坑</strong>：老教程里的 <code>FPacketHandlerProfileManager</code>（4.x 静态管理器）在 5.x <strong>已删除</strong>，<br>被上面的 <code>UPacketHandlerProfileConfig</code> 取代。见到旧类名按”旧资料”处理。</p>
+</blockquote>
+<h2 id="4-3-无状态握手：验明正身"><a href="#4-3-无状态握手：验明正身" class="headerlink" title="4.3 无状态握手：验明正身"></a>4.3 无状态握手：验明正身</h2><p><code>StatelessConnectHandlerComponent</code>（<code>StatelessConnectHandlerComponent.cpp</code>）是连接建立的第一道门——基于 <strong>DTLS 思想</strong>的挑战应答：</p>
+<figure>
+<figcaption>图 F6　无状态握手（cookie 挑战应答，防 UDP 放大攻击）</figcaption>
+<pre>
+ 客户端                                  服务器（无状态——不记录任何连接！）
+   │  ① InitialPacket（请求连接）            │
+   │ ───────────────────────────────────▶   │
+   │                                       │ 服务器不分配内存，只发 cookie
+   │  ② Challenge（cookie = HMAC(客户端IP+secret)）│
+   │ ◀───────────────────────────────────   │
+   │  ③ Response（回显 cookie）             │
+   │ ───────────────────────────────────▶   │
+   │                                       │ 校验 cookie 通过 → 才创建连接
+   │  ④ Ack                                 │
+   │ ◀───────────────────────────────────   │
+   │  握手完成 → 数据放行（BufferedPacket 清空）│
+</pre>
+</figure>
+
+<p><strong>为什么”无状态”<strong>：服务器在验证通过前</strong>不分配任何连接资源</strong>——攻击者伪造源 IP 发一堆连接请求，服务器只回 cookie 不回内存（64 字节 secret + 20 字节 cookie），<strong>UDP 放大攻击（DDos）被掐死在门口</strong>。握手版本到 v4（<code>EHandshakeVersion</code>，含 SessionClientId &#x2F; CL 版本早期拒绝）。</p>
+<h2 id="4-4-加密与压缩"><a href="#4-4-加密与压缩" class="headerlink" title="4.4 加密与压缩"></a>4.4 加密与压缩</h2><ul>
+<li><strong>FEncryptionComponent</strong>（<code>EncryptionComponent.h</code>）：加密组件抽象，<code>EnableEncryption/DisableEncryption/SetEncryptionData</code>；驱动流程在控制通道的 <code>NMT_EncryptionAck</code> 消息；</li>
+<li><strong>Oodle 压缩插件</strong>：本 fork 开关是 <code>net.OodleServerEnableMode</code> &#x2F; <code>net.OodleClientEnableMode</code>（<code>OodleNetworkHandlerComponent.cpp:169-174</code>，默认空串）+ ini 段 <code>bEnableOodle</code>；</li>
+<li><strong>可靠性组件已弃用</strong>：<code>ReliabilityHandlerComponent</code> 带 <code>UE_DEPRECATED(5.3)</code> 标记——<strong>可靠性由束层与连接层承担，别在 PacketHandler 里找可靠传输</strong>。</li>
+</ul>
+<blockquote>
+<p><strong>避坑</strong>：上游 UE 5.x 曾宣传的 <code>r.ServerUseOodle</code> CVar 在<strong>本 fork 不存在</strong>（grep 全库无匹配）——<br>Oodle 配置一律走 <code>net.OodleServerEnableMode/ClientEnableMode</code> + ini。</p>
+</blockquote>
+<h2 id="4-5-安全兜底：DDoS-与-RPC-滥用检测"><a href="#4-5-安全兜底：DDoS-与-RPC-滥用检测" class="headerlink" title="4.5 安全兜底：DDoS 与 RPC 滥用检测"></a>4.5 安全兜底：DDoS 与 RPC 滥用检测</h2><p><code>Net/Core</code> 模块提供外围防护（<code>Net/Core/Misc/DDoSDetection.h</code>）：按时间窗口统计包速率，超限丢包&#x2F;断连；<code>RPCDoSDetection</code> 专门防”客户端疯狂调 Server RPC”；违规触发 <code>NMT_SecurityViolation</code> 控制消息。</p>
+<h2 id="4-6-源码考古：PacketHandler-的骨架"><a href="#4-6-源码考古：PacketHandler-的骨架" class="headerlink" title="4.6 源码考古：PacketHandler 的骨架"></a>4.6 源码考古：PacketHandler 的骨架</h2><blockquote>
+<p><strong>源码考古</strong>：想看真东西的人进。</p>
+<p>PacketHandler.h:739 附近（HandlerComponent 基类，节选）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">HandlerComponent</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="comment">// 以下四个虚接口是组件挂进流水线的&quot;接口位&quot;</span></span><br><span class="line">	<span class="function"><span class="keyword">virtual</span> <span class="type">void</span> <span class="title">Incoming</span><span class="params">(FBitReader&amp; Packet)</span> </span>= <span class="number">0</span>;              <span class="comment">// 入向：收到数据</span></span><br><span class="line">	<span class="function"><span class="keyword">virtual</span> <span class="type">void</span> <span class="title">Outgoing</span><span class="params">(FBitWriter&amp; Packet)</span> </span>= <span class="number">0</span>;              <span class="comment">// 出向：发出数据</span></span><br><span class="line">	<span class="function"><span class="keyword">virtual</span> <span class="type">void</span> <span class="title">IncomingConnectionless</span><span class="params">(FBitReader&amp; Packet)</span> </span>= <span class="number">0</span>; <span class="comment">// 无连接入向（握手期）</span></span><br><span class="line">	<span class="function"><span class="keyword">virtual</span> <span class="type">void</span> <span class="title">OutgoingConnectionless</span><span class="params">(FBitWriter&amp; Packet)</span> </span>= <span class="number">0</span>; <span class="comment">// 无连接出向（握手期）</span></span><br><span class="line">	<span class="function"><span class="keyword">virtual</span> <span class="type">bool</span> <span class="title">RequiresHandshake</span><span class="params">()</span> <span class="type">const</span> </span>&#123; <span class="keyword">return</span> <span class="literal">false</span>; &#125;    <span class="comment">// 是否需要握手完成才放行</span></span><br><span class="line">	...</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：组件 &#x3D; 实现了四个接口的”传送带工位”——入向加工（解密&#x2F;验签&#x2F;解压），<br>出向加工（压缩&#x2F;加密&#x2F;打包）。<code>RequiresHandshake()</code> 返回 true 的组件（如加密）会让<br>PacketHandler 在握手完成前缓冲所有数据——<strong>这就是”没验明正身不进门”的实现</strong>。<br>组件链顺序由 Profile 配置决定，加工顺序固定。</p>
+<p><strong>② 无状态握手的 cookie</strong>，<code>StatelessConnectHandlerComponent.cpp</code>（要点）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 服务器不保存握手状态，一切验证都基于 cookie 本身：</span></span><br><span class="line"><span class="comment">// cookie = HMAC(客户端地址 + ServerSecret)，客户端必须原样回显</span></span><br><span class="line"><span class="comment">// 服务器校验通过后才真正创建连接（此前零资源分配）</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：防放大攻击的全部秘密——<strong>验证前零状态、零分配</strong>。攻击者伪造一万个<br>源 IP 发 InitialPacket，服务器回一万个 cookie（每包 ~20 字节），但<strong>不创建任何连接对象</strong>，<br>攻击者的资源消耗 &#x3D; 服务器消耗，放大攻击失效。这是 UE 网络的第一道安全闸。</p>
+</blockquote>
+<hr>
+<h1 id="第-5-章-同步架构：属性复制"><a href="#第-5-章-同步架构：属性复制" class="headerlink" title="第 5 章 同步架构：属性复制"></a>第 5 章 同步架构：属性复制</h1><blockquote>
+<p><strong>TL;DR</strong>｜同步架构管”状态怎么抄送”：服务器为<strong>每个类型</strong>建一张 <strong>FRepLayout（类型蓝图）</strong>、<br>为<strong>每个对象</strong>记一本 <strong>changelist 改动日记</strong>、为<strong>每个连接</strong>备一份 <strong>FRepState 收件档案</strong>——<br><strong>只在属性变化时发差值，首帧发全量</strong>，客户端收完触发 <strong>OnRep 通知</strong>。<br>类比：<strong>周报抄送——只写”这周改了什么”，不重发全文</strong>。</p>
+</blockquote>
+<h2 id="5-1-问题与心智模型"><a href="#5-1-问题与心智模型" class="headerlink" title="5.1 问题与心智模型"></a>5.1 问题与心智模型</h2><p>服务器的状态要复制给所有客户端，三个问题：<strong>复制什么</strong>（类型知道有哪些属性）、<strong>复制哪些</strong>（对象知道哪些变了）、<strong>复制给谁</strong>（连接知道上次发到哪）。FRepLayout 体系用<strong>三张表</strong>回答。</p>
+<h2 id="5-2-三张表（本章核心）"><a href="#5-2-三张表（本章核心）" class="headerlink" title="5.2 三张表（本章核心）"></a>5.2 三张表（本章核心）</h2><figure>
+<figcaption>图 F7　三张表：类型蓝图（FRepLayout）/ 改动日记（FRepChangelistState）/ 收件档案（FRepState）</figcaption>
+<pre>
+ FRepLayout（每类型一份，全局共享）          FRepChangelistState（每对象一份，全局共享）
+ ┌────────────────────────────┐            ┌────────────────────────────┐
+ │ Parents：顶层属性           │            │ ChangeHistory[64]：环形日记 │
+ │   Health（COND_None）       │            │   [0]: {Health, Ammo}       │
+ │   Ammo（COND_InitialOnly）  │            │   [1]: {Health}             │ ← 只记"哪个
+ │   Inventory（动态数组）     │            │   [2]: {}                   │   属性变了"
+ │ Cmds：叶子命令（展开子树）    │            │ StaticBuffer：shadow 数据   │
+ │ BaseHandleToCmdIndex：      │            │ CompareIndex：本帧比较标记   │
+ │   handle → cmd 索引表       │            └────────────────────────────┘
+ └────────────────────────────┘                        │ 每连接从
+                                                       │ HistoryEnd 拉取
+ FRepState（每对象 × 每连接一份）                        ▼
+ ┌────────────────────────────┐            ┌────────────────────────────┐
+ │ FSendingRepState：          │            │ FReceivingRepState：       │
+ │   LastChangelistIndex       │            │   StaticBuffer（shadow）   │
+ │   LastCompareIndex          │            │   RepNotifies（待触发OnRep）│
+ │   ChangeHistory[32]         │            │   GuidReferencesMap        │
+ └────────────────────────────┘            └────────────────────────────┘
+</pre>
+</figure>
+
+<ul>
+<li><strong>FRepLayout</strong>（<code>RepLayout.h:1880-1909</code>）：属性树——<code>Parents</code> 是 DOREPLIFETIME 注册的顶层属性，<code>Cmds</code> 是展开后的叶子命令（结构体成员递归展开、动态数组按元素展开、有原生 NetSerialize 的结构体只生成单条命令），<code>BaseHandleToCmdIndex</code> 是”属性句柄 → 命令索引”的译码表。<strong>每类型一份，所有对象共享</strong>（<code>FRepLayout::CreateFromClass/CreateFromStruct/CreateFromFunction</code>，:1189）；</li>
+<li><strong>FRepChangelistState</strong>（:433）：每对象一份、跨连接共享——<code>ChangeHistory[64]</code> 环形 changelist 缓冲（只记 handle 集合）、<code>StaticBuffer</code>（上次比较的 shadow 数据）、<code>CompareIndex</code>（本帧比较过的标记，防重复比较）；</li>
+<li><strong>FRepState</strong>（:671）：<strong>每对象 × 每连接</strong>——发送侧（<code>FSendingRepState</code>：LastChangelistIndex、ChangeHistory[32]）与接收侧（<code>FReceivingRepState</code>：StaticBuffer、RepNotifies）。</li>
+</ul>
+<p><strong>优化机制</strong>：<code>FReplicationChangelistMgr</code>（:501）用 <code>LastReplicationFrame</code> 保证<strong>同帧多连接只比较一次</strong>（第一个连接比较，其余连接从共享 changelist 拉取）——这就是”服务器 100 连接复制同一个 Actor 只花一次比较成本”的由来。</p>
+<h2 id="5-3-服务器侧入口链：三条跳板"><a href="#5-3-服务器侧入口链：三条跳板" class="headerlink" title="5.3 服务器侧入口链：三条跳板"></a>5.3 服务器侧入口链：三条跳板</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">UActorChannel::ReplicateActor（DataChannel.cpp:3599）     ← 通道级：打包一个 Actor 的全部更新</span><br><span class="line">  → FObjectReplicator::ReplicateProperties_r（DataReplication.cpp:1927）  ← 对象级：主复制对象 + 子对象</span><br><span class="line">    → FRepLayout::ReplicateProperties（RepLayout.cpp:1972）  ← 类型级：按 changelist 写出属性</span><br></pre></td></tr></table></figure>
+
+<p><code>ReplicateProperties_r</code>（<code>DataReplication.cpp:2007</code>）里两件关键事：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">const</span> ERepLayoutResult UpdateResult = FNetSerializeCB::<span class="built_in">UpdateChangelistMgr</span>(</span><br><span class="line">	*RepLayout, SendingRepState, *ChangelistMgr, Object,</span><br><span class="line">	Connection-&gt;Driver-&gt;ReplicationFrame, RepFlags, bForceCompare);</span><br><span class="line"><span class="comment">// ① 更新 changelist：比较 shadow 数据，把变化的属性 handle 写进日记（每帧每对象一次）</span></span><br><span class="line"><span class="type">const</span> <span class="type">bool</span> bHasRepLayout = RepLayout-&gt;<span class="built_in">ReplicateProperties</span>(...);</span><br><span class="line"><span class="comment">// ② 按 changelist 写出：从上次发到的位置起，把变化的属性序列化进 bunch</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="5-4-变化追踪：只记-handle，不记值"><a href="#5-4-变化追踪：只记-handle，不记值" class="headerlink" title="5.4 变化追踪：只记 handle，不记值"></a>5.4 变化追踪：只记 handle，不记值</h2><p><code>FRepLayout::CompareProperties</code>（<code>RepLayout.cpp:1777</code>）——头注释点破关键（RepLayout.h:1142-1148）：<strong>changelist 只记录”哪些 handle 变了”，不含值</strong>（值在 shadow 里，发的时候才读）。逐属性比较在 <code>CompareParentProperties</code>（:1514）：</p>
+<ul>
+<li><strong>PushModel 分支</strong>（<code>WITH_PUSH_MODEL</code>）：只遍历 <code>MARK_PROPERTY_DIRTY</code> 标记过的属性（游戏代码主动声明”我改了”），<strong>不逐字节比较</strong>——省 CPU 但要求代码纪律；</li>
+<li><strong>非 PushModel</strong>：逐属性 <code>IsPropertyDirty</code> 比较 shadow 与当前值——<strong>服务器每帧全量比较所有复制属性</strong>（CPU 成本换代码简单）。</li>
+</ul>
+<p><strong>首帧全量</strong>：<code>UActorChannel::ReplicateActor</code> 中 <code>RepFlags.bNetInitial = true</code>（DataChannel.cpp:3800）→ <code>bForceInitialDirty</code>（:3825）→ 所有属性强制入 changelist；<code>COND_InitialOnly</code> 属性只在首帧比较（之后不再比较）。</p>
+<p><strong>避坑</strong>：<code>FRepChangedPropertyTracker</code> 的<strong>位置变了</strong>——它在 NetCore 模块<br>（<code>Net/Core/PropertyConditions/RepChangedPropertyTracker.h</code>），且已退化为<br>“条件激活状态跟踪器”（脏属性跟踪改由 changelist 承担）。旧教程（5.0 时代）<br>把脏跟踪讲成它的职责——以本仓库为准。</p>
+<h2 id="5-5-序列化与共享：只发差异，还只序列化一次"><a href="#5-5-序列化与共享：只发差异，还只序列化一次" class="headerlink" title="5.5 序列化与共享：只发差异，还只序列化一次"></a>5.5 序列化与共享：只发差异，还只序列化一次</h2><p><code>SendProperties_r</code>（<code>RepLayout.cpp:2767</code>）逐属性写入：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// This property changed, so send it</span></span><br><span class="line">Cmd.Property-&gt;<span class="built_in">NetSerializeItem</span>(Writer, Writer.PackageMap, <span class="built_in">const_cast</span>&lt;uint8*&gt;(Data.Data));</span><br></pre></td></tr></table></figure>
+
+<p><strong>共享序列化（Shared Serialization）</strong>：同帧多个连接复制同一个 Actor 时，第一个连接序列化后的字节<strong>缓存复用</strong>（<code>GNumSharedSerializationHit</code> 统计命中），后续连接直接拷贝共享缓冲——<strong>序列化成本 O(1) 次&#x2F;帧&#x2F;对象，不管多少连接</strong>。</p>
+<p><strong>接收侧</strong>：<code>FRepLayout::ReceiveProperties_r</code>（:3789）按流中内嵌的 handle 逐条反序列化到对象内存，同时对比 shadow，把变化的属性压入 <code>RepState-&gt;RepNotifies</code>（供 OnRep 触发）。</p>
+<h2 id="5-6-自定义序列化设施"><a href="#5-6-自定义序列化设施" class="headerlink" title="5.6 自定义序列化设施"></a>5.6 自定义序列化设施</h2><p><code>NetSerialization.h</code> 提供官方序列化工具（:72-127 头注释给出模板约定）：</p>
+<table>
+<thead>
+<tr>
+<th>设施</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>NetSerialize</code> &#x2F; <code>NetDeltaSerialize</code></td>
+<td>自定义序列化（<code>TStructOpsTypeTraits::WithNetSerializer=true</code> 声明）</td>
+</tr>
+<tr>
+<td><code>FVector_NetQuantize*</code></td>
+<td>位置量化（例：<code>FVector_NetQuantize10</code> &#x3D; 10 位尾数 ≈ 0.1 精度）</td>
+</tr>
+<tr>
+<td><code>SafeNetSerializeTArray_*</code></td>
+<td>带长度上限的数组序列化（防恶意客户端撑爆内存）</td>
+</tr>
+<tr>
+<td><code>FFastArraySerializer</code></td>
+<td><strong>数组 delta 同步</strong>：只发增删改的元素，不发整个数组（NetDeltaSerialize 驱动）</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>类比实验室：快递称重压缩</strong><br>位置数据是”大件”——FVector_NetQuantize 像真空压缩袋（32 位 float → 量化定点，<br>精度换体积）；FFastArraySerializer 像”只寄新买的书，不重寄整柜书”（数组 delta）。<br>这两个是带宽优化的第一梯队武器（第 9 章专题再用）。</p>
+</blockquote>
+<h2 id="5-7-客户端接收链：从包到-OnRep"><a href="#5-7-客户端接收链：从包到-OnRep" class="headerlink" title="5.7 客户端接收链：从包到 OnRep"></a>5.7 客户端接收链：从包到 OnRep</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">ReceivedBunch（DataChannel.cpp:3111）</span><br><span class="line">  → ProcessBunchInternal（:3270）</span><br><span class="line">    → FObjectReplicator::ReceivedBunch（DataReplication.cpp:984）</span><br><span class="line">      → RepLayout::ReceiveProperties（属性落地 + shadow 对比）</span><br><span class="line">      → 字段循环：属性 or RPC（CastField 区分）</span><br><span class="line">      → PostReceivedBunch（:1592）：</span><br><span class="line">          PostNetReceive()           ← 对象级收尾钩子</span><br><span class="line">          CallRepNotifies()          ← 逐个触发 OnRep_X（RepLayout.cpp:4661）</span><br><span class="line">          PostRepNotifies()          ← 全部 OnRep 之后</span><br></pre></td></tr></table></figure>
+
+<p><strong>GUID 未映射</strong>：属性引用了客户端还没加载的对象（NetGUID 未解析）→ 进 <code>UpdateUnmappedObjects</code> 队列（DataReplication.cpp:2461），等映射后补 <code>PostNetReceive</code>（:2525）——**复制可以”迟到但不缺席”**。</p>
+<h2 id="5-8-源码考古：三张表的关键结构"><a href="#5-8-源码考古：三张表的关键结构" class="headerlink" title="5.8 源码考古：三张表的关键结构"></a>5.8 源码考古：三张表的关键结构</h2><blockquote>
+<p><strong>源码考古</strong>：想看真东西的人进。</p>
+<p><strong>① changelist 只记 handle</strong>，<code>RepLayout.h:1142-1148</code>（头注释）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 改动追踪器（FRepChangedPropertyTracker）与 changelist 的职责划分：</span></span><br><span class="line"><span class="comment">// changelist 只记录&quot;哪些属性句柄在本帧发生了变化&quot;，</span></span><br><span class="line"><span class="comment">// 不记录变化前后的值——值在 shadow 数据里，发送时读取。</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：注释直接回答”为什么带宽小”——<strong>日记只写”谁变了”，值不重复存</strong>。<br>一帧 100 个属性只有 3 个变了 → changelist 3 个 handle（每 handle ~1-2 字节），<br>发送时只序列化这 3 个属性的值。</p>
+<p><strong>② 变化比较的 PushModel 分支</strong>，<code>RepLayout.cpp:1514-1638</code>（要点）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (bUsePushModel)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// PushModel：只检查游戏代码显式标记&quot;脏&quot;的属性（MARK_PROPERTY_DIRTY）</span></span><br><span class="line">	PushProperties = PushModelState-&gt;<span class="built_in">GetDirtyProperties</span>();</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// 非 PushModel：逐属性比较 shadow 与当前值（CPU 全量扫描）</span></span><br><span class="line">	<span class="built_in">CompareProperties_r</span>(SharedParams, StackParams);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：两种脏追踪策略的岔路口——PushModel 靠”主动申报”（省 CPU，贵在<br>代码纪律：每次改属性都要 MARK_PROPERTY_DIRTY），默认路径靠”被动比较”（省心，贵 CPU）。<br>大世界服务器属性多时 PushModel 收益显著（第 10 章专题）。</p>
+<p><strong>③ OnRep 触发</strong>，<code>RepLayout.cpp:4661</code>（要点）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 对 RepNotifies 里每个变化的属性：</span></span><br><span class="line"><span class="comment">// 查属性的 RepNotifyFunc（UPROPERTY(ReplicatedUsing=OnRep_X) 声明的函数名）</span></span><br><span class="line"><span class="comment">// → Object-&gt;FindFunction(RepNotifyFunc) → ProcessEvent 调用</span></span><br><span class="line"><span class="comment">// 这就是客户端&quot;收到属性变化后自动跑一段代码&quot;的机制</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：<code>ReplicatedUsing=OnRep_Health</code> 的魔力来源——属性落到客户端后，<br>引擎查函数、调用它。OnRep 是<strong>客户端</strong>钩子（服务器自己改属性不触发 OnRep），<br>常用来做”属性变化后的表现”（血条更新、声音播放）。</p>
+</blockquote>
+<h1 id="第-6-章-RPC-架构：远程函数调用的全链路"><a href="#第-6-章-RPC-架构：远程函数调用的全链路" class="headerlink" title="第 6 章 RPC 架构：远程函数调用的全链路"></a>第 6 章 RPC 架构：远程函数调用的全链路</h1><blockquote>
+<p><strong>TL;DR</strong>｜RPC 是<strong>电话</strong>：四种线路（Server 上行 &#x2F; Client 下行 &#x2F; Multicast 广播）× Reliable<br>可靠修饰。总机是 <code>ProcessRemoteFunction</code>：先查”能不能打”（销毁&#x2F;撕裂&#x2F;拦截），再分流<br>Iris 新线路或 legacy 老线路；参数按函数级 RepLayout 序列化，不可靠多播先攒批再限流发送。<br><strong>Server RPC 在服务器本地调用时直接本地执行</strong>——不绕电话线。</p>
+</blockquote>
+<h2 id="6-1-RPC-与属性复制的分工"><a href="#6-1-RPC-与属性复制的分工" class="headerlink" title="6.1 RPC 与属性复制的分工"></a>6.1 RPC 与属性复制的分工</h2><p>第 1.5 章的决策口诀：”<strong>状态用复制，事件用 RPC</strong>“。RPC 的声明方式：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">UFUNCTION</span>(Server, Reliable)  <span class="function"><span class="type">void</span> <span class="title">ServerFireWeapon</span><span class="params">()</span></span>;       <span class="comment">// 客户端→服务器（可靠）</span></span><br><span class="line"><span class="built_in">UFUNCTION</span>(Client)            <span class="function"><span class="type">void</span> <span class="title">ClientShowHitmarker</span><span class="params">()</span></span>;    <span class="comment">// 服务器→拥有者</span></span><br><span class="line"><span class="built_in">UFUNCTION</span>(NetMulticast)      <span class="function"><span class="type">void</span> <span class="title">MulticastExplosion</span><span class="params">()</span></span>;     <span class="comment">// 服务器→所有相关客户端</span></span><br></pre></td></tr></table></figure>
+
+<p>四种类型由 UFunction 的 <code>FunctionFlags</code> 决定：<code>FUNC_NetServer | FUNC_NetClient | FUNC_NetMulticast | FUNC_NetReliable</code>。</p>
+<h2 id="6-2-四种类型矩阵"><a href="#6-2-四种类型矩阵" class="headerlink" title="6.2 四种类型矩阵"></a>6.2 四种类型矩阵</h2><table>
+<thead>
+<tr>
+<th></th>
+<th>Server（上行）</th>
+<th>Client（下行）</th>
+<th>Multicast（广播）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>方向</td>
+<td>客户端 → 服务器</td>
+<td>服务器 → 拥有者</td>
+<td>服务器 → 所有相关客户端</td>
+</tr>
+<tr>
+<td>谁执行</td>
+<td>服务器</td>
+<td>拥有该 Actor 的客户端</td>
+<td>所有客户端 + <strong>服务器本地</strong></td>
+</tr>
+<tr>
+<td>典型用途</td>
+<td>移动上报、开火请求</td>
+<td>击杀回执、UI 通知</td>
+<td>爆炸、开门动画</td>
+</tr>
+<tr>
+<td>权限校验</td>
+<td>服务器验证（防作弊）</td>
+<td>拥有者校验</td>
+<td>无（只收）</td>
+</tr>
+<tr>
+<td>本地行为</td>
+<td>服务器本地调用 &#x3D; 直接执行</td>
+<td>服务器调用不本地执行</td>
+<td>服务器调用<strong>立即本地执行</strong></td>
+</tr>
+</tbody></table>
+<p><strong>关键特殊性</strong>：Multicast 在服务器上<strong>立即本地执行</strong>（调用者端直接 ProcessEvent，不绕网络）——服务器不需要”广播给自己”；Client RPC 只发给<strong>拥有者连接</strong>（<code>Actor-&gt;GetNetConnection()</code>）。</p>
+<h2 id="6-3-发送链：ProcessRemoteFunction-的总机逻辑"><a href="#6-3-发送链：ProcessRemoteFunction-的总机逻辑" class="headerlink" title="6.3 发送链：ProcessRemoteFunction 的总机逻辑"></a>6.3 发送链：ProcessRemoteFunction 的总机逻辑</h2><p><code>UNetDriver::ProcessRemoteFunction</code>（<code>NetDriver.cpp:8053</code>）是 RPC 的唯一总机，顺序检查：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">ProcessRemoteFunction（每步处理掉就 return）</span><br><span class="line">  ① 前置检查：IsActorBeingDestroyed → 丢弃；GetTearOff → 丢弃；SendRPCDel 委托可拦截</span><br><span class="line">  ② Iris 路径：ReplicationSystem-&gt;SendRPC 成功即返回（Iris 启用时绝不回退 legacy）</span><br><span class="line">  ③ RepDriver 拦截：ReplicationDriver-&gt;ProcessRemoteFunction 返回 true 则结束</span><br><span class="line">  ④ Multicast 广播：遍历 ClientConnections</span><br><span class="line">       Actor-&gt;IsNetRelevantFor 过滤（可靠 RPC 允许发给通道存活但不可相关的）</span><br><span class="line">       BuildSharedSerializationForRPC（多连接共享参数序列化）</span><br><span class="line">       每连接 InternalProcessRemoteFunctionPrivate</span><br><span class="line">  ⑤ 单播：Actor-&gt;GetNetConnection() → InternalProcessRemoteFunction</span><br><span class="line">       → ProcessRemoteFunctionForChannelPrivate</span><br></pre></td></tr></table></figure>
+
+<p><strong>通道级发送</strong> <code>ProcessRemoteFunctionForChannelPrivate</code>（:3152）的四个关键动作：</p>
+<ol>
+<li><strong>Channel 未开 → 先强制复制</strong>（:3179-3220）：<code>Ch-&gt;SetForcedSerializeFromRPC(true); Ch-&gt;ReplicateActor();</code> —— <strong>RPC 能”逼”服务器先开 Actor 通道</strong>（连 Actor 都没复制过就收到它的 RPC？不可能——所以先复制一遍，把通道建起来）；</li>
+<li><strong>可靠性</strong>：<code>Bunch.bReliable = (Function-&gt;FunctionFlags &amp; FUNC_NetReliable)</code>（:3236）；</li>
+<li><strong>参数序列化</strong>：<code>GetFunctionRepLayout(Function)-&gt;SendPropertiesForRPC(...)</code>（:3303）——函数参数也走 RepLayout（每个 UFunction 一份函数级布局）；</li>
+<li><strong>队列 vs 立即发</strong>（:3326-3341）：不可靠的 Multicast 走 <code>QueueRemoteFunctionBunch</code>（攒批），其余直接 <code>Ch-&gt;SendBunch</code>。</li>
+</ol>
+<h2 id="6-4-Multicast-排队与限流"><a href="#6-4-Multicast-排队与限流" class="headerlink" title="6.4 Multicast 排队与限流"></a>6.4 Multicast 排队与限流</h2><p><code>FObjectReplicator::QueueRemoteFunctionBunch</code>（<code>DataReplication.cpp:2293</code>）：不可靠多播 RPC 攒进 <code>RemoteFunctions</code> 队列，<strong>下次属性复制时随 bunch 发出</strong>；限流 <code>net.MaxRPCPerNetUpdate</code>（<code>DataReplication.cpp:39</code>，默认值写作时核实）——同一 RPC 每帧调用太多次直接丢弃多余的（”开火音效每秒 100 次？发 20 次够了”）。</p>
+<p><strong>避坑</strong>：UE 5.x 已<strong>没有独立的 UFunctionChannel</strong>（老教程的核心概念）——RPC 直接在<br>ActorChannel 的属性流里传输（<code>ReadFieldHeaderAndPayload</code> 循环里用 Cast<UFunction> 区分）。<br>功能没变，架构变了：**RPC 是”特殊字段”，不是”特殊通道”**。</p>
+<h2 id="6-5-接收链：从束到执行"><a href="#6-5-接收链：从束到执行" class="headerlink" title="6.5 接收链：从束到执行"></a>6.5 接收链：从束到执行</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">FObjectReplicator::ReceivedBunch（DataReplication.cpp:984）</span><br><span class="line">  → 属性先落地（ReceiveProperties）</span><br><span class="line">  → 字段循环：CastField&lt;FStructProperty&gt; = 属性 / Cast&lt;UFunction&gt; = RPC</span><br><span class="line">  → ReceivedRPC（:1323）：</span><br><span class="line">      校验：FUNC_NetServer 且非服务器 → 拒绝（客户端不能执行 Server RPC！）</span><br><span class="line">      ReceivePropertiesForRPC（:1415）：反序列化参数</span><br><span class="line">      未映射 GUID → PendingLocalRPCs 延迟（等对象加载后补执行）</span><br><span class="line">      ForwardRemoteFunction → CallProcessEventForReceivedRPC 执行</span><br></pre></td></tr></table></figure>
+
+<p><strong>安全边界</strong>：客户端收到 <code>FUNC_NetServer</code> 的 RPC <strong>直接拒绝</strong>（:1351-1361）——Server RPC 只能在服务器执行，这保证了”客户端只能建议，不能命令”。</p>
+<h2 id="6-6-陷阱与边界"><a href="#6-6-陷阱与边界" class="headerlink" title="6.6 陷阱与边界"></a>6.6 陷阱与边界</h2><ol>
+<li><strong>RPC 先于属性到达</strong>：客户端收到”捡起武器”的 RPC 时武器对象可能还没复制过来（NetGUID 未映射）——引擎的解法是<strong>延迟队列</strong>（PendingLocalRPCs），映射后补执行；</li>
+<li><strong>不可靠 RPC 会丢</strong>：不修饰 bReliable 的 RPC 丢了就丢了（游戏逻辑不能依赖它）；”命令类”（换弹、交易）必须 Reliable；</li>
+<li><strong>Server RPC 的验证</strong>：<code>Server_Validate</code> 函数（WithValidation）让服务器在<strong>执行前</strong>先验证参数——防作弊的第一道闸（”你说你开了一枪，射程内真有敌人吗？”）。</li>
+</ol>
+<h2 id="6-7-源码考古：ProcessRemoteFunction-全分支"><a href="#6-7-源码考古：ProcessRemoteFunction-全分支" class="headerlink" title="6.7 源码考古：ProcessRemoteFunction 全分支"></a>6.7 源码考古：ProcessRemoteFunction 全分支</h2><blockquote>
+<p><strong>源码考古</strong>：想看真东西的人进。</p>
+<p>NetDriver.cpp:8053-8198（要点结构）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">UNetDriver::ProcessRemoteFunction</span><span class="params">(...)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">// ① 前置检查</span></span><br><span class="line">	<span class="keyword">if</span> (Actor-&gt;<span class="built_in">IsActorBeingDestroyed</span>()) <span class="keyword">return</span>;</span><br><span class="line">	<span class="keyword">if</span> (Actor-&gt;<span class="built_in">GetTearOff</span>()) <span class="keyword">return</span>;</span><br><span class="line">	<span class="keyword">if</span> (SendRPCDel &amp;&amp; !<span class="built_in">SendRPCDel</span>(RPCCallInfo, ...)) <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// ② Iris 新路径</span></span><br><span class="line">	<span class="keyword">if</span> (ReplicationSystem &amp;&amp; ReplicationSystem-&gt;<span class="built_in">SendRPC</span>(...)) &#123; <span class="keyword">return</span>; &#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// ③ RepDriver（RepGraph）拦截</span></span><br><span class="line">	<span class="keyword">if</span> (ReplicationDriver &amp;&amp; ReplicationDriver-&gt;<span class="built_in">ProcessRemoteFunction</span>(...)) &#123; <span class="keyword">return</span>; &#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// ④ Multicast 广播（服务器→所有相关客户端）</span></span><br><span class="line">	<span class="keyword">if</span> (Function-&gt;FunctionFlags &amp; FUNC_NetMulticast)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">for</span> (UNetConnection* Connection : ClientConnections)</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="keyword">if</span> (Actor-&gt;<span class="built_in">IsNetRelevantFor</span>(...) || (bReliable &amp;&amp; Channel-&gt;OpenAcked))</span><br><span class="line">			&#123;</span><br><span class="line">				<span class="built_in">InternalProcessRemoteFunctionPrivate</span>(...);   <span class="comment">// 每连接发送</span></span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// ⑤ 单播（服务器→拥有者 / 客户端→服务器）</span></span><br><span class="line">	UNetConnection* Connection = Actor-&gt;<span class="built_in">GetNetConnection</span>();</span><br><span class="line">	<span class="built_in">InternalProcessRemoteFunction</span>(...);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：RPC 的”总机接线表”——五步分流。注意 ④ 的过滤条件：<br>不可靠多播只发给<strong>相关</strong>连接，可靠多播可以发给”通道还开着但已不相关”的连接<br>（保证”开门”这类命令不漏发）。<code>SendRPCDel</code> 委托是<strong>游戏代码的拦截点</strong><br>（做自定义 RPC 过滤&#x2F;统计）。</p>
+<p><strong>② Channel 未开先强制复制</strong>（:3179-3220，要点）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (Channel == <span class="literal">nullptr</span>)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// 通道不存在（Actor 还没复制过）→ 强制先复制一次，把通道建起来</span></span><br><span class="line">	Ch-&gt;<span class="built_in">SetForcedSerializeFromRPC</span>(<span class="literal">true</span>);</span><br><span class="line">	Ch-&gt;<span class="built_in">ReplicateActor</span>();</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：RPC 的”先遣队”——服务器要给客户端发 RPC，但对应 Actor 的通道<br>还不存在（比如刚生成的对象立刻收到 RPC）——引擎<strong>强制复制一遍</strong>把通道建好，RPC 随后<br>到达。这就是”RPC 能创建通道”的机制，也是为什么 RPC 参数里引用的对象必须是<br>“可能已经复制过”的（否则 NetGUID 没映射，参数进延迟队列）。</p>
+</blockquote>
+<hr>
+<h1 id="第-7-章-分发架构：决策链、Replication-Graph-与-Dormancy"><a href="#第-7-章-分发架构：决策链、Replication-Graph-与-Dormancy" class="headerlink" title="第 7 章 分发架构：决策链、Replication Graph 与 Dormancy"></a>第 7 章 分发架构：决策链、Replication Graph 与 Dormancy</h1><blockquote>
+<p><strong>TL;DR</strong>｜分发架构回答”<strong>谁该收到什么、什么时候</strong>“：服务器每帧跑<strong>四步决策链</strong>（准备连接 →<br>按频率筛候选 → 按优先级排序 → 按相关性派件）。<strong>Replication Graph</strong> 把 O(N×M) 挨个检查换成<br><strong>预建的空间网格</strong>（每个 viewer 只查自己格子）；<strong>休眠（Dormancy）</strong>让不动的 Actor 停止派件，<br>动了再唤醒。类比：<strong>分区快递员——只派自己区的件，休眠包裹睡仓库</strong>。</p>
+</blockquote>
+<h2 id="7-1-问题定义：决策与序列化的分工"><a href="#7-1-问题定义：决策与序列化的分工" class="headerlink" title="7.1 问题定义：决策与序列化的分工"></a>7.1 问题定义：决策与序列化的分工</h2><p>第 5 章解决”怎么编”（序列化），本章解决”<strong>给谁发、什么时候发</strong>“（决策）。Legacy 路径的决策在 <code>ServerReplicateActors</code> 里，RepGraph 是它的<strong>可插拔替代品</strong>——两者二选一（<code>ReplicationDriver</code> 接口统一）。</p>
+<h2 id="7-2-Legacy-决策链：四步"><a href="#7-2-Legacy-决策链：四步" class="headerlink" title="7.2 Legacy 决策链：四步"></a>7.2 Legacy 决策链：四步</h2><p><code>UNetDriver::ServerReplicateActors</code>（<code>NetDriver.cpp:6205</code>）：</p>
+<figure>
+<figcaption>图 F8　决策链四步（Legacy 路径）</figcaption>
+<pre>
+ ServerReplicateActors（每帧，服务器）
+  │
+  ├─ ① PrepConnections（:5126）
+  │    按 NetClientTicksPerSecond 决定本帧 tick 哪些连接（分摊）
+  │    没 tick 到的连接：候选 Actor 标记 bPendingNetUpdate（下帧强制补发）
+  │
+  ├─ ② BuildConsiderList（:5231）
+  │    遍历活跃 Actor：NetUpdateFrequency 门控（没到 NextUpdateTime 跳过）
+  │    → CallPreReplication（游戏代码预处理钩子）
+  │    → 初始休眠的 Actor 直接移除
+  │
+  ├─ ③ PrioritizeActors（:5456）
+  │    每个 Actor × 每个连接算 Priority（GetNetPriority：距离/朝向/重要度）
+  │    → 排序（越重要越先发）
+  │
+  └─ ④ ProcessPrioritizedActorsRange（:5615）
+       逐 Actor × 逐连接：
+       IsActorRelevantToConnection（:5681）相关性判定（距离/可见/bAlwaysRelevant）
+       → 无通道则创建（:5722 CreateChannelByName(NAME_Actor)）
+       → Channel->ReplicateActor()（:5758，进入第 5 章序列化）
+       → 带宽饱和（IsNetReady）→ 停止本帧继续发（ForceNetUpdate 下帧补）
+       → 不再相关 → Channel->Close（Relevancy/TearOff）
+</pre>
+</figure>
+
+<p><strong>相关性判定</strong>（<code>AActor::IsNetRelevantFor</code>，<code>ActorReplication.cpp:388</code>）的优先级：<code>bAlwaysRelevant</code> &#x2F; 是 ViewTarget 或拥有者 &#x2F; <code>bNetUseOwnerRelevancy</code> 委托 &#x2F; <code>bOnlyRelevantToOwner</code> → 最后按距离（<code>IsWithinNetRelevancyDistance</code>，<code>DistSq &lt; GetNetCullDistanceSquared()</code>）。</p>
+<p><strong>带宽饱和</strong>：<code>Connection-&gt;IsNetReady()</code>（NetConnection.cpp:2731）检查令牌桶——饱和时<strong>停止继续发</strong>（这是”优先级排序”的意义：重要的一定先发出去）。</p>
+<h2 id="7-3-Replication-Graph：分区快递员"><a href="#7-3-Replication-Graph：分区快递员" class="headerlink" title="7.3 Replication Graph：分区快递员"></a>7.3 Replication Graph：分区快递员</h2><p><strong>动机</strong>：Legacy 每帧对每个 Actor × 每个连接做相关性检查 &#x3D; **O(N×M)**——Fortnite 5 万 Actor × 100 连接 &#x3D; 500 万次检查&#x2F;帧。RepGraph 把”检查”变成”<strong>预建的数据结构查找</strong>“。</p>
+<p><strong>位置</strong>：<strong>插件</strong>（<code>Engine/Plugins/Runtime/ReplicationGraph/</code>，本 fork 引擎版已移除）。</p>
+<p><strong>类体系</strong>（<code>ReplicationGraph.h</code>）：</p>
+<table>
+<thead>
+<tr>
+<th>节点类</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>UReplicationGraphNode</code>（:69）</td>
+<td>基类：NotifyAdd&#x2F;RemoveNetworkActor + GatherActorListsForConnection</td>
+</tr>
+<tr>
+<td><code>UReplicationGraphNode_ActorList</code>（:188）</td>
+<td>通用列表节点（手工分组用）</td>
+</tr>
+<tr>
+<td><code>UReplicationGraphNode_GridSpatialization2D</code>（:579）</td>
+<td><strong>2D 空间网格</strong>：动态&#x2F;静态&#x2F;休眠三张表</td>
+</tr>
+<tr>
+<td><code>UReplicationGraphNode_GridCell</code>（:535）</td>
+<td>每个格子一个（DynamicNode + DormancyNode）</td>
+</tr>
+<tr>
+<td><code>UReplicationGraphNode_DormancyNode</code>（:485）</td>
+<td>格子休眠表</td>
+</tr>
+<tr>
+<td><code>UReplicationGraphNode_AlwaysRelevant</code>（:771）</td>
+<td>始终相关节点（PlayerController 等）</td>
+</tr>
+<tr>
+<td><code>UReplicationGraphNode_TearOff_ForConnection</code>（:888）</td>
+<td>撕裂节点</td>
+</tr>
+</tbody></table>
+<p><strong>空间网格分发</strong>（<code>ReplicationGraph.cpp:6238</code>）：每个 viewer 算出自己所在格子 <code>(Location - SpatialBias) / CellSize</code>，<strong>只 gather 那个格子的 Actor 列表</strong>——远处格子的 Actor 根本不进考虑列表。格子 TTL 过期时通知客户端销毁休眠动态 Actor。</p>
+<p><strong>主循环</strong>（<code>ReplicationGraph.cpp:1112</code> <code>UReplicationGraph::ServerReplicateActors</code>）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">PrepareForReplication → 每连接 GatherActorListsForConnection（全局节点+连接节点）</span><br><span class="line">→ ReplicateActorListsForConnections_Default（:1449）：</span><br><span class="line">    bDormantOnConnection 跳过（:1523）</span><br><span class="line">    ReadyForNextReplication 帧频门控（:1539，ReplicationPeriodFrame 换算）</span><br><span class="line">    距离剔除（:1571）/ 距离缩放（:1591）</span><br><span class="line">    StarvationFactor 饥饿补偿（:1614，总被饿死的 Actor 提高优先级）</span><br><span class="line">    休眠候选优先（:1633）</span><br><span class="line">    Algo::Sort 排序</span><br><span class="line">→ ReplicateSingleActor（:2044）：复用/创建 UActorChannel → ReplicateActor</span><br></pre></td></tr></table></figure>
+
+<p><strong>帧驱动</strong>：<code>ReplicationPeriodFrame = NetServerMaxTickRate / NetUpdateFrequency</code>（:1083）——RepGraph 按<strong>帧</strong>而非时间调度，服务器 tick 率 30 时 NetUpdateFrequency 100 的 Actor 每 3 帧发一次。</p>
+<blockquote>
+<p><strong>避坑</strong>：RepGraph 头注释明说”用 RepGraph 时 <code>IsNetRelevantFor</code>&#x2F;<code>GetNetPriority</code><br><strong>不再被使用</strong>“（ReplicationGraphTypes.h）——决策完全由图结构承担。<br>另外本 fork 的开关是 **<code>Net.RepDriver.Enable</code>**（NetDriver.cpp:7999），<br>上游的 <code>net.EnableReplicationGraph</code> 不存在。</p>
+</blockquote>
+<h2 id="7-4-Dormancy：休眠的-Actor-停止派件"><a href="#7-4-Dormancy：休眠的-Actor-停止派件" class="headerlink" title="7.4 Dormancy：休眠的 Actor 停止派件"></a>7.4 Dormancy：休眠的 Actor 停止派件</h2><p><strong>五状态</strong>（<code>EngineTypes.h:3645</code>）：<code>DORM_Never</code>（永不休眠）&#x2F; <code>DORM_Awake</code>（默认，随时可睡）&#x2F; <code>DORM_DormantAll</code>（全连接休眠）&#x2F; <code>DORM_DormantPartial</code>（按连接）&#x2F; <code>DORM_Initial</code>（初始休眠，等唤醒）。</p>
+<p><strong>Legacy 链路</strong>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">ShouldActorGoDormant（NetDriver.cpp:5434）：条件检查（休眠设置/无通道/时间）</span><br><span class="line">  → UActorChannel::StartBecomingDormant（DataChannel.cpp:4632）：bPendingDormancy=true</span><br><span class="line">    → UChannel::Tick（:550-557）：bPendingDormancy &amp;&amp; ReadyForDormancy → BecomeDormant</span><br><span class="line">      ReadyForDormancy（:4604）：所有 replicator 无新属性（bLastUpdateEmpty）</span><br><span class="line">        且无未 ACK 的 changelist、通道已 OpenAcked</span><br><span class="line">      + net.DormancyHysteresis 迟滞（DataChannel.cpp:114，防抖）</span><br><span class="line">      → BecomeDormant（:4595）：Dormant=true; Close(Dormancy)</span><br></pre></td></tr></table></figure>
+
+<p><strong>唤醒</strong>：<code>AActor::FlushNetDormancy</code>（<code>Actor.cpp:3120</code>）——<code>DORM_Initial → DORM_DormantAll</code>、重新注册、走 RepDriver 或 legacy 逐连接清休眠标志。**唤醒条件是”对象变了”**（游戏代码主动调 FlushNetDormancy，或 RepDriver 检测到属性脏）。</p>
+<p><strong>RepGraph 侧</strong>：<code>bDormantOnConnection</code> 优先跳过（:1523）；<code>DormancyNode</code> 按需把休眠 Actor 拉回列表（<code>ConditionalGatherDormantDynamicActors</code>）。</p>
+<h2 id="7-5-启用与切换"><a href="#7-5-启用与切换" class="headerlink" title="7.5 启用与切换"></a>7.5 启用与切换</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">DefaultEngine.ini:</span><br><span class="line">  [/Script/Engine.Engine]</span><br><span class="line">  +ReplicationDriverClassName=&quot;/Script/MyGame.MyReplicationGraph&quot;</span><br><span class="line">  （ReplicationDriver.h:13-14 注释：在引擎 ini 配置复制驱动类）</span><br><span class="line"></span><br><span class="line">  NetDriver.cpp:1798-1799：</span><br><span class="line">  InitReplicationDriverClass(); SetReplicationDriver(UReplicationDriver::CreateReplicationDriver(...));</span><br></pre></td></tr></table></figure>
+
+<p><code>Net.RepDriver.Enable=1</code>（NetDriver.cpp:7999）+ 自定义 RepGraph 类 → 替换 legacy 决策链。</p>
+<h2 id="7-6-源码考古：决策链与休眠判定"><a href="#7-6-源码考古：决策链与休眠判定" class="headerlink" title="7.6 源码考古：决策链与休眠判定"></a>7.6 源码考古：决策链与休眠判定</h2><blockquote>
+<p><strong>源码考古</strong>：想看真东西的人进。</p>
+<p><strong>① 相关性 + 建通道</strong>，<code>NetDriver.cpp:5681-5758</code>（要点）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">const</span> <span class="type">bool</span> bIsRelevant = Actor-&gt;<span class="built_in">IsActorRelevantToConnection</span>(...);   <span class="comment">// 相关性判定</span></span><br><span class="line">...</span><br><span class="line"><span class="keyword">if</span> (bIsRelevant)</span><br><span class="line">&#123;</span><br><span class="line">	UActorChannel* Channel = ActorInfo-&gt;Channel;</span><br><span class="line">	<span class="keyword">if</span> (Channel == <span class="literal">nullptr</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="comment">// 相关但没通道 → 创建（这就是 Actor 通道动态分配的时机）</span></span><br><span class="line">		Channel = Connection-&gt;<span class="built_in">CreateChannelByName</span>(NAME_Actor, EChannelCreateFlags::None);</span><br><span class="line">		Channel-&gt;<span class="built_in">SetChannelActor</span>(Actor, ...);</span><br><span class="line">	&#125;</span><br><span class="line">	Channel-&gt;<span class="built_in">ReplicateActor</span>(...);   <span class="comment">// 进入第 5 章序列化</span></span><br><span class="line">&#125;</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：决策链的”派件动作”——<strong>相关 → 建通道 → 复制</strong>三步。<br>注意通道是<strong>服务器主动创建</strong>的：客户端永远不会主动申请 Actor 通道（它只能被动收）。<br>这也是”服务器权威”在分发层的体现。</p>
+<p><strong>② 休眠判定</strong>，<code>NetDriver.cpp:5434-5560</code>（要点）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span> (<span class="built_in">IsActorDormant</span>(ActorInfo, WeakConnection)) <span class="keyword">continue</span>;      <span class="comment">// 已休眠（此连接）</span></span><br><span class="line"><span class="keyword">if</span> (<span class="built_in">ShouldActorGoDormant</span>(Actor, Channel, ...))</span><br><span class="line">&#123;</span><br><span class="line">	Channel-&gt;<span class="built_in">StartBecomingDormant</span>();   <span class="comment">// 进入休眠流程（等最后一包发完）</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：休眠的两个判定点——<strong>已休眠的直接跳过</strong>（省掉相关性检查），<br><strong>该休眠的开始休眠</strong>（等所有连接都收到最后一包后真正关通道）。Dormancy 是<br>“停止派件”的开关，能省的不只是带宽，还有每帧的检查成本。</p>
+<p><strong>③ RepGraph 的网格 gather</strong>，<code>ReplicationGraph.cpp:6238-6290</code>（要点）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (<span class="type">const</span> FNetViewer&amp; CurViewer : Params.Viewers)</span><br><span class="line">&#123;</span><br><span class="line">	int32 CellX = (ClampedViewLoc.X - SpatialBias.X) / CellSize;   <span class="comment">// 格子坐标</span></span><br><span class="line">	int32 CellY = (ClampedViewLoc.Y - SpatialBias.Y) / CellSize;</span><br><span class="line">	<span class="keyword">if</span> (UReplicationGraphNode_GridCell* CellNode = <span class="built_in">GetCell</span>(CellX, CellY))</span><br><span class="line">	&#123;</span><br><span class="line">		CellNode-&gt;<span class="built_in">GatherActorListsForConnection</span>(Params);   <span class="comment">// 只 gather 自己格子！</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：O(N×M)→O(格子内 Actor × viewer) 的核心——<strong>每个 viewer 只查询<br>自己所在格子的 Actor 列表</strong>。网格大小（CellSize）是 RepGraph 最重要的调参：<br>格子太小 → 每帧跨格抖动（Actor 在边界反复进出）；太大 → 网格退化回全量检查。</p>
+</blockquote>
+<hr>
+<h1 id="第-8-章-网关架构：登录、Beacon、旅行与预测"><a href="#第-8-章-网关架构：登录、Beacon、旅行与预测" class="headerlink" title="第 8 章 网关架构：登录、Beacon、旅行与预测"></a>第 8 章 网关架构：登录、Beacon、旅行与预测</h1><blockquote>
+<p><strong>TL;DR</strong>｜网关架构管”<strong>怎么进门、换乘、验票</strong>“：<strong>门卫</strong>是 GameMode（PreLogin→Login→PostLogin），<br><strong>带外专线</strong>是 Beacon（游戏服务器与匹配&#x2F;大厅服务的旁路连接），<strong>大巴换乘</strong>是 SeamlessTravel<br>（无缝换图）。进门后 PlayerController 是玩家在服务器上的<strong>替身</strong>，角色移动靠<strong>先斩后奏</strong><br>（客户端预测 + 服务器纠偏）。注意：**UE 引擎层没有”网关服务器”**——入口职责分散在<br>GameMode&#x2F;Beacon&#x2F;Session&#x2F;旅行四件套里。</p>
+</blockquote>
+<h2 id="8-1-网关的定位：引擎里没有”网关服务器”"><a href="#8-1-网关的定位：引擎里没有”网关服务器”" class="headerlink" title="8.1 网关的定位：引擎里没有”网关服务器”"></a>8.1 网关的定位：引擎里没有”网关服务器”</h2><p>搜索整个引擎：<strong>没有名为 Gateway 的服务器代码</strong>。UE 的”网关”是<strong>职责分散的入口体系</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>职责</th>
+<th>承担者</th>
+<th>章节</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>验明正身（防放大攻击）</td>
+<td>StatelessConnect 无状态握手</td>
+<td>Ch4</td>
+</tr>
+<tr>
+<td>验票进门（游戏层登录）</td>
+<td>GameMode &#x2F; GameSession</td>
+<td>8.2</td>
+</tr>
+<tr>
+<td>带外专线（与匹配&#x2F;大厅通信）</td>
+<td>Beacon</td>
+<td>8.3</td>
+</tr>
+<tr>
+<td>找房间（会话匹配）</td>
+<td>Session（插件化）</td>
+<td>8.4</td>
+</tr>
+<tr>
+<td>换乘（换图&#x2F;无缝旅行）</td>
+<td>ServerTravel &#x2F; SeamlessTravel</td>
+<td>8.5</td>
+</tr>
+<tr>
+<td>进门后的身份</td>
+<td>PlayerController（替身）</td>
+<td>8.6</td>
+</tr>
+<tr>
+<td>进门后的行为</td>
+<td>客户端预测 + 纠偏</td>
+<td>8.7</td>
+</tr>
+</tbody></table>
+<h2 id="8-2-登录链：GameMode-验票"><a href="#8-2-登录链：GameMode-验票" class="headerlink" title="8.2 登录链：GameMode 验票"></a>8.2 登录链：GameMode 验票</h2><p><code>AGameModeBase</code>（<code>GameModeBase.h:47</code>，头注释：”<strong>只在服务器上实例化，客户端不存在</strong>“）的四个登录函数（:286-338）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">客户端 NMT_Login 到达（第 3.5 章第③关）</span><br><span class="line">  → GameMode::PreLogin（同步校验：踢人/黑名单/人数上限）</span><br><span class="line">  → GameMode::PreLoginAsync（异步校验：调后端 API 验证）</span><br><span class="line">  → GameMode::Login（生成 PlayerController，绑定 Pawn）</span><br><span class="line">  → GameMode::PostLogin（/ OnPostLogin 委托：通知其他玩家&quot;新人来了&quot;）</span><br><span class="line">  → 服务器回 NMT_Welcome → 客户端加载地图 → NMT_Join → SpawnPlayActor</span><br></pre></td></tr></table></figure>
+
+<p><code>AGameSession</code>（<code>GameSession.h:78/155/183</code>）：<code>ApproveLogin</code>（选项&#x2F;唯一 ID 校验）、<code>KickPlayer</code>、<code>RegisterServer</code>（向在线服务注册）。</p>
+<blockquote>
+<p><strong>避坑</strong>：登录有两层：连接层握手（NMT_Hello→Join，第 3.5 章，<code>UWorld::NotifyControlMessage</code><br>处理）与<strong>游戏层登录</strong>（GameMode 四个函数，8.2 节）。写 <code>PreLogin</code> 时你处理的是<br><strong>游戏层</strong>——连接层的版本校验早就在 <code>NMT_Hello</code> 时做完了。</p>
+</blockquote>
+<h2 id="8-3-Beacon：带外专线"><a href="#8-3-Beacon：带外专线" class="headerlink" title="8.3 Beacon：带外专线"></a>8.3 Beacon：带外专线</h2><p><code>AOnlineBeacon</code>（<code>OnlineBeacon.h:67</code>，<code>AActor + FNetworkNotify</code>）：游戏服务器与<strong>专用服务</strong>（匹配、大厅、QoS）之间的旁路连接——不走玩家登录流程。</p>
+<p><strong>Beacon 握手</strong>（DataChannel.h 内注释的官方流程）：<code>NMT_BeaconWelcome → NMT_BeaconJoin → NMT_BeaconAssignGUID → NMT_BeaconNetGUIDAck</code>——Beacon 有自己独立的控制消息流。</p>
+<p><strong>Lobby 大厅范例</strong>（<code>Engine/Plugins/Online/OnlineFramework/Source/Lobby/</code>）：<code>ALobbyBeaconHost</code>（:24）&#x2F; <code>ALobbyBeaconClient</code>（:58）&#x2F; <code>ALobbyBeaconState</code>（:171）——Epic 官方的”分房间&#x2F;大厅”参考实现：玩家先进大厅（Beacon 连接），凑满人后一起旅行进游戏服务器。</p>
+<h2 id="8-4-Session：找房间（已插件化）"><a href="#8-4-Session：找房间（已插件化）" class="headerlink" title="8.4 Session：找房间（已插件化）"></a>8.4 Session：找房间（已插件化）</h2><p><code>IOnlineSession</code> 接口（Create&#x2F;Find&#x2F;Join&#x2F;DestroySession）位于<strong>插件</strong>（<code>OnlineSessionInterface.h</code>）；引擎侧 <code>UOnlineSession</code>（<code>OnlineSession.h</code>）已退化为空壳基类（StartOnlineSession 等均为空虚函数）。</p>
+<blockquote>
+<p><strong>避坑</strong>：旧教程（UE4 时代）以 <code>UOnlineSession</code> 为主讲会话——现在<strong>会话功能全部在<br>OnlineSubsystem 插件</strong>里（Steam&#x2F;EPIC&#x2F;自定义平台各自实现）。引擎只管”给会话留接口”。</p>
+</blockquote>
+<h2 id="8-5-旅行与关卡分发：换乘与下车"><a href="#8-5-旅行与关卡分发：换乘与下车" class="headerlink" title="8.5 旅行与关卡分发：换乘与下车"></a>8.5 旅行与关卡分发：换乘与下车</h2><ul>
+<li><strong>硬旅行</strong>：<code>UWorld::ServerTravel</code>（<code>World.h:4226</code>）——服务器换图，所有客户端断开重连（清空世界）；</li>
+<li><strong>无缝旅行</strong>：<code>SeamlessTravel</code>（:4238）+ <code>FSeamlessTravelHandler</code>（:194）——<strong>预加载新图、保留指定 Actor（玩家&#x2F;控制器）</strong>，换图不闪断；</li>
+<li><strong>关卡流送</strong>：<code>ULevelStreaming</code> 的 <code>bShouldBeLoaded/Visible</code> 通过 <strong>RPC 下发</strong>（<code>APlayerController::ClientUpdateLevelStreamingStatus</code>，<code>PlayerController.h:1450</code>）——服务器说”你该加载 3 号关卡了”；</li>
+<li><strong>World Partition</strong>：服务器 <code>IsServerStreamingEnabled</code>（<code>WorldPartition.cpp:1377-1401</code>）做权威校验，<strong>客户端用 <code>UWorldPartitionStreamingSourceComponent</code>（<code>WorldPartitionStreamingSourceComponent.h:16</code>）按自己位置自主流式加载</strong>——大世界分发（第 10 章专题）的伏笔。</li>
+</ul>
+<h2 id="8-6-PlayerController：玩家的替身"><a href="#8-6-PlayerController：玩家的替身" class="headerlink" title="8.6 PlayerController：玩家的替身"></a>8.6 PlayerController：玩家的替身</h2><p><code>APlayerController</code> 是<strong>玩家在服务器上的化身</strong>（<code>PlayerController.h:489</code> <code>NetConnection</code> 持有者）：</p>
+<ul>
+<li><strong>唯一性</strong>：头注释（:841）”PlayerController 是<strong>唯一能承载 RPC 的 Actor 类型</strong>“——实际含义：它天然 <code>bNetOwner</code>，是玩家输入与服务器之间的官方通道；</li>
+<li><strong>Pawn 绑定链</strong>：<code>ClientRestart</code>（:1153，客户端重建 Pawn）→ <code>ServerAcknowledgePossession</code>（:1481，客户端确认”我控制它了”）→ <code>ClientRetryClientRestart</code>（:1470，失败了重试）；</li>
+<li><strong>SetPawn 三件套</strong>（<code>Controller.h:246-249</code>）：<code>SetPawn</code>（本地&#x2F;服务器逻辑变更）、<code>SetPawnFromRep</code>（复制到达时执行 + RepNotify）、<code>SetPawn_Direct</code>（无条件直设）——**”服务器决定你控制谁，客户端跟随”**。</li>
+</ul>
+<h2 id="8-7-客户端预测：先斩后奏"><a href="#8-7-客户端预测：先斩后奏" class="headerlink" title="8.7 客户端预测：先斩后奏"></a>8.7 客户端预测：先斩后奏</h2><p>角色移动是 UE 网络里最精妙的机制（<code>CharacterMovementComponent.h</code>）：</p>
+<figure>
+<figcaption>图 F9　客户端预测与服务器纠偏（先斩后奏）</figcaption>
+<pre>
+ 客户端                                            服务器
+   │  ① 玩家按 W（本地立即响应）                      │
+   │     ReplicateMoveToServer 打包输入              │
+   │     SavedMoves 记录"我这样动过"（:3181）        │
+   │ ───────────── ServerMove(输入) ─────────────▶   │
+   │                                                │ ② ServerMove_Implementation（:10106）
+   │                                                │    权威模拟 → 算出正确位置
+   │ ◀──────────── ClientAdjustment(纠偏包) ──────── │ ③ 位置不一致才发纠偏
+   │  ④ ClientAdjustPosition（:11242）               │
+   │     OnClientCorrectionReceived（:11419）        │
+   │     截断 SavedMoves：确认的部分删掉             │
+   │     不一致的部分回滚重放                        │
+   │  ⑤ 若一致：什么都不发生（预测成功，丝滑）        │
+</pre>
+</figure>
+
+<p><strong>关键数据</strong>：<code>FNetworkPredictionData_Client_Character</code>（:3160）的 <code>SavedMoves</code>（未确认的移动缓冲）+ <code>LastAckedMove</code>；<code>FSavedMove_Character</code>（:2988）是最小移动单元（输入+时间戳）。纠偏频率受 <code>NetworkMinTimeBetweenClientAdjustments</code>（:855-868）控制——<strong>别每帧纠偏，给客户端一点容错</strong>。</p>
+<p><strong>为什么这样设计</strong>：预测 &#x3D; <strong>延迟补偿</strong>——不预测的话，客户端按 W 到画面动之间有整整一个 RTT 的延迟（100ms 以上），手感像踩泥。先斩后奏让”本地立即动、服务器确认对错”。</p>
+<h2 id="8-8-源码考古：GameMode-登录四函数"><a href="#8-8-源码考古：GameMode-登录四函数" class="headerlink" title="8.8 源码考古：GameMode 登录四函数"></a>8.8 源码考古：GameMode 登录四函数</h2><blockquote>
+<p><strong>源码考古</strong>：想看真东西的人进。</p>
+<p>GameModeBase.h:286-338（节选）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** 玩家尝试进入时调用（同步校验：人数上限/黑名单） */</span></span><br><span class="line"><span class="function"><span class="keyword">virtual</span> <span class="type">void</span> <span class="title">PreLogin</span><span class="params">(<span class="type">const</span> FString&amp; Options, <span class="type">const</span> FString&amp; Address, ...)</span></span>;</span><br><span class="line"><span class="comment">/** 异步校验版本（调后端 API 验证，必须回调完成） */</span></span><br><span class="line"><span class="function"><span class="keyword">virtual</span> <span class="type">void</span> <span class="title">PreLoginAsync</span><span class="params">(<span class="type">const</span> FString&amp; Options, <span class="type">const</span> FString&amp; Address,</span></span></span><br><span class="line"><span class="params"><span class="function">	<span class="type">const</span> FUniqueNetIdRepl&amp; UniqueId, <span class="type">const</span> FOnPreLoginComplete&amp; OnComplete)</span></span>;</span><br><span class="line"><span class="comment">/** 通过校验后创建 PlayerController */</span></span><br><span class="line"><span class="function"><span class="keyword">virtual</span> APlayerController* <span class="title">Login</span><span class="params">(UPlayer* NewPlayer, ENetRole InRemoteRole,</span></span></span><br><span class="line"><span class="params"><span class="function">	<span class="type">const</span> FString&amp; Address, <span class="type">const</span> FString&amp; UniqueId, FString&amp; ErrorMessage)</span></span>;</span><br><span class="line"><span class="comment">/** 玩家完全进入后调用（通知其他玩家/初始化个人状态） */</span></span><br><span class="line"><span class="function"><span class="keyword">virtual</span> <span class="type">void</span> <span class="title">PostLogin</span><span class="params">(APlayerController* NewPlayer)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：登录四函数的顺序就是”门卫流程”——<strong>先拦（PreLogin）→ 异步验票<br>（PreLoginAsync，可对接账号服务）→ 发门卡（Login 建 PlayerController）→ 欢迎入住<br>（PostLogin）</strong>。注意 <code>PreLoginAsync</code> 是必调回调的（”must call the delegate”）——<br>异步流程下服务器会挂起等待，写错会导致玩家永远卡在”进入中”。</p>
+</blockquote>
+<hr>
+<h1 id="第-9-章-专题一：移动端网络优化"><a href="#第-9-章-专题一：移动端网络优化" class="headerlink" title="第 9 章 专题一：移动端网络优化"></a>第 9 章 专题一：移动端网络优化</h1><blockquote>
+<p><strong>TL;DR</strong>｜移动网络的敌人是<strong>延迟、抖动、带宽、弱网</strong>。四板斧：<strong>量化压缩</strong>（FVector_NetQuantize<br>等）、<strong>条件复制</strong>（COND_* 只发需要的人）、<strong>频率分层</strong>（重要对象高频、装饰对象低频）、<br><strong>服务器降 tick</strong>（NetServerMaxTickRate）。另外移动端弱网场景（切后台&#x2F;重连）有专门应对。</p>
+</blockquote>
+<h2 id="9-1-移动网络的账本"><a href="#9-1-移动网络的账本" class="headerlink" title="9.1 移动网络的账本"></a>9.1 移动网络的账本</h2><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>桌面</th>
+<th>移动</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>延迟</td>
+<td>20-60ms</td>
+<td>60-200ms（蜂窝网络波动大）</td>
+<td>客户端预测 + 服务器纠偏</td>
+</tr>
+<tr>
+<td>抖动</td>
+<td>小</td>
+<td>大（信号切换&#x2F;拥塞）</td>
+<td>缓冲、纠偏容错</td>
+</tr>
+<tr>
+<td>带宽</td>
+<td>富裕</td>
+<td>受限（流量套餐）</td>
+<td>量化压缩、条件复制</td>
+</tr>
+<tr>
+<td>连接稳定性</td>
+<td>高</td>
+<td>弱（切后台&#x2F;隧道&#x2F;地铁）</td>
+<td>重连机制、NetPing</td>
+</tr>
+</tbody></table>
+<h2 id="9-2-分层调参：频率分层"><a href="#9-2-分层调参：频率分层" class="headerlink" title="9.2 分层调参：频率分层"></a>9.2 分层调参：频率分层</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">角色（自己）        NetUpdateFrequency = 100   每帧，不可省</span><br><span class="line">角色（他人）        = 20-30                     视觉可接受</span><br><span class="line">投射物/道具         = 15-30</span><br><span class="line">装饰/远物           = 5-10 或 COND_InitialOnly   只发首帧</span><br></pre></td></tr></table></figure>
+
+<p><strong>移动端原则</strong>：<strong>能少发就少发</strong>——同一场景，桌面 100Hz 的 Actor 在移动端 20Hz 视觉几乎无差（加上插值），带宽省 80%。</p>
+<h2 id="9-3-带宽压缩三板斧"><a href="#9-3-带宽压缩三板斧" class="headerlink" title="9.3 带宽压缩三板斧"></a>9.3 带宽压缩三板斧</h2><ol>
+<li><strong>量化</strong>：<code>FVector_NetQuantize10/100</code>（10&#x2F;100 位精度）替代 float 向量——位置精度 0.01&#x2F;0.001 级足够游戏使用，体积从 96 位降到 30-50 位；</li>
+<li><strong>FastArray</strong>：<code>FFastArraySerializer</code> 只发数组增删改（掉落物列表、玩家列表）——否则整个数组每帧全量；</li>
+<li><strong>条件复制</strong>：<code>COND_InitialOnly</code>（只首帧）、<code>COND_OwnerOnly</code>（只拥有者）、<code>COND_SimulatedOnly</code>（只模拟端）——**每个属性问一遍”真的需要发给所有人吗”**。</li>
+</ol>
+<h2 id="9-4-服务器-Tick-率"><a href="#9-4-服务器-Tick-率" class="headerlink" title="9.4 服务器 Tick 率"></a>9.4 服务器 Tick 率</h2><p><code>NetServerMaxTickRate</code>（<code>NetDriver.h:875-888</code>，BaseEngine.ini <code>[OnlineSubsystemUtils.IpNetDriver] NetServerMaxTickRate=30</code>）：服务器每帧的复制决策上限。<strong>30 tick 的服务器 &#x3D; 每秒 30 次复制决策</strong>（不是 60）——移动端对延迟敏感度低（玩家在手机上玩），30 是常见选择；竞技类可以 60。</p>
+<blockquote>
+<p><strong>避坑</strong>：网上资料说的 <code>r.DedicatedServerMaxTickRate</code> CVar 在<strong>本 fork 不存在</strong>——正确配置<br>是 <code>NetServerMaxTickRate</code>（UNetDriver 属性 + BaseEngine.ini）。见到前者按旧资料处理。</p>
+</blockquote>
+<h2 id="9-5-实战调优路线图（五步法）"><a href="#9-5-实战调优路线图（五步法）" class="headerlink" title="9.5 实战调优路线图（五步法）"></a>9.5 实战调优路线图（五步法）</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">① 看数字    stat net（带宽/包数统计）、NetTrace 抓复制明细</span><br><span class="line">② 看对象    找出 NetUpdateFrequency 最高的 10 个 Actor —— 它们就是带宽大户</span><br><span class="line">③ 分层      按&quot;重要度&quot;分三层定频率（9.2 表）</span><br><span class="line">④ 压缩      位置量化 → 数组 FastArray → 属性 COND_* 检查</span><br><span class="line">⑤ 定案      真机测试（4G/弱网），观察抖动与纠偏频率</span><br></pre></td></tr></table></figure>
+
+<h2 id="9-6-移动端避坑清单"><a href="#9-6-移动端避坑清单" class="headerlink" title="9.6 移动端避坑清单"></a>9.6 移动端避坑清单</h2><ol>
+<li><strong>切后台</strong>：App 进后台 UDP 断流——需要重连逻辑（<code>NMT_NetPing</code> 心跳检测 + 服务器保留连接）；</li>
+<li><strong>弱网纠偏风暴</strong>：抖动大时服务器频繁发纠偏——调大 <code>NetworkMinTimeBetweenClientAdjustments</code>；</li>
+<li><strong>流量敏感</strong>：不要用可靠 RPC 发高频数据（音量&#x2F;位置），可靠 RPC 的重传在弱网下会积压——高频用属性复制（最新值覆盖），低频命令才用可靠 RPC；</li>
+<li><strong>Ping 显示</strong>：<code>net.PlayerFacingPingType</code>（NetConnection.cpp:66）控制玩家可见 ping 的计算方式（RoundTripExclFrame 默认）。</li>
+</ol>
+<hr>
+<h1 id="第-10-章-专题二：大世界多人分发实战"><a href="#第-10-章-专题二：大世界多人分发实战" class="headerlink" title="第 10 章 专题二：大世界多人分发实战"></a>第 10 章 专题二：大世界多人分发实战</h1><blockquote>
+<p><strong>TL;DR</strong>｜大世界多人分发的账：Legacy O(N×M) 检查在 100 人 × 5 万 Actor 下爆掉。解法：<br><strong>RepGraph 空间网格</strong>（viewer 只查自己格子）+ <strong>Dormancy 分层休眠</strong>（远物&#x2F;静态物睡仓库）+<br><strong>AlwaysRelevant 清单</strong>（PlayerController 等始终相关）+ <strong>World Partition 配合</strong>（客户端<br>自主流式加载）。本章给出一套从”能跑”到”能扛”的落地路线。</p>
+</blockquote>
+<h2 id="10-1-成本模型：O-N×M-的账"><a href="#10-1-成本模型：O-N×M-的账" class="headerlink" title="10.1 成本模型：O(N×M) 的账"></a>10.1 成本模型：O(N×M) 的账</h2><p>Legacy：每帧对每个活跃 Actor × 每个连接做相关性检查。100 连接 × 5 万 Actor &#x3D; <strong>500 万次检查&#x2F;帧</strong>——即使每次检查 100ns 也要 500ms（远超帧预算）。RepGraph 把检查变成格子查找：每个 viewer 只看自己格子（几十~几百个 Actor）→ <strong>检查量降 2-3 个数量级</strong>。</p>
+<h2 id="10-2-RepGraph-落地"><a href="#10-2-RepGraph-落地" class="headerlink" title="10.2 RepGraph 落地"></a>10.2 RepGraph 落地</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">自定义 UReplicationGraph 子类（MyReplicationGraph）：</span><br><span class="line">  ├─ 全局节点：</span><br><span class="line">  │    AlwaysRelevant（PlayerController/GameState/所有&quot;必须人人可见&quot;的对象）</span><br><span class="line">  │    GridSpatialization2D（其余全部：格子半径 = 网络相关性距离）</span><br><span class="line">  │      CellSize 建议：最小 = 相关性距离（避免跨格抖动）</span><br><span class="line">  │    DormancyNode（休眠对象归位）</span><br><span class="line">  └─ 每连接节点：</span><br><span class="line">       AlwaysRelevant_ForConnection（每帧重建：自己的 PC/ViewTarget/Pawn）</span><br><span class="line"></span><br><span class="line">  DefaultEngine.ini:</span><br><span class="line">  [/Script/Engine.Engine]</span><br><span class="line">  +ReplicationDriverClassName=&quot;/Script/MyGame.MyReplicationGraph&quot;</span><br></pre></td></tr></table></figure>
+
+<p><strong>网格尺寸调参</strong>：<code>CellSize</code> &#x3D; 网络相关性距离（通常 100-500m）。太小 → Actor 在格子边界反复进出（抖动+重复复制）；太大 → 格子内 Actor 太多（退化）。</p>
+<h2 id="10-3-Dormancy-策略"><a href="#10-3-Dormancy-策略" class="headerlink" title="10.3 Dormancy 策略"></a>10.3 Dormancy 策略</h2><table>
+<thead>
+<tr>
+<th>对象类型</th>
+<th>建议 Dormancy</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PlayerController&#x2F;Pawn</td>
+<td>DORM_Never</td>
+<td>永远要同步</td>
+</tr>
+<tr>
+<td>静态道具（箱子&#x2F;门）</td>
+<td>DORM_DormantAll</td>
+<td>不动就睡</td>
+</tr>
+<tr>
+<td>动态但低频（资源点）</td>
+<td>DORM_DormantPartial</td>
+<td>按连接睡</td>
+</tr>
+<tr>
+<td>大世界远景装饰</td>
+<td>DORM_Initial</td>
+<td>等玩家靠近再唤醒（FlushNetDormancy）</td>
+</tr>
+</tbody></table>
+<p><strong>唤醒时机</strong>：游戏代码在”对象被交互&#x2F;状态变化”时调 <code>FlushNetDormancy</code>——<strong>别在 Tick 里无条件调</strong>（那等于永不休眠）。</p>
+<h2 id="10-4-与-World-Partition-配合"><a href="#10-4-与-World-Partition-配合" class="headerlink" title="10.4 与 World Partition 配合"></a>10.4 与 World Partition 配合</h2><ul>
+<li>服务器 <code>IsServerStreamingEnabled</code> 权威校验；客户端 <code>WorldPartitionStreamingSourceComponent</code> 按位置自主加载（第 8.5 章）；</li>
+<li><strong>流送边界上的 Actor</strong>：进入流送区的 Actor 触发”新 Actor 复制”（首次全量）——流送高峰帧会有复制洪峰，配合 Dormancy 让新区域的对象”先休眠后唤醒”；</li>
+<li><strong>HLOD 替代</strong>：远处用简化网格（视觉），但网络复制的是<strong>逻辑对象</strong>——HLOD 不参与复制（网络只看逻辑 Actor）。</li>
+</ul>
+<h2 id="10-5-实测调参路线图"><a href="#10-5-实测调参路线图" class="headerlink" title="10.5 实测调参路线图"></a>10.5 实测调参路线图</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">① 抓基线    NetTrace 抓 60 秒，统计每连接带宽/包数/最大 Actor 数</span><br><span class="line">② 建图      按 10.2 搭 RepGraph 骨架（先 AlwaysRelevant + Grid）</span><br><span class="line">③ 看尖峰    大世界移动时观察复制洪峰（流送边界/新区域）</span><br><span class="line">④ 休眠优化  静态对象 DormantAll + 交互时唤醒</span><br><span class="line">⑤ 微调      CellSize、ReplicationPeriodFrame 换算、StarvationFactor</span><br><span class="line">⑥ 定案      100 人压测：带宽/CPU/丢包三指标达标</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h1 id="第-11-章-专题三：调试工具链"><a href="#第-11-章-专题三：调试工具链" class="headerlink" title="第 11 章 专题三：调试工具链"></a>第 11 章 专题三：调试工具链</h1><blockquote>
+<p><strong>TL;DR</strong>｜网络排障四件套：<strong>NetTrace</strong>（复制明细追踪，抓”谁发了什么”）、<strong>stat net</strong><br>（实时带宽&#x2F;包统计）、<strong>net 控制台命令</strong>（连接&#x2F;通道&#x2F;休眠状态）、<strong>包捕获</strong>（Wireshark 解密<br>后的完整包流）。最后一节给”症状 → 定位”决策树。</p>
+</blockquote>
+<h2 id="11-1-NetTrace：复制明细追踪"><a href="#11-1-NetTrace：复制明细追踪" class="headerlink" title="11.1 NetTrace：复制明细追踪"></a>11.1 NetTrace：复制明细追踪</h2><p><code>FNetTrace</code>（<code>Net/Core/Trace/NetTrace.h</code>）：Unreal Insights 的网络追踪——抓取每个属性&#x2F;RPC 的序列化明细（谁、什么时候、多少字节）。用法：<code>-trace=net</code> 启动或运行时开启，然后在 Insights 里看 Network 视图——**”这个属性为什么每帧都在发？”的直接答案**。</p>
+<h2 id="11-2-控制台与统计"><a href="#11-2-控制台与统计" class="headerlink" title="11.2 控制台与统计"></a>11.2 控制台与统计</h2><table>
+<thead>
+<tr>
+<th>命令&#x2F;统计</th>
+<th>看什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>stat net</code></td>
+<td>实时带宽、包数、复制调用次数</td>
+</tr>
+<tr>
+<td><code>net.ShowConnections</code></td>
+<td>各连接状态（模式&#x2F;延迟&#x2F;带宽）</td>
+</tr>
+<tr>
+<td><code>net.ShowChannels</code></td>
+<td>各通道状态（开放&#x2F;队列深度）</td>
+</tr>
+<tr>
+<td><code>net.Dormancy</code> 相关</td>
+<td>休眠统计</td>
+</tr>
+<tr>
+<td><code>net.EnableCongestionControl</code></td>
+<td>拥塞控制开关（第 3.6 章）</td>
+</tr>
+</tbody></table>
+<h2 id="11-3-症状-→-定位表"><a href="#11-3-症状-→-定位表" class="headerlink" title="11.3 症状 → 定位表"></a>11.3 症状 → 定位表</h2><table>
+<thead>
+<tr>
+<th>症状</th>
+<th>大概率原因</th>
+<th>检查项</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>高带宽</td>
+<td>高频复制对象太多 &#x2F; 未量化 &#x2F; FastArray 未用</td>
+<td>NetTrace 找字节大户 → 9.3 三板斧</td>
+</tr>
+<tr>
+<td>高延迟（服务器视角）</td>
+<td>服务器 tick 率低 &#x2F; 逻辑重</td>
+<td>stat net + 服务器帧耗时</td>
+</tr>
+<tr>
+<td>抖动（位置回跳）</td>
+<td>预测&#x2F;纠偏频率不匹配 &#x2F; 复制频率过低</td>
+<td>客户端预测调试（p.VisualizeCorrections）</td>
+</tr>
+<tr>
+<td>RPC 丢失</td>
+<td>不可靠 RPC 在网络抖动下丢弃</td>
+<td>确认语义（丢了可接受？）或加 Reliable</td>
+</tr>
+<tr>
+<td>对象不同步</td>
+<td>NetGUID 未映射 &#x2F; 相关性判定错误</td>
+<td>NetTrace 看是否发送；客户端日志看 PendingLocalRPCs</td>
+</tr>
+<tr>
+<td>卡登录</td>
+<td>PreLoginAsync 未回调 &#x2F; 版本不匹配</td>
+<td>服务器日志 NMT_* 顺序</td>
+</tr>
+</tbody></table>
+<h2 id="11-4-包捕获：终极手段"><a href="#11-4-包捕获：终极手段" class="headerlink" title="11.4 包捕获：终极手段"></a>11.4 包捕获：终极手段</h2><p>Wireshark 抓 UDP 包（端口 7777 默认）——但默认加密+Oodle 压缩后内容不可读。调试环境做法：关闭加密（<code>net.AllowEncryption=0</code>）与压缩，用 Wireshark 的 UE 解析器看结构；生产环境用 <code>NMT_SecurityViolation</code> 日志定位恶意客户端。</p>
+<hr>
+<h1 id="第-12-章-平台支持与性能调优"><a href="#第-12-章-平台支持与性能调优" class="headerlink" title="第 12 章 平台支持与性能调优"></a>第 12 章 平台支持与性能调优</h1><blockquote>
+<p><strong>TL;DR</strong>｜CVar 速查与常见坑。核心旋钮：<strong>net.EnableCongestionControl</strong>（BDP 拥塞控制）、<br><strong>NetServerMaxTickRate</strong>（服务器决策频率）、<strong>Net.RepDriver.Enable</strong>（RepGraph 开关）、<br><strong>net.UseAdaptiveNetUpdateFrequency</strong>（自适应频率）。调优三板斧：看统计 → 抓 NetTrace → 单旋钮调参。</p>
+</blockquote>
+<h2 id="12-1-CVar-速查表（写作时以-grep-核实默认值）"><a href="#12-1-CVar-速查表（写作时以-grep-核实默认值）" class="headerlink" title="12.1 CVar 速查表（写作时以 grep 核实默认值）"></a>12.1 CVar 速查表（写作时以 grep 核实默认值）</h2><p><strong>连接与包</strong>（NetConnection.cpp）：</p>
+<ul>
+<li><code>net.EnableCongestionControl</code> &#x3D; 0（BDP 拥塞控制，:105）</li>
+<li><code>net.DisableBandwithThrottling</code> &#x3D; 0（:101，关掉令牌桶——测试用）</li>
+<li><code>net.DoPacketOrderCorrection</code> &#x3D; 1（乱序修正，:88）</li>
+<li><code>net.PlayerFacingPingType</code> &#x3D; RoundTripExclFrame（:66）</li>
+</ul>
+<p><strong>复制与分发</strong>：</p>
+<ul>
+<li><code>Net.RepDriver.Enable</code> &#x3D; 1（RepGraph 开关，NetDriver.cpp:7999）</li>
+<li><code>net.UseAdaptiveNetUpdateFrequency</code>（NetDriver.cpp:452）</li>
+<li><code>net.MaxRPCPerNetUpdate</code>（DataReplication.cpp:39）</li>
+<li><code>net.DormancyHysteresis</code>（DataChannel.cpp:114）</li>
+</ul>
+<p><strong>安全与通信</strong>：</p>
+<ul>
+<li><code>net.AllowEncryption</code>（NetDriver.cpp:457）</li>
+<li><code>net.OodleServerEnableMode</code> &#x2F; <code>net.OodleClientEnableMode</code>（Oodle 插件，默认空）</li>
+<li><code>net.MagicHeader</code> &#x2F; <code>net.VerifyMagicHeader</code>（StatelessConnect 握手，:235&#x2F;:303）</li>
+</ul>
+<p><strong>服务器</strong>：<code>NetServerMaxTickRate</code>（BaseEngine.ini [IpNetDriver] 默认 30，<strong>注意这不是 CVar 而是配置属性</strong>）</p>
+<h2 id="12-2-调优工作流"><a href="#12-2-调优工作流" class="headerlink" title="12.2 调优工作流"></a>12.2 调优工作流</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">1. 看数字    stat net + NetTrace（带宽构成/字节大户/复制频率）</span><br><span class="line">2. 看日志    连接日志（NMT_* 顺序）、通道日志（打开/关闭原因）</span><br><span class="line">3. 调参数    每次只动一个旋钮：</span><br><span class="line">             带宽高 → 9.3 三板斧（量化/FastArray/COND_*）</span><br><span class="line">             延迟高 → NetServerMaxTickRate、NetUpdateFrequency 分层</span><br><span class="line">             抖动大 → NetworkMinTimeBetweenClientAdjustments</span><br><span class="line">             人数多 → RepGraph + Dormancy（第 10 章）</span><br></pre></td></tr></table></figure>
+
+<h2 id="12-3-常见坑清单"><a href="#12-3-常见坑清单" class="headerlink" title="12.3 常见坑清单"></a>12.3 常见坑清单</h2><ol>
+<li><strong>属性忘注册</strong>：<code>UPROPERTY(Replicated)</code> 了但没 <code>DOREPLIFETIME</code>——属性永远不复制；</li>
+<li><strong>RPC 忘加 Reliable</strong>：”换弹”这类命令不可靠 &#x3D; 偶尔不换弹；</li>
+<li><strong>NetUpdateFrequency 设 0</strong>：Actor 永不复制（除非 ForceNetUpdate）——<code>bNetTemporary</code> 的 Actor 尤其容易踩；</li>
+<li><strong>客户端改复制属性</strong>：客户端本地改 <code>Replicated</code> 属性会被服务器覆盖——“改了等于没改”的经典 bug；</li>
+<li><strong>OnRep 在服务器也跑</strong>：误以为 OnRep 服务器也触发（不触发——只在客户端）——服务器逻辑写在函数本体；</li>
+<li><strong>RepGraph 与 Legacy 混用</strong>：开了 <code>Net.RepDriver.Enable</code> 但没配 <code>ReplicationDriverClassName</code>——空转；</li>
+<li><strong>预测量大</strong>：预测逻辑与非预测逻辑混写，纠偏时回滚错对象——预测代码只改”预测专用”状态。</li>
+</ol>
+<hr>
+<h1 id="第-13-章-局限、替代方案与展望"><a href="#第-13-章-局限、替代方案与展望" class="headerlink" title="第 13 章 局限、替代方案与展望"></a>第 13 章 局限、替代方案与展望</h1><blockquote>
+<p><strong>TL;DR</strong>｜UE 网络的局限：<strong>权威服务器的延迟代价</strong>（每个动作都过服务器）、<strong>UDP 的不可靠</strong><br>（靠自研可靠性补）、<strong>序列化 CPU 成本</strong>（大世界属性多时显著）、<strong>带宽天花板</strong>（量化只能缓解）。<br>方向：<strong>Iris</strong>（Epic 重写的复制系统，本 fork 已带骨架但默认关闭）、帧同步&#x2F;回滚（不适合<br>RPG 但适合格斗&#x2F;即时策略）、第三方平台（Photon&#x2F;PlayFab 提供托管与大厅）。</p>
+</blockquote>
+<h2 id="13-1-局限与对策"><a href="#13-1-局限与对策" class="headerlink" title="13.1 局限与对策"></a>13.1 局限与对策</h2><table>
+<thead>
+<tr>
+<th>局限</th>
+<th>表现</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>权威延迟</td>
+<td>每个动作 RTT 后才被承认</td>
+<td>客户端预测（移动）；”乐观执行+回滚”模式</td>
+</tr>
+<tr>
+<td>UDP 不可靠</td>
+<td>丢包丢状态</td>
+<td>束层可靠 + ACK 重传（引擎已做）；关键数据 Reliable</td>
+</tr>
+<tr>
+<td>序列化 CPU</td>
+<td>大世界属性多时服务器 CPU 高</td>
+<td>PushModel（只序列化脏的）、共享序列化、量化</td>
+</tr>
+<tr>
+<td>带宽天花板</td>
+<td>100 人 × 高频对象超限</td>
+<td>RepGraph + Dormancy + 条件复制 + 频率分层</td>
+</tr>
+<tr>
+<td>单服务器上限</td>
+<td>一张地图一个服务器进程</td>
+<td>分地图&#x2F;分频道（Beacon+旅行）、世界分区</td>
+</tr>
+</tbody></table>
+<h2 id="13-2-Iris：Epic-的重写"><a href="#13-2-Iris：Epic-的重写" class="headerlink" title="13.2 Iris：Epic 的重写"></a>13.2 Iris：Epic 的重写</h2><p><strong>为什么重写</strong>：legacy 复制系统是”历史包袱”——属性比较与序列化耦合、通道与复制耦合、难以做全量化状态快照。<strong>Iris</strong>（<code>Engine/Source/Runtime/Net/Iris/</code>，官方文档标 Experimental）：</p>
+<ul>
+<li><strong>全量化</strong>：属性先 Quantize 再 Serialize（量化管线 NetSerializers）；</li>
+<li><strong>PushModel 原生</strong>：脏标记是设计核心而非可选优化；</li>
+<li><strong>ReplicationBridge</strong>：复制与通道解耦（DataStreamChannel 承载数据流，本 fork 的 CHTYPE_MAX&#x3D;8 与 DataStream 通道（BaseEngine.ini:1842）就是为它预留的）；</li>
+<li><strong>本 fork 现状</strong>：<code>UNetDriver::ReplicationSystem</code> 成员存在（NetDriver.h:2546 附近）、<code>TickFlush</code> 的 <code>InternalIrisUpdateTransactional</code> 分支（:1141）、<code>ProcessRemoteFunction</code> 的 Iris 分支（:8112）——<strong>骨架已装、默认不启用</strong>（<code>-UseIrisReplication</code> 或项目设置切换）。</li>
+</ul>
+<blockquote>
+<p><strong>避坑</strong>：本文所有机制章（第 3~8 章）讲的都是 <strong>legacy 路径</strong>——它是当前默认且文档&#x2F;社区<br>主体；Iris 只在必须提到的分支出场。读 Iris 教程请认准”Experimental”标记。</p>
+</blockquote>
+<h2 id="13-3-替代路径"><a href="#13-3-替代路径" class="headerlink" title="13.3 替代路径"></a>13.3 替代路径</h2><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>适合</th>
+<th>不适合</th>
+<th>UE 支持</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>状态同步（本文）</td>
+<td>RPG&#x2F;射击&#x2F;开放世界</td>
+<td>确定性要求极高的竞技</td>
+<td>✅ 原生</td>
+</tr>
+<tr>
+<td>帧同步&#x2F;回滚</td>
+<td>格斗&#x2F;即时策略</td>
+<td>大世界&#x2F;非确定性内容</td>
+<td>❌ 无原生（社区方案）</td>
+</tr>
+<tr>
+<td>第三方平台（Photon&#x2F;PlayFab）</td>
+<td>快速原型&#x2F;托管大厅</td>
+<td>深度定制</td>
+<td>通过 OnlineSubsystem 对接</td>
+</tr>
+</tbody></table>
+<h2 id="13-4-演进时间线与阅读进阶"><a href="#13-4-演进时间线与阅读进阶" class="headerlink" title="13.4 演进时间线与阅读进阶"></a>13.4 演进时间线与阅读进阶</h2><table>
+<thead>
+<tr>
+<th>时间</th>
+<th>里程碑</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>2004</td>
+<td>UE2 网络层（当前架构的祖先：Driver&#x2F;Connection&#x2F;Channel 概念）</td>
+</tr>
+<tr>
+<td>UE4 (2014)</td>
+<td>属性复制成熟、RPC 体系、Replication Graph 引入（Fortnite 驱动）</td>
+</tr>
+<tr>
+<td>5.0~5.3</td>
+<td>RepGraph 插件化、PushModel、网络改造（DataChannel 合并、FunctionChannel 移除）</td>
+</tr>
+<tr>
+<td>5.4~5.9</td>
+<td>Iris 实验性集成（本 fork 已带骨架）、拥塞控制（BDP）、打包头无条件化</td>
+</tr>
+<tr>
+<td>未来</td>
+<td>Iris 转正（官方路线图）、全量化状态复制</td>
+</tr>
+</tbody></table>
+<p><strong>进阶路线</strong>：Epic 官方文档（Networking and Multiplayer → Programming Network Multiplayer Games → Replication Graph → Iris）→ 知乎&#x2F;CSDN 中文深挖（见附录 C）→ 本仓库源码（附录 A 指路）→ Squanch 博客 UE4 Networking 系列（未能访问核实，仅线索）。</p>
+<h1 id="附录-A-源码地图"><a href="#附录-A-源码地图" class="headerlink" title="附录 A 源码地图"></a>附录 A 源码地图</h1><blockquote>
+<p>全部路径基于本仓库快照（2026-08-26，HEAD <code>6cea9bd20f8f</code>）。行号只用于定位；代码演进后以函数名为准。<br>阅读顺序建议：先 <code>NetDriver.h</code>（架构文档+总入口）→ <code>NetDriver.cpp</code>（每帧主循环）→ 按六架构分组深入。</p>
+</blockquote>
+<h2 id="A-1-网络架构（连接与通道）"><a href="#A-1-网络架构（连接与通道）" class="headerlink" title="A.1 网络架构（连接与通道）"></a>A.1 网络架构（连接与通道）</h2><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>关键内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Classes/Engine/NetDriver.h</code></td>
+<td><strong>UNetDriver :809</strong>（架构注释 :34-324）、ChannelDefinitions :1038、ClientConnections :974、ServerConnection :970</td>
+</tr>
+<tr>
+<td><code>Private/NetDriver.cpp</code></td>
+<td>LoadChannelDefinitions :801、TickFlush :1097（Iris 优先 :1141）、ServerReplicateActors :6205、ProcessRemoteFunction :8053、Net.RepDriver.Enable :7999</td>
+</tr>
+<tr>
+<td><code>Classes/Engine/NetConnection.h</code></td>
+<td><strong>UNetConnection :283</strong>、EConnectionState :94、EClientLoginState :116、Channels&#x2F;OutReliable</td>
+</tr>
+<tr>
+<td><code>Private/NetConnection.cpp</code></td>
+<td>InitBase :488、令牌桶 Tick :5110、FlushNet :2412、WritePacketHeader :2870、ReceivedPacket :3247、DispatchPacket :3609、net.* CVar 区 :60-248</td>
+</tr>
+<tr>
+<td><code>Classes/Engine/Channel.h</code></td>
+<td><strong>UChannel :63</strong>、EChannelType :25-36（CHTYPE_MAX&#x3D;8）</td>
+</tr>
+<tr>
+<td><code>Private/DataChannel.cpp</code></td>
+<td><strong>UChannel&#x2F;UControlChannel&#x2F;UActorChannel 实现（本 fork 合并）</strong>：ReceivedNextBunch :769、ReceivedBunch :3111、ReplicateActor :3599、ProcessBunchInternal :3270、StartBecomingDormant :4632、ReadyForDormancy :4604、BecomeDormant :4595</td>
+</tr>
+<tr>
+<td><code>Public/Net/DataChannel.h</code></td>
+<td>控制消息定义 NMT_* :173-248（DEFINE_CONTROL_CHANNEL_MESSAGE）</td>
+</tr>
+<tr>
+<td><code>Public/Net/DataBunch.h</code></td>
+<td><strong>FOutBunch&#x2F;FInBunch :29-204</strong>（bReliable&#x2F;bPartial 标志）</td>
+</tr>
+<tr>
+<td><code>Public/Net/NetPacketNotify.h</code> + <code>Private/Net/NetPacketNotify.cpp</code></td>
+<td>包级可靠：WriteHeader :203（14-bit Seq + AckedSeq + 历史位图）</td>
+</tr>
+<tr>
+<td><code>Classes/Engine/GameNetworkManager.h</code></td>
+<td>Listen 服动态带宽 :54-71</td>
+</tr>
+<tr>
+<td><code>Public/Net/TrafficControl.h</code></td>
+<td><strong>FNetworkCongestionControl :78-98</strong>（BDP 拥塞控制）</td>
+</tr>
+<tr>
+<td><code>Classes/Engine/NetworkObjectList.h</code></td>
+<td>FNetworkObjectInfo :34-109（NextUpdateTime&#x2F;OptimalNetUpdateDelta）</td>
+</tr>
+</tbody></table>
+<h2 id="A-2-通信架构（PacketHandler）"><a href="#A-2-通信架构（PacketHandler）" class="headerlink" title="A.2 通信架构（PacketHandler）"></a>A.2 通信架构（PacketHandler）</h2><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>关键内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h</code></td>
+<td><strong>FPacketHandler</strong>、HandlerComponent :739（Incoming&#x2F;Outgoing&#x2F;IncomingConnectionless&#x2F;OutgoingConnectionless&#x2F;RequiresHandshake）</td>
+</tr>
+<tr>
+<td><code>PacketHandler/Classes/PacketHandlerProfileConfig.h</code></td>
+<td>UPacketHandlerProfileConfig（按 NetDriver 装配组件）</td>
+</tr>
+<tr>
+<td><code>PacketHandler/Public/EncryptionComponent.h</code></td>
+<td>FEncryptionComponent（Enable&#x2F;Disable&#x2F;SetEncryptionData）</td>
+</tr>
+<tr>
+<td><code>Engine/Public/PacketHandlers/StatelessConnectHandlerComponent.h/.cpp</code></td>
+<td>无状态握手（cookie 挑战应答、EHandshakePacketType 六种包型、net.MagicHeader :235）</td>
+</tr>
+<tr>
+<td><code>Runtime/PacketHandlers/ReliabilityHandlerComponent/</code></td>
+<td><strong>已 UE_DEPRECATED(5.3)</strong></td>
+</tr>
+<tr>
+<td><code>Net/Core/Public/Net/Core/Misc/DDoSDetection.h</code></td>
+<td>DDoS 防护</td>
+</tr>
+<tr>
+<td><code>Plugins/Compression/OodleNetwork/Source/Private/OodleNetworkHandlerComponent.cpp</code></td>
+<td>net.OodleServerEnableMode&#x2F;ClientEnableMode :169-174</td>
+</tr>
+</tbody></table>
+<h2 id="A-3-同步架构（属性复制）"><a href="#A-3-同步架构（属性复制）" class="headerlink" title="A.3 同步架构（属性复制）"></a>A.3 同步架构（属性复制）</h2><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>关键内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Engine/Public/Net/RepLayout.h</code></td>
+<td><strong>FRepLayout :1880</strong>（Parents&#x2F;Cmds&#x2F;BaseHandleToCmdIndex）、FRepChangelistState :433、FReplicationChangelistMgr :501、FRepState :671、树生成规则注释 :1091-1152</td>
+</tr>
+<tr>
+<td><code>Engine/Private/RepLayout.cpp</code></td>
+<td>CompareProperties :1777、CompareParentProperties :1514、ReplicateProperties :1972、SendProperties_r :2767、ReceiveProperties :3789、CallRepNotifies :4661</td>
+</tr>
+<tr>
+<td><code>Engine/Private/DataReplication.cpp</code></td>
+<td>FObjectReplicator：ReplicateProperties_r :1927、ReceivedBunch :984、ReceivedRPC :1323、QueueRemoteFunctionBunch :2293、PostReceivedBunch :1592、net.MaxRPCPerNetUpdate :39</td>
+</tr>
+<tr>
+<td><code>Net/Core/Public/Net/Core/PropertyConditions/RepChangedPropertyTracker.h</code></td>
+<td>FRepChangedPropertyTracker（本 fork 位置，条件激活跟踪）</td>
+</tr>
+<tr>
+<td><code>Classes/Engine/NetSerialization.h</code></td>
+<td>NetSerialize&#x2F;NetDeltaSerialize 模板、FVector_NetQuantize、SafeNetSerializeTArray_*</td>
+</tr>
+<tr>
+<td><code>Net/Core/Classes/Net/Serialization/FastArraySerializer.h</code></td>
+<td><strong>FFastArraySerializer :408</strong>（数组 delta 同步）</td>
+</tr>
+<tr>
+<td><code>CoreUObject/Public/UObject/CoreNet.h</code></td>
+<td><strong>UPackageMap :190</strong>、FNetBitWriter&#x2F;FNetBitReader :383-439</td>
+</tr>
+</tbody></table>
+<h2 id="A-4-RPC-架构"><a href="#A-4-RPC-架构" class="headerlink" title="A.4 RPC 架构"></a>A.4 RPC 架构</h2><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>关键内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Private/NetDriver.cpp</code></td>
+<td><strong>ProcessRemoteFunction :8053</strong>（Iris 分支 :8112 &#x2F; RepDriver 拦截 :8141 &#x2F; Multicast :8148 &#x2F; 单播 :8191）、ProcessRemoteFunctionForChannelPrivate :3152（SetForcedSerializeFromRPC :3179）</td>
+</tr>
+<tr>
+<td><code>Private/DataReplication.cpp</code></td>
+<td>ReceivedRPC :1323、ReceivePropertiesForRPC :1415、ForwardRemoteFunction :1442、校验拒绝 :1351-1361</td>
+</tr>
+<tr>
+<td><code>Private/PackageMapClient.cpp</code></td>
+<td>UPackageMapClient（对象↔NetGUID）</td>
+</tr>
+</tbody></table>
+<h2 id="A-5-分发架构（决策链-RepGraph-Dormancy）"><a href="#A-5-分发架构（决策链-RepGraph-Dormancy）" class="headerlink" title="A.5 分发架构（决策链 + RepGraph + Dormancy）"></a>A.5 分发架构（决策链 + RepGraph + Dormancy）</h2><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>关键内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Private/NetDriver.cpp</code></td>
+<td>ServerReplicateActors_PrepConnections :5126 &#x2F; BuildConsiderList :5231 &#x2F; PrioritizeActors :5456 &#x2F; ProcessPrioritizedActorsRange :5615、IsActorRelevantToConnection :5386、ShouldActorGoDormant :5434、FlushActorDormancyInternal :4894</td>
+</tr>
+<tr>
+<td><code>Private/ActorReplication.cpp</code></td>
+<td><strong>IsNetRelevantFor :388</strong>、GetNetPriority :48、IsWithinNetRelevancyDistance :383</td>
+</tr>
+<tr>
+<td><code>Plugins/Runtime/ReplicationGraph/Source/Public/ReplicationGraph.h</code></td>
+<td>UReplicationGraphNode :69 &#x2F; ActorList :188 &#x2F; GridSpatialization2D :579 &#x2F; GridCell :535 &#x2F; DormancyNode :485 &#x2F; AlwaysRelevant :771 &#x2F; UReplicationGraph :920</td>
+</tr>
+<tr>
+<td><code>Plugins/Runtime/ReplicationGraph/Source/Private/ReplicationGraph.cpp</code></td>
+<td>ServerReplicateActors :1112、ReplicateActorListsForConnections_Default :1449（bDormantOnConnection :1523 &#x2F; StarvationFactor :1614）、网格 Gather :6238、ReplicationPeriodFrame :1083</td>
+</tr>
+<tr>
+<td><code>Plugins/Runtime/ReplicationGraph/Source/Public/ReplicationGraphTypes.h</code></td>
+<td>FGlobalActorReplicationInfo :983、FConnectionReplicationActorInfo :1395</td>
+</tr>
+<tr>
+<td><code>Classes/Engine/ReplicationDriver.h</code></td>
+<td>UReplicationDriver :47-60（CreateReplicationDriver 工厂）、ReplicationDriverClassName 注释 :13-14</td>
+</tr>
+<tr>
+<td><code>Classes/Engine/EngineTypes.h</code></td>
+<td>DORM_* 枚举 :3645</td>
+</tr>
+</tbody></table>
+<h2 id="A-6-网关架构（登录-Beacon-旅行-预测）"><a href="#A-6-网关架构（登录-Beacon-旅行-预测）" class="headerlink" title="A.6 网关架构（登录&#x2F;Beacon&#x2F;旅行&#x2F;预测）"></a>A.6 网关架构（登录&#x2F;Beacon&#x2F;旅行&#x2F;预测）</h2><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>关键内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Classes/GameFramework/GameModeBase.h</code></td>
+<td>AGameModeBase :47、PreLogin&#x2F;PreLoginAsync&#x2F;Login&#x2F;PostLogin :286-338</td>
+</tr>
+<tr>
+<td><code>Classes/GameFramework/GameSession.h</code></td>
+<td>ApproveLogin :78、KickPlayer :155、RegisterServer :183</td>
+</tr>
+<tr>
+<td><code>Plugins/Online/OnlineSubsystemUtils/Public/OnlineBeacon.h</code></td>
+<td><strong>AOnlineBeacon :67</strong>（AActor + FNetworkNotify）</td>
+</tr>
+<tr>
+<td><code>Plugins/Online/OnlineFramework/Source/Lobby/</code></td>
+<td>ALobbyBeaconHost :24 &#x2F; ALobbyBeaconClient :58 &#x2F; ALobbyBeaconState :171（大厅范例）</td>
+</tr>
+<tr>
+<td><code>Plugins/Online/OnlineSubsystem/Source/Public/Interfaces/OnlineSessionInterface.h</code></td>
+<td>IOnlineSession（Create&#x2F;Find&#x2F;Join&#x2F;DestroySession，插件化）</td>
+</tr>
+<tr>
+<td><code>Classes/Engine/World.h</code></td>
+<td>ServerTravel :4226、SeamlessTravel :4238、FSeamlessTravelHandler :194</td>
+</tr>
+<tr>
+<td><code>Classes/GameFramework/PlayerController.h</code></td>
+<td>NetConnection :489、ClientRestart :1153、ServerAcknowledgePossession :1481、ClientUpdateLevelStreamingStatus :1450、”唯一 RPC Actor”注释 :841</td>
+</tr>
+<tr>
+<td><code>Classes/GameFramework/Controller.h</code></td>
+<td>SetPawn&#x2F;SetPawnFromRep&#x2F;SetPawn_Direct :246-249</td>
+</tr>
+<tr>
+<td><code>Classes/GameFramework/CharacterMovementComponent.h</code></td>
+<td>FNetworkPredictionData_Client_Character :3160、FSavedMove_Character :2988、NetworkMinTimeBetweenClientAdjustments :855-868</td>
+</tr>
+<tr>
+<td><code>Private/Components/CharacterMovementComponent.cpp</code></td>
+<td>ReplicateMoveToServer :8925、ServerMove_Implementation :10106、SendClientAdjustment :2337、ClientAdjustPosition :11242、OnClientCorrectionReceived :11419</td>
+</tr>
+</tbody></table>
+<h2 id="A-7-Iris-与-NetCore-支撑"><a href="#A-7-Iris-与-NetCore-支撑" class="headerlink" title="A.7 Iris 与 NetCore 支撑"></a>A.7 Iris 与 NetCore 支撑</h2><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>关键内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Runtime/Net/Iris/</code></td>
+<td>ReplicationSystem（Experimental，本文不展开）</td>
+</tr>
+<tr>
+<td><code>Private/Net/Experimental/Iris/DataStreamChannel.h</code></td>
+<td>UDataStreamChannel（fork 新增，StaticChannelIndex&#x3D;2）</td>
+</tr>
+<tr>
+<td><code>Net/Core/Public/Net/Core/</code></td>
+<td>PushModel（PushModel.h）、NetTrace（Trace&#x2F;NetTrace.h）、量化序列化（Serialization&#x2F;QuantizedVectorSerialization.h）、RPCDoSDetection</td>
+</tr>
+<tr>
+<td><code>Core/Public/Misc/EngineNetworkCustomVersion.h</code></td>
+<td>FEngineNetworkCustomVersion（AcksIncludedInHeader&#x3D;8、JitterInHeader&#x3D;14、Latest&#x3D;44）</td>
+</tr>
+</tbody></table>
+<h1 id="附录-B-术语表（中英对照）"><a href="#附录-B-术语表（中英对照）" class="headerlink" title="附录 B 术语表（中英对照）"></a>附录 B 术语表（中英对照）</h1><table>
+<thead>
+<tr>
+<th>英文</th>
+<th>中文（本文用词）</th>
+<th>一句话解释</th>
+<th>首次出现</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>NetDriver</td>
+<td>（不译）</td>
+<td>网络总局：管理所有连接与共享数据</td>
+<td>Ch2&#x2F;3</td>
+</tr>
+<tr>
+<td>NetConnection</td>
+<td>（不译）</td>
+<td>一条端到端连接（邮路）</td>
+<td>Ch2&#x2F;3</td>
+</tr>
+<tr>
+<td>Channel</td>
+<td>通道</td>
+<td>连接内的通信槽（邮袋）：Control&#x2F;Voice&#x2F;DataStream&#x2F;Actor</td>
+<td>Ch2&#x2F;3</td>
+</tr>
+<tr>
+<td>Bunch</td>
+<td>束</td>
+<td>通道内传输的数据单元（信件）</td>
+<td>Ch2&#x2F;3</td>
+</tr>
+<tr>
+<td>Packet</td>
+<td>数据报</td>
+<td>UDP 传输单元（含包头+多束）</td>
+<td>Ch3</td>
+</tr>
+<tr>
+<td>NetGUID</td>
+<td>（不译）</td>
+<td>对象的网络门牌号（对象↔ID 映射）</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>PackageMap</td>
+<td>（不译）</td>
+<td>NetGUID 映射表（对象身份译码器）</td>
+<td>Ch3</td>
+</tr>
+<tr>
+<td>Replication</td>
+<td>复制</td>
+<td>属性状态从服务器同步到客户端</td>
+<td>Ch1</td>
+</tr>
+<tr>
+<td>RPC</td>
+<td>（不译）</td>
+<td>远程函数调用（电话）</td>
+<td>Ch1</td>
+</tr>
+<tr>
+<td>Changelist</td>
+<td>（不译）</td>
+<td>改动日记（只记”哪个属性变了”）</td>
+<td>Ch5</td>
+</tr>
+<tr>
+<td>RepLayout</td>
+<td>（不译）</td>
+<td>类型的复制蓝图（属性树）</td>
+<td>Ch5</td>
+</tr>
+<tr>
+<td>RepState</td>
+<td>（不译）</td>
+<td>每对象×每连接的复制状态</td>
+<td>Ch5</td>
+</tr>
+<tr>
+<td>CallRepNotifies</td>
+<td>（不译）</td>
+<td>客户端收到属性后触发 OnRep 通知</td>
+<td>Ch5</td>
+</tr>
+<tr>
+<td>OnRep</td>
+<td>（不译）</td>
+<td>ReplicatedUsing 声明的客户端回调</td>
+<td>Ch5</td>
+</tr>
+<tr>
+<td>PushModel</td>
+<td>（不译）</td>
+<td>主动脏标记（MARK_PROPERTY_DIRTY）替代逐属性比较</td>
+<td>Ch5</td>
+</tr>
+<tr>
+<td>FastArraySerializer</td>
+<td>（不译）</td>
+<td>数组 delta 同步（只发增删改）</td>
+<td>Ch5</td>
+</tr>
+<tr>
+<td>NetSerialize</td>
+<td>（不译）</td>
+<td>自定义序列化（量化等）</td>
+<td>Ch5</td>
+</tr>
+<tr>
+<td>FVector_NetQuantize</td>
+<td>（不译）</td>
+<td>位置量化压缩</td>
+<td>Ch5</td>
+</tr>
+<tr>
+<td>Server&#x2F;Client&#x2F;Multicast RPC</td>
+<td>（不译）</td>
+<td>三种 RPC 方向</td>
+<td>Ch6</td>
+</tr>
+<tr>
+<td>Reliable</td>
+<td>可靠</td>
+<td>bReliable 修饰：保证送达与顺序</td>
+<td>Ch6</td>
+</tr>
+<tr>
+<td>Relevancy</td>
+<td>相关性</td>
+<td>“这个连接该不该收到这个 Actor”</td>
+<td>Ch7</td>
+</tr>
+<tr>
+<td>NetUpdateFrequency</td>
+<td>（不译）</td>
+<td>每秒最大复制次数</td>
+<td>Ch1</td>
+</tr>
+<tr>
+<td>NetPriority</td>
+<td>（不译）</td>
+<td>带宽紧张时的发送优先级</td>
+<td>Ch1</td>
+</tr>
+<tr>
+<td>NetSpeed</td>
+<td>（不译）</td>
+<td>连接带宽上限（令牌桶）</td>
+<td>Ch3</td>
+</tr>
+<tr>
+<td>QueuedBits</td>
+<td>令牌桶</td>
+<td>带宽配额记账</td>
+<td>Ch3</td>
+</tr>
+<tr>
+<td>RepGraph</td>
+<td>（不译）</td>
+<td>Replication Graph：可插拔分发框架</td>
+<td>Ch7</td>
+</tr>
+<tr>
+<td>GridSpatialization2D</td>
+<td>（不译）</td>
+<td>RepGraph 的空间网格节点</td>
+<td>Ch7</td>
+</tr>
+<tr>
+<td>Dormancy</td>
+<td>休眠</td>
+<td>停止复制的状态（DORM_* 五态）</td>
+<td>Ch7</td>
+</tr>
+<tr>
+<td>FlushNetDormancy</td>
+<td>唤醒</td>
+<td>对象变化时解除休眠</td>
+<td>Ch7</td>
+</tr>
+<tr>
+<td>PacketHandler</td>
+<td>（不译）</td>
+<td>每连接的组件流水线（安检）</td>
+<td>Ch4</td>
+</tr>
+<tr>
+<td>HandlerComponent</td>
+<td>（不译）</td>
+<td>流水线组件基类</td>
+<td>Ch4</td>
+</tr>
+<tr>
+<td>StatelessConnect</td>
+<td>无状态握手</td>
+<td>cookie 挑战应答（防放大攻击）</td>
+<td>Ch4</td>
+</tr>
+<tr>
+<td>Handshake</td>
+<td>握手</td>
+<td>连接建立前的验证流程</td>
+<td>Ch3&#x2F;4</td>
+</tr>
+<tr>
+<td>NMT_*</td>
+<td>（不译）</td>
+<td>控制通道消息（Hello&#x2F;Challenge&#x2F;Login&#x2F;…）</td>
+<td>Ch3</td>
+</tr>
+<tr>
+<td>Beacon</td>
+<td>（不译）</td>
+<td>游戏服务器与专用服务的带外连接</td>
+<td>Ch8</td>
+</tr>
+<tr>
+<td>Session</td>
+<td>会话</td>
+<td>找房间&#x2F;进房间（插件化）</td>
+<td>Ch8</td>
+</tr>
+<tr>
+<td>SeamlessTravel</td>
+<td>无缝旅行</td>
+<td>换图不断开连接</td>
+<td>Ch8</td>
+</tr>
+<tr>
+<td>ServerTravel</td>
+<td>服务器旅行</td>
+<td>服务器换图（客户端重连）</td>
+<td>Ch8</td>
+</tr>
+<tr>
+<td>LevelStreaming</td>
+<td>关卡流送</td>
+<td>按需加载关卡（RPC 下发状态）</td>
+<td>Ch8</td>
+</tr>
+<tr>
+<td>World Partition</td>
+<td>（不译）</td>
+<td>大世界分区流送</td>
+<td>Ch8</td>
+</tr>
+<tr>
+<td>Prediction</td>
+<td>预测</td>
+<td>客户端先本地模拟（先斩后奏）</td>
+<td>Ch8</td>
+</tr>
+<tr>
+<td>SavedMove</td>
+<td>（不译）</td>
+<td>未确认的移动缓冲单元</td>
+<td>Ch8</td>
+</tr>
+<tr>
+<td>Correction</td>
+<td>纠偏</td>
+<td>服务器把客户端拉回正确位置</td>
+<td>Ch8</td>
+</tr>
+<tr>
+<td>ClientAdjustPosition</td>
+<td>（不译）</td>
+<td>纠偏 RPC</td>
+<td>Ch8</td>
+</tr>
+<tr>
+<td>Iris</td>
+<td>（不译）</td>
+<td>Epic 的新复制系统（Experimental）</td>
+<td>Ch13</td>
+</tr>
+<tr>
+<td>NetTrace</td>
+<td>（不译）</td>
+<td>复制明细追踪工具</td>
+<td>Ch11</td>
+</tr>
+<tr>
+<td>DDoS</td>
+<td>分布式拒绝服务</td>
+<td>放大攻击防护</td>
+<td>Ch4</td>
+</tr>
+</tbody></table>
+<h1 id="附录-C-参考资料"><a href="#附录-C-参考资料" class="headerlink" title="附录 C 参考资料"></a>附录 C 参考资料</h1><p><strong>Epic 官方（dev.epicgames.com）</strong>：</p>
+<ol>
+<li><em>Networking and Multiplayer in Unreal Engine</em> —— 网络体系总览（Actor 复制&#x2F;RPC&#x2F;RepGraph&#x2F;Iris 导航），有官方中文版；</li>
+<li><em>Programming Network Multiplayer Games for Unreal Engine</em>（5.2）—— C++ 网络编程权威指南：C&#x2F;S 权威模型、可靠与不可靠取舍；</li>
+<li><em>Actor Replication</em> —— 复制两大手段（属性 vs RPC）的基础页；</li>
+<li><em>Replication Graph in Unreal Engine</em>（5.7）—— RepGraph 节点体系与配置方法（注意：文档基于 5.7，本 fork 的 RepGraph 在插件目录）；</li>
+<li><em>Introduction to Iris in Unreal Engine</em>（5.8）—— Iris 新复制系统（仍标 Experimental）。</li>
+</ol>
+<p><strong>中文社区</strong>：</p>
+<ol start="6">
+<li>知乎《使用虚幻引擎4年，我想再谈谈他的网络架构【经验总结】》（zhuanlan.zhihu.com&#x2F;p&#x2F;105040792）—— 717 赞高赞长文：状态同步本质、”同步数据也许会迟到但永远不会缺席”；</li>
+<li>知乎《UE4网络同步思考（一）—经典同步方案》（p&#x2F;56548096）—— C&#x2F;S vs P2P、UDP 融合 TCP 优点、<strong>带宽四板斧</strong>（相关性&#x2F;优先级&#x2F;成员标记&#x2F;合包）；</li>
+<li>知乎《UE5-Iris 网络复制系统技术分析（架构层次）》（p&#x2F;1996687209709991513）—— Iris 三层架构与 <code>-UseIrisReplication</code> 切换；</li>
+<li>知乎《UE5中的网络同步能力和同构服务器框架（上）》（p&#x2F;621339344）—— 同构服务器框架概念；</li>
+<li>CSDN《UE4网络架构学习笔记》（blog.csdn.net&#x2F;qqQQqsadfj&#x2F;article&#x2F;details&#x2F;123256433）—— 四模式与属性复制三步曲；</li>
+<li>CSDN《解析虚幻联网机制和游戏中如何实现网络同步》（blog.csdn.net&#x2F;X_Bai01&#x2F;article&#x2F;details&#x2F;146400016）—— WithValidation 防作弊、NetDebug 调试。</li>
+</ol>
+<p><strong>博客</strong>：</p>
+<ol start="12">
+<li>Squanch（squanch.blog）<em>UE4 Networking</em> 系列（Phil Kauffold）—— <strong>写作时未能访问核实，仅线索</strong>；内容基于 UE4&#x2F;5.0，类名有差异。</li>
+</ol>
+<blockquote>
+<p>注意：以上社区资料基于 UE4&#x2F;UE5.0~5.2，与当前源码的差异（如 FunctionChannel 移除、<br>RepGraph 插件化、NetServerMaxTickRate 命名）请以本文正文的避坑块为准。</p>
+</blockquote>
+<h1 id="附录-D-自测练习"><a href="#附录-D-自测练习" class="headerlink" title="附录 D 自测练习"></a>附录 D 自测练习</h1><p><strong>入门级</strong>：</p>
+<ol>
+<li>用三句话 + 一个类比向同事解释 UE 网络架构（要求用上”服务器权威”和”UDP”）。</li>
+<li>属性复制和 RPC 的区别是什么？”玩家掉血”和”玩家开火”分别该用哪个？</li>
+<li>四种运行模式（Standalone&#x2F;Dedicated&#x2F;Listen&#x2F;Client）中，哪些是”服务器”？</li>
+</ol>
+<p><strong>进阶级</strong>：</p>
+<ol start="4">
+<li>画出客户端连接服务器的完整握手时序（六关 NMT_*），标注每一关是谁发给谁、干什么。</li>
+<li>解释”changelist 只记 handle 不记值”为什么能省带宽，并说明首帧为什么必须全量。</li>
+<li>一个 50 人服务器 × 2 万活跃 Actor 的场景，Legacy 决策链每帧做多少次相关性检查？RepGraph 空间网格（每格子 100 个 Actor）后大约多少次？</li>
+<li>RPC 的 Multicast 在服务器本地调用时会发生什么？为什么这样设计？</li>
+<li>客户端预测的”先斩后奏”流程是什么？SavedMoves 在纠偏时被怎样处理？</li>
+</ol>
+<p><strong>源码级</strong>：</p>
+<ol start="9">
+<li>在 <code>NetDriver.cpp:8053</code>（ProcessRemoteFunction）找到五个分支，说出每个分支的进入条件。</li>
+<li>在 <code>RepLayout.h:1880</code>（FRepLayout）找出 Parents&#x2F;Cmds&#x2F;BaseHandleToCmdIndex 三个成员，解释它们的关系。</li>
+<li>在 <code>NetPacketNotify.cpp:203</code>（WriteHeader）对照图 F5，推导一个纯 ACK 包（无数据）的最小头部大小。</li>
+<li>在 <code>NetDriver.cpp:5434</code>（ShouldActorGoDormant）找到休眠的三个条件，解释”无新属性”为什么是必要条件。</li>
+<li>实验：开一个 ListenServer + 两个客户端，用 <code>stat net</code> 观察带宽，把某个 Actor 的 <code>NetUpdateFrequency</code> 从 100 调到 10，观察 <code>stat net</code> 与行为变化。</li>
+</ol>
+</div></section><ul class="post-copyright"><li class="post-copyright-author"><strong>Post author: </strong>mx</li><li class="post-copyright-link"><strong>Post link: </strong><a href="https://1393650770.github.io/2026/08/26/2026-8-26-UENetworkArchitecture/" title="Unreal Engine 网络架构完全教程">https://1393650770.github.io/2026/08/26/2026-8-26-UENetworkArchitecture/</a></li><li class="post-copyright-license"><strong>Copyright Notice: </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank" rel="noopener" title="CC BY-NC-SA 4.0 "><span class="icon iconify" data-icon="ri:creative-commons-line"></span><span class="icon iconify" data-icon="ri:creative-commons-by-line"></span><span class="icon iconify" data-icon="ri:creative-commons-nc-line"></span><span class="icon iconify" data-icon="ri:creative-commons-sa-line"></span></a> unless otherwise stated.</li></ul></article><div class="post-nav"><div class="post-nav-item"></div><div class="post-nav-item"><a class="post-nav-next" href="/2026/08/22/2026-8-22-VirtualShadowMaps/" rel="next" title="Virtual Shadow Maps 完全教程"><span class="post-nav-text">Virtual Shadow Maps 完全教程</span><span class="icon iconify" data-icon="ri:arrow-right-s-line"></span></a></div></div></div><div class="hty-card" id="comment"><style>.utterances {
+  max-width: 100%;
+}</style><script src="https://utteranc.es/client.js" repo="1393650770/1393650770.github.io" issue-term="title" label="comment" theme="dark-blue" crossorigin="anonymous" async></script></div></main><footer class="sidebar-translate" id="footer"><div class="copyright"><span>&copy; 2019 – 2026 </span><span class="with-love" id="animate"><span class="icon iconify" data-icon="ri:cloud-line"></span></span><span class="author"> mx</span></div><div class="powered"><span>Powered by <a href="https://hexo.io" target="_blank" rel="noopener">Hexo</a> v6.3.0</span><span class="footer-separator">|</span><span>Theme - <a rel="noopener" href="https://github.com/YunYouJun/hexo-theme-yun" target="_blank"><span>Yun</span></a> v1.10.9</span></div></footer></div><a class="hty-icon-button" id="back-to-top" aria-label="back-to-top" href="#"><span class="icon iconify" data-icon="ri:arrow-up-s-line"></span><svg class="progress-circle-container" viewBox="0 0 100 100"><circle class="progress-circle" id="progressCircle" cx="50" cy="50" r="48" fill="none" stroke="#0078E7" stroke-width="2" stroke-linecap="round"></circle></svg></a><a class="popup-trigger hty-icon-button icon-search" id="search" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:https://1393650770.github.io/" title="Search"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:search-line"></span></span></a></body></html>
