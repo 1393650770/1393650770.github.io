@@ -1,0 +1,1944 @@
+<!DOCTYPE html><html class="dark" lang="en"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#0078E7"><meta name="author" content="mx"><meta name="copyright" content="mx"><meta name="generator" content="Hexo 6.3.0"><meta name="theme" content="hexo-theme-yun"><title>Unreal Engine Lightmap 完全教程 | MX的花海小屋与玩具恐龙</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@900&amp;display=swap" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/star-markdown-css@0.4.1/dist/yun/yun-markdown.min.css"><link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/prism-theme-vars/base.css"><script src="https://fastly.jsdelivr.net/npm/scrollreveal/dist/scrollreveal.min.js" defer></script><script>function initScrollReveal() {
+  [".post-card",".markdown-body img"].forEach((target)=> {
+    ScrollReveal().reveal(target);
+  })
+}
+document.addEventListener("DOMContentLoaded", initScrollReveal);
+document.addEventListener("pjax:success", initScrollReveal);
+</script><link rel="icon" type="image/svg+xml" href="/yun.svg"><link rel="mask-icon" href="/yun.svg" color="#0078E7"><link rel="preload" href="/css/hexo-theme-yun.css" as="style"><link rel="prefetch" href="/js/sidebar.js" as="script"><link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="preconnect" href="https://fastly.jsdelivr.net/npm/" crossorigin><script id="yun-config">
+    window.Yun = {}
+    window.CONFIG = {"hostname":"1393650770.github.io","root":"/","title":"MX的花海小屋与玩具恐龙","version":"1.10.9","mode":"dark","copycode":true,"page":{"isPost":true},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}.","hits":"${hits} results found","hits_time":"${hits} results found in ${time} ms"},"anonymous_image":"https://cdn.yunyoujun.cn/img/avatar/none.jpg","fireworks":{"colors":null},"vendors":{"host":"https://fastly.jsdelivr.net/npm/","darken":"https://fastly.jsdelivr.net/npm/darken@1.5.0"}};
+  </script><link rel="stylesheet" href="/css/hexo-theme-yun.css"><script src="/js/hexo-theme-yun.js" type="module"></script><meta name="description" content="从”普通程序员能听懂”到”能改 UE 光照源码”——基于源码逐行考证，六条主线全覆盖：烘焙流程 &#x2F; 自动化展开 UV &#x2F; 压缩 Lightmap &#x2F; 提高填充率 &#x2F; 把 UE 当烘焙器 &#x2F; Unity 场景导入（材质、灯光、地表对齐）   文档版本：1.0（2026-08-26） 源码快照：本地仓库 d:\Project\GameDevelop\">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Unreal Engine Lightmap 完全教程">
+<meta property="og:url" content="https://1393650770.github.io/2026/08/27/2026-8-27-UELightmap/index.html">
+<meta property="og:site_name" content="MX的花海小屋与玩具恐龙">
+<meta property="og:description" content="从”普通程序员能听懂”到”能改 UE 光照源码”——基于源码逐行考证，六条主线全覆盖：烘焙流程 &#x2F; 自动化展开 UV &#x2F; 压缩 Lightmap &#x2F; 提高填充率 &#x2F; 把 UE 当烘焙器 &#x2F; Unity 场景导入（材质、灯光、地表对齐）   文档版本：1.0（2026-08-26） 源码快照：本地仓库 d:\Project\GameDevelop\">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2026-08-27T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-08-26T12:24:01.248Z">
+<meta property="article:author" content="mx">
+<meta property="article:tag" content="技术">
+<meta property="article:tag" content="技术简要">
+<meta name="twitter:card" content="summary"><script>(function() {
+  if (CONFIG.mode !== 'auto') return
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+  const setting = localStorage.getItem('darken-mode') || 'auto'
+  if (setting === 'dark' || (prefersDark && setting !== 'light'))
+    document.documentElement.classList.toggle('dark', true)
+})()</script></head><body><script src="https://code.iconify.design/2/2.1.1/iconify.min.js"></script><script>// Define global variable
+IconifyProviders = {
+  // Empty prefix: overwrite default API provider configuration
+  '': {
+    // Use custom API first, use Iconify public API as backup
+    resources: [
+        'https://api.iconify.design',
+    ],
+    // Wait for 1 second before switching API hosts
+    rotate: 1000,
+  },
+};</script><script defer src="https://fastly.jsdelivr.net/npm/animejs@latest"></script><script defer src="/js/ui/fireworks.js" type="module"></script><canvas class="fireworks"></canvas><div class="container"><a class="sidebar-toggle hty-icon-button" id="menu-btn"><div class="hamburger hamburger--spin" type="button"><span class="hamburger-box"><span class="hamburger-inner"></span></span></div></a><div class="sidebar-toggle sidebar-overlay"></div><aside class="sidebar"><script src="/js/sidebar.js" type="module"></script><ul class="sidebar-nav"><li class="sidebar-nav-item sidebar-nav-toc hty-icon-button sidebar-nav-active" data-target="post-toc-wrap" title="Table of Contents"><span class="icon iconify" data-icon="ri:list-ordered"></span></li><li class="sidebar-nav-item sidebar-nav-overview hty-icon-button" data-target="site-overview-wrap" title="Overview"><span class="icon iconify" data-icon="ri:passport-line"></span></li></ul><div class="sidebar-panel" id="site-overview-wrap"><div class="site-info fix-top"><a class="site-author-avatar" href="/about/" title="mx"><img width="96" loading="lazy" src="/images/avatar.jpg" alt="mx"></a><div class="site-author-name"><a href="/about/">mx</a></div><span class="site-name">MX的花海小屋与玩具恐龙</span><sub class="site-subtitle">这里对于我来说什么都有</sub><div class="site-description">希望不断成长、不断进步</div></div><nav class="site-state"><a class="site-state-item hty-icon-button icon-home" href="/" title="Home"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:home-4-line"></span></span></a><div class="site-state-item"><a href="/archives/" title="Archives"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:archive-line"></span></span><span class="site-state-item-count">23</span></a></div><div class="site-state-item"><a href="/categories/" title="Categories"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:folder-2-line"></span></span><span class="site-state-item-count">3</span></a></div><div class="site-state-item"><a href="/tags/" title="Tags"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:price-tag-3-line"></span></span><span class="site-state-item-count">5</span></a></div><a class="site-state-item hty-icon-button" href="/about" title="about"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:clipboard-line"></span></span></a></nav><hr style="margin-bottom:0.5rem"><div class="links-of-author"><a class="links-of-author-item hty-icon-button" rel="noopener" href="https://github.com/1393650770" title="GitHub" target="_blank" style="color:undefined"><span class="icon iconify" data-icon="ri:github-line"></span></a><a class="links-of-author-item hty-icon-button" rel="noopener" href="https://github.com/1393650770" title="知乎" target="_blank" style="color:undefined"><span class="icon iconify" data-icon="ri:zhihu-line"></span></a></div><hr style="margin:0.5rem 1rem"><div class="links"><a class="links-item hty-icon-button" href="/" style="color:dodgerblue"><span class="icon iconify" data-icon="ri:genderless-line"></span></a></div></div><div class="sidebar-panel sidebar-panel-active" id="post-toc-wrap"><div class="post-toc"><div class="post-toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-0-%E7%AB%A0-%E5%AF%BC%E8%AF%BB%EF%BC%9A%E8%BF%99%E4%BB%BD%E6%96%87%E6%A1%A3%E6%80%8E%E4%B9%88%E8%AF%BB"><span class="toc-number">1.</span> <span class="toc-text">第 0 章 导读：这份文档怎么读</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#0-1-%E7%9B%AE%E6%A0%87%E8%AF%BB%E8%80%85%E4%B8%8E%E5%89%8D%E7%BD%AE%E7%9F%A5%E8%AF%86"><span class="toc-number">1.1.</span> <span class="toc-text">0.1 目标读者与前置知识</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0-2-%E4%B8%89%E6%9D%A1%E9%98%85%E8%AF%BB%E8%B7%AF%E5%BE%84"><span class="toc-number">1.2.</span> <span class="toc-text">0.2 三条阅读路径</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0-3-%E5%9D%97%E6%A0%87%E8%AE%B0%E7%BA%A6%E5%AE%9A"><span class="toc-number">1.3.</span> <span class="toc-text">0.3 块标记约定</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0-4-%E4%B8%80%E5%BC%A0%E5%9B%BE%E7%9C%8B%E6%87%82%E5%85%A8%E5%B1%80"><span class="toc-number">1.4.</span> <span class="toc-text">0.4 一张图看懂全局</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0-5-%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE"><span class="toc-number">1.5.</span> <span class="toc-text">0.5 章节地图</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-1-%E7%AB%A0-Lightmap-%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9A%E9%9D%99%E6%80%81%E5%85%89%E7%85%A7%E7%9A%84%E2%80%9D%E9%A2%84%E8%AE%A1%E7%AE%97%E2%80%9D%E5%93%B2%E5%AD%A6"><span class="toc-number">2.</span> <span class="toc-text">第 1 章 Lightmap 是什么：静态光照的”预计算”哲学</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-1-%E7%83%98%E7%84%99-%E6%8B%8D%E7%85%A7%E7%89%87"><span class="toc-number">2.1.</span> <span class="toc-text">1.1 烘焙 &#x3D; 拍照片</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-2-%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E9%A2%84%E8%AE%A1%E7%AE%97"><span class="toc-number">2.2.</span> <span class="toc-text">1.2 为什么需要预计算</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-3-Lumen-vs-Lightmap%EF%BC%9A%E5%AE%9E%E6%97%B6-GI-vs-%E7%A6%BB%E7%BA%BF%E7%83%98%E7%84%99"><span class="toc-number">2.3.</span> <span class="toc-text">1.3 Lumen vs Lightmap：实时 GI vs 离线烘焙</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-4-Mobility-%E4%B8%89%E6%80%81%EF%BC%9A%E7%81%AF%E5%85%89%E7%9A%84%E4%B8%89%E6%A1%A3%E5%BC%80%E5%85%B3"><span class="toc-number">2.4.</span> <span class="toc-text">1.4 Mobility 三态：灯光的三档开关</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-5-%E4%BD%93%E7%A7%AF%E5%85%89%E7%85%A7%E5%9B%BE%EF%BC%88Volumetric-Lightmap%EF%BC%89"><span class="toc-number">2.5.</span> <span class="toc-text">1.5 体积光照图（Volumetric Lightmap）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-6-%E4%B8%80%E7%82%B9%E5%8E%86%E5%8F%B2"><span class="toc-number">2.6.</span> <span class="toc-text">1.6 一点历史</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-7-%E5%B0%8F%E7%BB%93"><span class="toc-number">2.7.</span> <span class="toc-text">1.7 小结</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-2-%E7%AB%A0-%E5%85%AD%E5%A4%A7%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%E9%80%9F%E8%A7%88%EF%BC%88%E6%AF%8F%E4%B8%AA%E6%A6%82%E5%BF%B5-%E4%B8%80%E4%B8%AA%E7%B1%BB%E6%AF%94%EF%BC%89"><span class="toc-number">3.</span> <span class="toc-text">第 2 章 六大核心概念速览（每个概念 &#x3D; 一个类比）</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#2-1-%E7%BA%B9%E7%B4%A0%E5%AF%86%E5%BA%A6%EF%BC%88Texel-Density%EF%BC%89-%E5%85%89%E7%85%A7%E7%9A%84%E2%80%9D%E5%88%86%E8%BE%A8%E7%8E%87%E2%80%9D"><span class="toc-number">3.1.</span> <span class="toc-text">2.1 纹素密度（Texel Density）&#x3D; 光照的”分辨率”</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-2-UV-%E5%B1%95%E5%BC%80-%E6%8A%8A%E6%A9%98%E5%AD%90%E7%9A%AE%E6%91%8A%E5%B9%B3"><span class="toc-number">3.2.</span> <span class="toc-text">2.2 UV 展开 &#x3D; 把橘子皮摊平</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-3-Atlas-%E8%A3%85%E7%AE%B1-%E6%8B%BC%E5%9B%BE%E6%B8%B8%E6%88%8F"><span class="toc-number">3.3.</span> <span class="toc-text">2.3 Atlas 装箱 &#x3D; 拼图游戏</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-4-%E5%A1%AB%E5%85%85%E7%8E%87-%E6%8B%BC%E5%9B%BE%E7%9A%84%E5%88%A9%E7%94%A8%E7%8E%87"><span class="toc-number">3.4.</span> <span class="toc-text">2.4 填充率 &#x3D; 拼图的利用率</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-5-%E7%BC%96%E7%A0%81-%E6%8A%8A%E4%BA%AE%E5%BA%A6%E5%A1%9E%E8%BF%9B-8bit-%E8%A1%8C%E6%9D%8E%E7%AE%B1"><span class="toc-number">3.5.</span> <span class="toc-text">2.5 编码 &#x3D; 把亮度塞进 8bit 行李箱</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-6-Padding%EF%BC%88%E8%BE%B9%E8%B7%9D%EF%BC%89-%E6%8B%BC%E5%9B%BE%E5%9D%97%E4%B9%8B%E9%97%B4%E7%9A%84%E7%BC%9D%E9%9A%99"><span class="toc-number">3.6.</span> <span class="toc-text">2.6 Padding（边距）&#x3D; 拼图块之间的缝隙</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-7-%E6%A6%82%E5%BF%B5-%E2%86%92-%E6%BA%90%E7%A0%81%E8%90%BD%E7%82%B9%E9%A2%84%E5%91%8A%E8%A1%A8"><span class="toc-number">3.7.</span> <span class="toc-text">2.7 概念 → 源码落点预告表</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-3-%E7%AB%A0-%E7%83%98%E7%84%99%E7%AE%A1%E7%BA%BF%EF%BC%9AGPU-Lightmass-%E5%85%A8%E6%B5%81%E7%A8%8B"><span class="toc-number">4.</span> <span class="toc-text">第 3 章 烘焙管线：GPU Lightmass 全流程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#3-1-%E6%8F%92%E4%BB%B6%E7%BB%93%E6%9E%84"><span class="toc-number">4.1.</span> <span class="toc-text">3.1 插件结构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-2-%E8%A7%A6%E5%8F%91%E9%93%BE"><span class="toc-number">4.2.</span> <span class="toc-text">3.2 触发链</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-3-%E5%85%B3%E9%94%AE%E5%8F%82%E6%95%B0%EF%BC%9A%E4%B8%A4%E5%BC%A0%E5%A4%A7%E8%A1%A8"><span class="toc-number">4.3.</span> <span class="toc-text">3.3 关键参数：两张大表</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-4-%E4%B8%8E-CPU-Lightmass-%E7%9A%84%E5%B7%AE%E5%BC%82"><span class="toc-number">4.4.</span> <span class="toc-text">3.4 与 CPU Lightmass 的差异</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-5-%E6%BA%90%E7%A0%81%E8%80%83%E5%8F%A4%EF%BC%9ALaunch-%E8%A7%A6%E5%8F%91%E9%93%BE"><span class="toc-number">4.5.</span> <span class="toc-text">3.5 源码考古：Launch 触发链</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-4-%E7%AB%A0-%E7%BC%96%E7%A0%81%E4%B8%8E%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%EF%BC%9AFLightMap2D-%E7%9A%84%E8%A1%8C%E6%9D%8E%E7%AE%B1"><span class="toc-number">5.</span> <span class="toc-text">第 4 章 编码与数据结构：FLightMap2D 的行李箱</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#4-1-%E4%BB%8E-RGBA16F-%E5%88%B0-8bit%EF%BC%9A%E9%87%8F%E5%8C%96"><span class="toc-number">5.1.</span> <span class="toc-text">4.1 从 RGBA16F 到 8bit：量化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-2-%E4%B8%A4%E7%A7%8D%E7%BC%96%E7%A0%81%EF%BC%9AHQ-%E4%B8%8E-LQ"><span class="toc-number">5.2.</span> <span class="toc-text">4.2 两种编码：HQ 与 LQ</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-3-Scale-Add%EF%BC%9A%E6%95%B4%E5%9B%BE%E5%BD%92%E4%B8%80%E5%8C%96"><span class="toc-number">5.3.</span> <span class="toc-text">4.3 Scale&#x2F;Add：整图归一化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-4-FLightMap2D%EF%BC%9A%E7%BA%B9%E7%90%86%E5%B8%83%E5%B1%80"><span class="toc-number">5.4.</span> <span class="toc-text">4.4 FLightMap2D：纹理布局</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-5-%E8%BF%90%E8%A1%8C%E6%97%B6%E8%A7%A3%E7%A0%81"><span class="toc-number">5.5.</span> <span class="toc-text">4.5 运行时解码</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-6-%E6%BA%90%E7%A0%81%E8%80%83%E5%8F%A4%EF%BC%9APostEncode-%E7%9A%84-atlas-%E6%94%B6%E5%B0%BE"><span class="toc-number">5.6.</span> <span class="toc-text">4.6 源码考古：PostEncode 的 atlas 收尾</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-5-%E7%AB%A0-%E6%89%93%E5%8C%85%E8%A3%85%E7%AE%B1%EF%BC%9AAtlas-%E6%8B%BC%E5%9B%BE%E6%B8%B8%E6%88%8F"><span class="toc-number">6.</span> <span class="toc-text">第 5 章 打包装箱：Atlas 拼图游戏</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#5-1-%E4%B8%80%E6%9D%A1%E9%93%BE%E4%B8%A4%E5%A5%97%E5%AE%9E%E7%8E%B0"><span class="toc-number">6.1.</span> <span class="toc-text">5.1 一条链两套实现</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-2-FAllocator2D%EF%BC%9A%E6%AE%B5%E5%BC%8F-best-fit"><span class="toc-number">6.2.</span> <span class="toc-text">5.2 FAllocator2D：段式 best-fit</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-3-ELightmapUVVersion%EF%BC%9A%E8%A3%85%E7%AE%B1%E7%AE%97%E6%B3%95%E7%9A%84%E6%BC%94%E8%BF%9B"><span class="toc-number">6.3.</span> <span class="toc-text">5.3 ELightmapUVVersion：装箱算法的演进</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-4-GPU-Lightmass-%E4%BE%A7%EF%BC%9Atile-%E6%B1%A0"><span class="toc-number">6.4.</span> <span class="toc-text">5.4 GPU Lightmass 侧：tile 池</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-5-%E6%BA%90%E7%A0%81%E8%80%83%E5%8F%A4%EF%BC%9AFindBestPacking-%E8%A3%85%E7%AE%B1%E5%BE%AA%E7%8E%AF"><span class="toc-number">6.5.</span> <span class="toc-text">5.5 源码考古：FindBestPacking 装箱循环</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-6-%E7%AB%A0-%E8%BF%90%E8%A1%8C%E6%97%B6%E6%B8%B2%E6%9F%93%E4%B8%8E%E6%B5%81%E9%80%81%EF%BC%9A%E7%83%98%E7%84%99%E7%BB%93%E6%9E%9C%E6%80%8E%E4%B9%88%E8%A2%AB%E7%94%BB%E5%87%BA%E6%9D%A5"><span class="toc-number">7.</span> <span class="toc-text">第 6 章 运行时渲染与流送：烘焙结果怎么被画出来</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#6-1-BasePass-%E9%87%87%E6%A0%B7%E9%93%BE"><span class="toc-number">7.1.</span> <span class="toc-text">6.1 BasePass 采样链</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-2-HQ-LQ-%E7%AD%96%E7%95%A5%E9%80%89%E6%8B%A9"><span class="toc-number">7.2.</span> <span class="toc-text">6.2 HQ&#x2F;LQ 策略选择</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-3-%E9%A1%B6%E7%82%B9%E6%B5%81%E5%8F%8C%E7%BA%B9%E7%90%86%E6%89%93%E5%8C%85"><span class="toc-number">7.3.</span> <span class="toc-text">6.3 顶点流双纹理打包</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-4-VT-Lightmap-%E4%B8%8E%E6%B5%81%E9%80%81"><span class="toc-number">7.4.</span> <span class="toc-text">6.4 VT Lightmap 与流送</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-5-%E6%BA%90%E7%A0%81%E8%80%83%E5%8F%A4%EF%BC%9AGetPixelShaderBindings"><span class="toc-number">7.5.</span> <span class="toc-text">6.5 源码考古：GetPixelShaderBindings</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-7-%E7%AB%A0-%E4%B8%93%E9%A2%98%E4%B8%80%EF%BC%9A%E7%83%98%E7%84%99%E6%B5%81%E7%A8%8B%E5%AE%9E%E6%93%8D%E2%80%94%E2%80%94%E4%BB%8E%E4%B8%96%E7%95%8C%E8%AE%BE%E7%BD%AE%E5%88%B0%E8%B4%B4%E5%9B%BE%E8%90%BD%E5%9C%B0"><span class="toc-number">8.</span> <span class="toc-text">第 7 章 专题一：烘焙流程实操——从世界设置到贴图落地</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#7-1-%E7%83%98%E7%84%99%E5%89%8D%E6%A3%80%E6%9F%A5%E6%B8%85%E5%8D%95"><span class="toc-number">8.1.</span> <span class="toc-text">7.1 烘焙前检查清单</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-2-%E4%B8%96%E7%95%8C%E8%AE%BE%E7%BD%AE%E5%8F%82%E6%95%B0%EF%BC%88%E9%80%90%E9%A1%B9%EF%BC%89"><span class="toc-number">8.2.</span> <span class="toc-text">7.2 世界设置参数（逐项）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-3-GPU-Lightmass-%E9%9D%A2%E6%9D%BF%EF%BC%88%E7%BC%96%E8%BE%91%E5%99%A8%EF%BC%89"><span class="toc-number">8.3.</span> <span class="toc-text">7.3 GPU Lightmass 面板（编辑器）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-4-%E8%A7%A6%E5%8F%91%E4%B8%8E%E7%9B%91%E6%8E%A7"><span class="toc-number">8.4.</span> <span class="toc-text">7.4 触发与监控</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-5-%E9%AA%8C%E8%AF%81%E4%B8%89%E4%BB%B6%E5%A5%97"><span class="toc-number">8.5.</span> <span class="toc-text">7.5 验证三件套</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-6-%E9%81%BF%E5%9D%91%E6%B8%85%E5%8D%95"><span class="toc-number">8.6.</span> <span class="toc-text">7.6 避坑清单</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-7-%E5%8A%A8%E6%89%8B%E5%AE%9E%E9%AA%8C%E5%AE%A4%EF%BC%9A%E4%BB%8E%E9%9B%B6%E7%83%98%E7%84%99%E4%B8%80%E4%B8%AA%E5%AE%A4%E5%86%85%E5%85%B3%E5%8D%A1"><span class="toc-number">8.7.</span> <span class="toc-text">7.7 动手实验室：从零烘焙一个室内关卡</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-8-%E7%AB%A0-%E4%B8%93%E9%A2%98%E4%BA%8C%EF%BC%9A%E8%87%AA%E5%8A%A8%E5%8C%96%E5%B1%95%E5%BC%80-UV%E2%80%94%E2%80%94%E8%AE%A9%E5%BC%95%E6%93%8E%E6%9B%BF%E4%BD%A0%E6%91%8A%E5%BC%80%E6%A9%98%E5%AD%90%E7%9A%AE"><span class="toc-number">9.</span> <span class="toc-text">第 8 章 专题二：自动化展开 UV——让引擎替你摊开橘子皮</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#8-1-%E4%B8%A4%E6%9D%A1%E7%94%9F%E6%88%90%E8%B7%AF%E5%BE%84"><span class="toc-number">9.1.</span> <span class="toc-text">8.1 两条生成路径</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-2-%E7%BC%BA%E7%AC%AC%E4%BA%8C-UV-%E7%9A%84%E2%80%9D%E9%9D%99%E9%BB%98%E9%99%8D%E7%BA%A7%E2%80%9D"><span class="toc-number">9.2.</span> <span class="toc-text">8.2 缺第二 UV 的”静默降级”</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-3-%E5%88%86%E8%BE%A8%E7%8E%87%E4%B8%8E%E5%AF%86%E5%BA%A6"><span class="toc-number">9.3.</span> <span class="toc-text">8.3 分辨率与密度</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-4-FBX-%E5%AF%BC%E5%85%A5%E7%9A%84%E8%87%AA%E5%8A%A8%E5%A4%84%E7%90%86"><span class="toc-number">9.4.</span> <span class="toc-text">8.4 FBX 导入的自动处理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-5-Datasmith-%E8%87%AA%E5%8A%A8%E5%B1%95-UV"><span class="toc-number">9.5.</span> <span class="toc-text">8.5 Datasmith 自动展 UV</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-6-%E5%BC%95%E6%93%8E%E7%BA%A7%E8%87%AA%E5%8A%A8-UV-%E6%8E%A5%E5%8F%A3"><span class="toc-number">9.6.</span> <span class="toc-text">8.6 引擎级自动 UV 接口</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-7-%E5%8A%A8%E6%89%8B%E5%AE%9E%E9%AA%8C%E5%AE%A4%EF%BC%9A%E8%87%AA%E5%8A%A8%E7%94%9F%E6%88%90-%E6%A3%80%E6%9F%A5%E9%85%8D%E6%96%B9"><span class="toc-number">9.7.</span> <span class="toc-text">8.7 动手实验室：自动生成 + 检查配方</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-9-%E7%AB%A0-%E4%B8%93%E9%A2%98%E4%B8%89%EF%BC%9A%E5%8E%8B%E7%BC%A9-Lightmap%E2%80%94%E2%80%94%E5%86%85%E5%AD%98%E7%98%A6%E8%BA%AB"><span class="toc-number">10.</span> <span class="toc-text">第 9 章 专题三：压缩 Lightmap——内存瘦身</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#9-1-%E5%8E%8B%E7%BC%A9%E9%93%BE%E5%85%A8%E8%B2%8C"><span class="toc-number">10.1.</span> <span class="toc-text">9.1 压缩链全貌</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-2-%E4%BB%80%E4%B9%88%E6%97%B6%E5%80%99%E4%B8%8D%E8%AF%A5%E5%85%B3%E5%8E%8B%E7%BC%A9"><span class="toc-number">10.2.</span> <span class="toc-text">9.2 什么时候不该关压缩</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-3-%E7%A7%BB%E5%8A%A8%E7%AB%AF%E6%A0%BC%E5%BC%8F%E4%B8%8E%E7%BC%96%E7%A0%81%E7%BA%A7%E4%BC%98%E5%8C%96%EF%BC%88%E5%85%AC%E5%BC%80%E8%B5%84%E6%96%99%EF%BC%8C%E9%9D%9E%E6%9C%AC%E4%BB%93%E5%BA%93%E5%AE%9E%E6%B5%8B%EF%BC%89"><span class="toc-number">10.3.</span> <span class="toc-text">9.3 移动端格式与编码级优化（公开资料，非本仓库实测）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-4-VT-%E6%9C%89%E6%8D%9F%E5%8E%8B%E7%BC%A9"><span class="toc-number">10.4.</span> <span class="toc-text">9.4 VT 有损压缩</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-5-%E6%B5%81%E9%80%81%E4%B8%8E%E5%86%85%E5%AD%98%E8%B4%A6%E6%9C%AC"><span class="toc-number">10.5.</span> <span class="toc-text">9.5 流送与内存账本</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-6-%E5%8A%A8%E6%89%8B%E5%AE%9E%E9%AA%8C%E5%AE%A4%EF%BC%9A%E5%86%85%E5%AD%98%E6%B5%8B%E9%87%8F%E4%B8%8E%E5%8E%8B%E7%BC%A9%E5%AF%B9%E7%85%A7"><span class="toc-number">10.6.</span> <span class="toc-text">9.6 动手实验室：内存测量与压缩对照</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-10-%E7%AB%A0-%E4%B8%93%E9%A2%98%E5%9B%9B%EF%BC%9A%E6%8F%90%E9%AB%98%E5%A1%AB%E5%85%85%E7%8E%87%E2%80%94%E2%80%94%E8%AE%A9%E6%8B%BC%E5%9B%BE%E6%AF%8F%E4%B8%80%E5%9D%97%E9%83%BD%E8%A2%AB%E7%94%A8%E5%88%B0"><span class="toc-number">11.</span> <span class="toc-text">第 10 章 专题四：提高填充率——让拼图每一块都被用到</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#10-1-%E5%A1%AB%E5%85%85%E7%8E%87%E4%B8%BA%E4%BB%80%E4%B9%88%E9%87%8D%E8%A6%81"><span class="toc-number">11.1.</span> <span class="toc-text">10.1 填充率为什么重要</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-2-%E7%BD%91%E6%A0%BC%E4%BE%A7%E8%A3%85%E7%AE%B1%EF%BC%9A%E5%B2%9B%E7%9A%84%E2%80%9D%E6%96%B9%E6%AD%A3%E5%8C%96%E2%80%9D"><span class="toc-number">11.2.</span> <span class="toc-text">10.2 网格侧装箱：岛的”方正化”</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-3-%E7%BC%96%E8%BE%91%E5%99%A8%E4%BE%A7%E5%88%86%E7%BB%84%E8%A3%85%E7%AE%B1"><span class="toc-number">11.3.</span> <span class="toc-text">10.3 编辑器侧分组装箱</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-4-%E5%BD%B1%E5%93%8D%E5%A1%AB%E5%85%85%E7%8E%87%E7%9A%84%E4%BA%94%E5%9B%A0%E7%B4%A0"><span class="toc-number">11.4.</span> <span class="toc-text">10.4 影响填充率的五因素</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-5-%E6%B5%8B%E9%87%8F%E6%89%8B%E6%AE%B5"><span class="toc-number">11.5.</span> <span class="toc-text">10.5 测量手段</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-6-%E5%8A%A8%E6%89%8B%E5%AE%9E%E9%AA%8C%E5%AE%A4%EF%BC%9A%E5%A1%AB%E5%85%85%E7%8E%87%E6%B5%8B%E9%87%8F%E4%B8%8E%E4%BC%98%E5%8C%96"><span class="toc-number">11.6.</span> <span class="toc-text">10.6 动手实验室：填充率测量与优化</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-11-%E7%AB%A0-%E4%B8%93%E9%A2%98%E4%BA%94%EF%BC%9A%E6%8A%8A-UE-%E5%BD%93%E7%83%98%E7%84%99%E5%99%A8%E2%80%94%E2%80%94%E7%A6%BB%E7%BA%BF%E5%85%89%E7%85%A7%E5%B7%A5%E5%8E%82"><span class="toc-number">12.</span> <span class="toc-text">第 11 章 专题五：把 UE 当烘焙器——离线光照工厂</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#11-1-%E5%AE%9A%E4%BD%8D%EF%BC%9AUE-%E4%BD%9C%E4%B8%BA%E7%83%98%E7%84%99%E5%99%A8%E7%9A%84%E4%BB%B7%E5%80%BC"><span class="toc-number">12.1.</span> <span class="toc-text">11.1 定位：UE 作为烘焙器的价值</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#11-2-%E7%AE%A1%E7%BA%BF%E6%9E%B6%E6%9E%84"><span class="toc-number">12.2.</span> <span class="toc-text">11.2 管线架构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#11-3-%E5%8A%A8%E6%89%8B%E5%AE%9E%E9%AA%8C%E5%AE%A4%E9%85%8D%E6%96%B9-%C3%973"><span class="toc-number">12.3.</span> <span class="toc-text">11.3 动手实验室配方 ×3</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#11-4-%E9%81%BF%E5%9D%91"><span class="toc-number">12.4.</span> <span class="toc-text">11.4 避坑</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-12-%E7%AB%A0-%E4%B8%93%E9%A2%98%E5%85%AD%EF%BC%9AUnity-%E5%9C%BA%E6%99%AF%E5%AF%BC%E5%85%A5-UE%E2%80%94%E2%80%94%E6%9D%90%E8%B4%A8%E3%80%81%E7%81%AF%E5%85%89%E3%80%81%E5%9C%B0%E8%A1%A8%E5%AF%B9%E9%BD%90"><span class="toc-number">13.</span> <span class="toc-text">第 12 章 专题六：Unity 场景导入 UE——材质、灯光、地表对齐</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#12-1-%E5%AF%BC%E5%85%A5%E5%99%A8%E7%8E%B0%E7%8A%B6%E5%AF%B9%E6%AF%94"><span class="toc-number">13.1.</span> <span class="toc-text">12.1 导入器现状对比</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#12-2-%E5%9D%90%E6%A0%87%E4%B8%8E%E5%8D%95%E4%BD%8D%EF%BC%9A100-%E5%80%8D%E7%BC%A9%E6%94%BE-%E6%8D%A2%E6%89%8B"><span class="toc-number">13.2.</span> <span class="toc-text">12.2 坐标与单位：100 倍缩放 + 换手</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#12-3-%E6%9D%90%E8%B4%A8%E5%AF%B9%E9%BD%90%EF%BC%9A%E8%87%AA%E5%8A%A8%E6%98%A0%E5%B0%84-%E6%89%8B%E5%8A%A8%E4%BF%AE%E5%A4%8D"><span class="toc-number">13.3.</span> <span class="toc-text">12.3 材质对齐：自动映射 + 手动修复</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#12-4-%E7%81%AF%E5%85%89%E5%AF%B9%E9%BD%90%EF%BC%9A%E5%8D%95%E4%BD%8D%E6%8D%A2%E7%AE%97"><span class="toc-number">13.4.</span> <span class="toc-text">12.4 灯光对齐：单位换算</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#12-5-%E5%9C%B0%E8%A1%A8%E5%AF%B9%E9%BD%90%EF%BC%9AHeightmap-%E5%AF%BC%E5%85%A5-Landscape"><span class="toc-number">13.5.</span> <span class="toc-text">12.5 地表对齐：Heightmap 导入 Landscape</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#12-6-%E5%8A%A8%E6%89%8B%E5%AE%9E%E9%AA%8C%E5%AE%A4%EF%BC%9AUnity-%E5%9C%BA%E6%99%AF%E7%AB%AF%E5%88%B0%E7%AB%AF%E8%BF%81%E7%A7%BB"><span class="toc-number">13.6.</span> <span class="toc-text">12.6 动手实验室：Unity 场景端到端迁移</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-13-%E7%AB%A0-%E5%B9%B3%E5%8F%B0%E6%94%AF%E6%8C%81%E4%B8%8E%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98"><span class="toc-number">14.</span> <span class="toc-text">第 13 章 平台支持与性能调优</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#13-1-CVar-%E9%80%9F%E6%9F%A5%E8%A1%A8"><span class="toc-number">14.1.</span> <span class="toc-text">13.1 CVar 速查表</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#13-2-%E8%B0%83%E4%BC%98%E5%B7%A5%E4%BD%9C%E6%B5%81%EF%BC%9A%E4%B8%89%E8%B1%A1%E9%99%90%E5%86%B3%E7%AD%96"><span class="toc-number">14.2.</span> <span class="toc-text">13.2 调优工作流：三象限决策</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#13-3-%E7%97%87%E7%8A%B6-%E2%86%92-%E5%AE%9A%E4%BD%8D%E8%A1%A8"><span class="toc-number">14.3.</span> <span class="toc-text">13.3 症状 → 定位表</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-14-%E7%AB%A0-%E5%B1%80%E9%99%90%E3%80%81%E6%9B%BF%E4%BB%A3%E6%96%B9%E6%A1%88%E4%B8%8E%E5%B1%95%E6%9C%9B"><span class="toc-number">15.</span> <span class="toc-text">第 14 章 局限、替代方案与展望</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#14-1-%E5%B1%80%E9%99%90%E4%B8%8E%E5%AF%B9%E7%AD%96"><span class="toc-number">15.1.</span> <span class="toc-text">14.1 局限与对策</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#14-2-%E6%9B%BF%E4%BB%A3%E8%B7%AF%E5%BE%84"><span class="toc-number">15.2.</span> <span class="toc-text">14.2 替代路径</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#14-3-%E6%BC%94%E8%BF%9B%E6%97%B6%E9%97%B4%E7%BA%BF%E4%B8%8E%E9%98%85%E8%AF%BB%E8%BF%9B%E9%98%B6"><span class="toc-number">15.3.</span> <span class="toc-text">14.3 演进时间线与阅读进阶</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%99%84%E5%BD%95-A-%E6%BA%90%E7%A0%81%E5%9C%B0%E5%9B%BE"><span class="toc-number">16.</span> <span class="toc-text">附录 A 源码地图</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#A-1-GPU-Lightmass-%E6%8F%92%E4%BB%B6%EF%BC%88Plugins-Experimental-GPULightmass-%EF%BC%89"><span class="toc-number">16.1.</span> <span class="toc-text">A.1 GPU Lightmass 插件（Plugins&#x2F;Experimental&#x2F;GPULightmass&#x2F;）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#A-2-%E5%BC%95%E6%93%8E%E6%A0%B8%E5%BF%83%EF%BC%88Runtime-Engine%EF%BC%89"><span class="toc-number">16.2.</span> <span class="toc-text">A.2 引擎核心（Runtime&#x2F;Engine）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#A-3-%E5%AF%BC%E5%85%A5%E5%99%A8%E4%B8%8E%E7%BC%96%E8%BE%91%E5%99%A8"><span class="toc-number">16.3.</span> <span class="toc-text">A.3 导入器与编辑器</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%99%84%E5%BD%95-B-%E6%9C%AF%E8%AF%AD%E8%A1%A8%EF%BC%88%E4%B8%AD%E8%8B%B1%E5%AF%B9%E7%85%A7%EF%BC%89"><span class="toc-number">17.</span> <span class="toc-text">附录 B 术语表（中英对照）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%99%84%E5%BD%95-C-%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="toc-number">18.</span> <span class="toc-text">附录 C 参考资料</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%99%84%E5%BD%95-D-%E8%87%AA%E6%B5%8B%E7%BB%83%E4%B9%A0"><span class="toc-number">19.</span> <span class="toc-text">附录 D 自测练习</span></a></li></ol></div></div></div></aside><main class="sidebar-translate" id="content"><div id="post"><article class="hty-card post-block" itemscope itemtype="https://schema.org/Article" style="--smc-primary:#0078E7;"><link itemprop="mainEntityOfPage" href="https://1393650770.github.io/2026/08/27/2026-8-27-UELightmap/"><span hidden itemprop="author" itemscope itemtype="https://schema.org/Person"><meta itemprop="name" content="mx"><meta itemprop="description"></span><span hidden itemprop="publisher" itemscope itemtype="https://schema.org/Organization"><meta itemprop="name" content="MX的花海小屋与玩具恐龙"></span><header class="post-header"><h1 class="post-title" itemprop="name headline">Unreal Engine Lightmap 完全教程</h1><div class="post-meta"><div class="post-time"><span class="post-meta-item-icon"><span class="icon iconify" data-icon="ri:calendar-line"></span></span> <time title="Created: 2026-08-27 12:00:00" itemprop="dateCreated datePublished" datetime="2026-08-27T12:00:00+08:00">2026-08-27</time><span class="post-meta-divider">-</span><span class="post-meta-item-icon"><span class="icon iconify" data-icon="ri:calendar-2-line"></span></span> <time title="Modified: 2026-08-26 20:24:01" itemprop="dateModified" datetime="2026-08-26T20:24:01+08:00">2026-08-26</time></div><div class="post-classify"><span class="post-category"> <span class="post-meta-item-icon" style="margin-right:3px;"><span class="icon iconify" data-icon="ri:folder-line"></span></span><span itemprop="about" itemscope itemtype="https://schema.org/Thing"><a class="category-item" href="/categories/mx%E7%9A%84%E8%AE%B0%E5%BD%95/" style="--text-color:var(--hty-text-color)" itemprop="url" rel="index"><span itemprop="text">mx的记录</span></a></span></span><span class="post-tag"><span class="post-meta-divider">-</span><a class="tag-item" href="/tags/%E6%8A%80%E6%9C%AF/" style="--text-color:var(--hty-text-color)"><span class="post-meta-item-icon"><span class="icon iconify" data-icon="ri:price-tag-3-line"></span></span><span class="tag-name">技术</span></a><a class="tag-item" href="/tags/%E6%8A%80%E6%9C%AF%E7%AE%80%E8%A6%81/" style="--text-color:var(--hty-text-color)"><span class="post-meta-item-icon"><span class="icon iconify" data-icon="ri:price-tag-3-line"></span></span><span class="tag-name">技术简要</span></a></span></div></div></header><section class="post-body" itemprop="articleBody"><div class="post-content markdown-body"><blockquote>
+<p>从”普通程序员能听懂”到”能改 UE 光照源码”——基于源码逐行考证，六条主线全覆盖：<br><strong>烘焙流程 &#x2F; 自动化展开 UV &#x2F; 压缩 Lightmap &#x2F; 提高填充率 &#x2F; 把 UE 当烘焙器 &#x2F; Unity 场景导入</strong><br>（材质、灯光、地表对齐）</p>
+</blockquote>
+<ul>
+<li><strong>文档版本</strong>：1.0（2026-08-26）</li>
+<li><strong>源码快照</strong>：本地仓库 <code>d:\Project\GameDevelop\UnrealEngine</code>，UE 5.9 移动优化 fork，HEAD <code>6cea9bd20f8f</code></li>
+<li><strong>写作原则</strong>：文中所有”源码考古”块引用的文件路径、行号、函数名均在本仓库中实际验证过；行号只用于定位，请以 <code>路径:函数名</code> 为准</li>
+<li><strong>姊妹文档</strong>：本文是《Nanite》《VSM》《UE 网络架构》《空间音频》之后的第五篇——前四篇是纯 GPU&#x2F;纯实时主题，本篇是<strong>第一条离线管线主线</strong>（CPU 构建 + GPU 渲染消费 + 跨引擎工作流）</li>
+<li><strong>符号说明</strong>：<code>Lightmap</code>&#x3D;光照贴图，<code>Bake</code>&#x3D;烘焙，<code>Texel Density</code>&#x3D;纹素密度，<code>Atlas</code>&#x3D;图集，<code>Chart</code>&#x3D;UV 岛，<code>Padding</code>&#x3D;边距，<code>Packing</code>&#x3D;装箱，<code>Tile</code>&#x3D;瓦片；<code>HQ</code>&#x2F;<code>LQ</code>&#x2F;<code>Scale</code>&#x2F;<code>Add</code>&#x2F;<code>SH</code> 不翻译</li>
+</ul>
+<hr>
+<h1 id="第-0-章-导读：这份文档怎么读"><a href="#第-0-章-导读：这份文档怎么读" class="headerlink" title="第 0 章 导读：这份文档怎么读"></a>第 0 章 导读：这份文档怎么读</h1><blockquote>
+<p><strong>TL;DR</strong>｜这份文档把 UE Lightmap 拆成六条主线：<strong>烘焙流程</strong>（GPU Lightmass 怎么把场景<br>“烤”成光照贴图）、<strong>自动化展开 UV</strong>（让引擎替你摊橘子皮）、<strong>压缩 Lightmap</strong>（内存瘦身）、<br><strong>提高填充率</strong>（拼图利用率）、<strong>把 UE 当烘焙器</strong>（离线光照工厂）、<strong>Unity 场景导入</strong><br>（材质&#x2F;灯光&#x2F;地表对齐）。心智模型：<strong>Lightmap &#x3D; 给场景”烤”一层光照贴图——离线预计算，<br>运行时廉价读取</strong>。三个深度档位：30 秒看懂、半天学会烘焙、1 天读源码。</p>
+</blockquote>
+<h2 id="0-1-目标读者与前置知识"><a href="#0-1-目标读者与前置知识" class="headerlink" title="0.1 目标读者与前置知识"></a>0.1 目标读者与前置知识</h2><p>目标读者是<strong>普通程序员</strong>：会摆场景调灯光、知道 UV 与纹理贴图是什么、见过编辑器里”Build Lighting”转圈。每个术语第一次出现都配一句直觉解释。</p>
+<p>前置知识三个：</p>
+<ol>
+<li><strong>UV 与纹理</strong>：模型表面的”贴图坐标”——光照贴图也是贴图，同样需要 UV；</li>
+<li><strong>场景灯光与移动性</strong>：Static&#x2F;Stationary&#x2F;Movable 三态（第 1 章细讲）；</li>
+<li><strong>烘焙（Bake）</strong>：离线预计算光照，把结果存成贴图——本篇的一切围绕它展开。</li>
+</ol>
+<p><strong>与前三篇的关系</strong>：Nanite&#x2F;VSM 讲实时渲染，空间音频讲听觉，网络讲多机——本篇讲**”光照怎么提前算好”**，与实时 GI（Lumen）是互补关系（第 1 章对比）。</p>
+<h2 id="0-2-三条阅读路径"><a href="#0-2-三条阅读路径" class="headerlink" title="0.2 三条阅读路径"></a>0.2 三条阅读路径</h2><table>
+<thead>
+<tr>
+<th>通道</th>
+<th>读什么</th>
+<th>耗时</th>
+<th>读完能做什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>🚀 30 秒通道</td>
+<td>每章 TL;DR + 第 2 章概念类比 + 图 F1</td>
+<td>10 分钟</td>
+<td>跟人讲清 Lightmap 六条主线与”烘焙&#x3D;拍照片”心智模型</td>
+</tr>
+<tr>
+<td>📚 标准通道</td>
+<td>TL;DR + 正文 + <strong>第 7~12 章（六专题，占全文 54%）</strong></td>
+<td>6~8 小时</td>
+<td>会完整烘焙关卡、会开自动 UV、会压内存、会查填充率、能搭离线烘焙流水线、能把 Unity 场景迁进 UE</td>
+</tr>
+<tr>
+<td>🔬 源码考古通道</td>
+<td>全部 + 源码考古块 + 附录 A 对照</td>
+<td>1~2 天</td>
+<td>敢打开 <code>GPULightmass/</code> 与 <code>LightMap.cpp</code> 对照着读</td>
+</tr>
+</tbody></table>
+<h2 id="0-3-块标记约定"><a href="#0-3-块标记约定" class="headerlink" title="0.3 块标记约定"></a>0.3 块标记约定</h2><p>与前四篇一致的五种块：</p>
+<ul>
+<li>**<code>TL;DR</code>**（每章开头）：30 秒读完本章，3~5 句、必须含类比名、不含源码路径；</li>
+<li>**<code>类比实验室</code>**（正文小节）：用普通程序员已懂的东西讲陌生概念；</li>
+<li>**<code>源码考古</code>**（每章末尾，折叠块）：贴真实源码（≤25 行&#x2F;段），逐行翻译；</li>
+<li>**<code>避坑</code>**（正文穿插）：版本差异、已删除项、公开资料不一致；</li>
+<li>**<code>动手实验室</code>**（第 7~12 章）：配方型内容——<code>步骤|资产/设置|验收标准</code> 表 + 检查清单。</li>
+</ul>
+<h2 id="0-4-一张图看懂全局"><a href="#0-4-一张图看懂全局" class="headerlink" title="0.4 一张图看懂全局"></a>0.4 一张图看懂全局</h2><figure>
+<figcaption>图 F1　Lightmap 完整生命周期七段（从场景设置到屏幕显示；贯穿全文的主干图）</figcaption>
+<svg viewBox="0 0 1240 420" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, 'Microsoft YaHei', sans-serif">
+  <style>
+    .f1-box { fill: #ffffff; stroke: #b9b4a8; stroke-width: 1.5; rx: 8; }
+    .f1-step { fill: #fdf0e0; stroke: #c2702a; stroke-width: 1.5; rx: 8; }
+    .f1-txt { fill: #33312c; font-size: 13px; }
+    .f1-txt-s { fill: #6b675e; font-size: 11.5px; }
+    .f1-title { fill: #33312c; font-size: 13px; font-weight: bold; }
+    .f1-arrow { stroke: #8a857a; stroke-width: 2; marker-end: url(#f1arr); fill: none; }
+  </style>
+  <defs>
+    <marker id="f1arr" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#8a857a"/>
+    </marker>
+  </defs>
+
+  <!-- 七段 -->
+  <rect class="f1-box" x="10" y="40" width="160" height="260"/>
+  <text class="f1-title" x="90" y="60" text-anchor="middle">① 场景设置</text>
+  <rect class="f1-sub" x="22" y="74" width="136" height="30"/>
+  <text class="f1-txt-s" x="90" y="94" text-anchor="middle">灯光 Mobility 三态</text>
+  <rect class="f1-sub" x="22" y="110" width="136" height="30"/>
+  <text class="f1-txt-s" x="90" y="130" text-anchor="middle">Lightmap UV 检查</text>
+  <rect class="f1-sub" x="22" y="146" width="136" height="30"/>
+  <text class="f1-txt-s" x="90" y="166" text-anchor="middle">世界设置烘焙参数</text>
+  <rect class="f1-sub" x="22" y="182" width="136" height="30"/>
+  <text class="f1-txt-s" x="90" y="202" text-anchor="middle">分辨率/纹素密度</text>
+  <rect class="f1-sub" x="22" y="218" width="136" height="30"/>
+  <text class="f1-txt-s" x="90" y="238" text-anchor="middle">（第 7 章）</text>
+
+  <rect class="f1-box" x="190" y="40" width="160" height="260"/>
+  <text class="f1-title" x="270" y="60" text-anchor="middle">② GPU Lightmass</text>
+  <rect class="f1-step" x="202" y="74" width="136" height="30"/>
+  <text class="f1-txt-s" x="270" y="94" text-anchor="middle">Build Lighting 触发</text>
+  <rect class="f1-sub" x="202" y="110" width="136" height="30"/>
+  <text class="f1-txt-s" x="270" y="130" text-anchor="middle">tile 路径追踪</text>
+  <rect class="f1-sub" x="202" y="146" width="136" height="30"/>
+  <text class="f1-txt-s" x="270" y="166" text-anchor="middle">辐照度缓存/去噪</text>
+  <rect class="f1-sub" x="202" y="182" width="136" height="30"/>
+  <text class="f1-txt-s" x="270" y="202" text-anchor="middle">逐 tile 渐进收敛</text>
+  <rect class="f1-sub" x="202" y="218" width="136" height="30"/>
+  <text class="f1-txt-s" x="270" y="238" text-anchor="middle">（第 3 章）</text>
+
+  <rect class="f1-box" x="370" y="40" width="160" height="260"/>
+  <text class="f1-title" x="450" y="60" text-anchor="middle">③ 编码</text>
+  <rect class="f1-sub" x="382" y="74" width="136" height="30"/>
+  <text class="f1-txt-s" x="450" y="94" text-anchor="middle">RGBA16F → 8bit 量化</text>
+  <rect class="f1-sub" x="382" y="110" width="136" height="30"/>
+  <text class="f1-txt-s" x="450" y="130" text-anchor="middle">HQ=LogLUVW + SH</text>
+  <rect class="f1-sub" x="382" y="146" width="136" height="30"/>
+  <text class="f1-txt-s" x="450" y="166" text-anchor="middle">Simple=LogRGB</text>
+  <rect class="f1-sub" x="382" y="182" width="136" height="30"/>
+  <text class="f1-txt-s" x="450" y="202" text-anchor="middle">Scale/Add 归一化</text>
+  <rect class="f1-sub" x="382" y="218" width="136" height="30"/>
+  <text class="f1-txt-s" x="450" y="238" text-anchor="middle">（第 4 章）</text>
+
+  <rect class="f1-box" x="550" y="40" width="160" height="260"/>
+  <text class="f1-title" x="630" y="60" text-anchor="middle">④ Atlas 装箱</text>
+  <rect class="f1-sub" x="562" y="74" width="136" height="30"/>
+  <text class="f1-txt-s" x="630" y="94" text-anchor="middle">编辑器侧 skyline 装箱</text>
+  <rect class="f1-sub" x="562" y="110" width="136" height="30"/>
+  <text class="f1-txt-s" x="630" y="130" text-anchor="middle">网格侧 FLayoutUV</text>
+  <rect class="f1-sub" x="562" y="146" width="136" height="30"/>
+  <text class="f1-txt-s" x="630" y="166" text-anchor="middle">填充率/边距</text>
+  <rect class="f1-sub" x="562" y="182" width="136" height="30"/>
+  <text class="f1-txt-s" x="630" y="202" text-anchor="middle">CoordinateScale/Bias</text>
+  <rect class="f1-sub" x="562" y="218" width="136" height="30"/>
+  <text class="f1-txt-s" x="630" y="238" text-anchor="middle">（第 5/10 章）</text>
+
+  <rect class="f1-box" x="730" y="40" width="160" height="260"/>
+  <text class="f1-title" x="810" y="60" text-anchor="middle">⑤ 压缩与存储</text>
+  <rect class="f1-sub" x="742" y="74" width="136" height="30"/>
+  <text class="f1-txt-s" x="810" y="94" text-anchor="middle">bCompressLightmaps</text>
+  <rect class="f1-sub" x="742" y="110" width="136" height="30"/>
+  <text class="f1-txt-s" x="810" y="130" text-anchor="middle">BC7 / 移动端 ASTC</text>
+  <rect class="f1-sub" x="742" y="146" width="136" height="30"/>
+  <text class="f1-txt-s" x="810" y="166" text-anchor="middle">MapBuildDataRegistry</text>
+  <rect class="f1-sub" x="742" y="182" width="136" height="30"/>
+  <text class="f1-txt-s" x="810" y="202" text-anchor="middle">流送（0.2 因子）</text>
+  <rect class="f1-sub" x="742" y="218" width="136" height="30"/>
+  <text class="f1-txt-s" x="810" y="238" text-anchor="middle">（第 6/9 章）</text>
+
+  <rect class="f1-box" x="910" y="40" width="160" height="260"/>
+  <text class="f1-title" x="990" y="60" text-anchor="middle">⑥ 运行时采样</text>
+  <rect class="f1-sub" x="922" y="74" width="136" height="30"/>
+  <text class="f1-txt-s" x="990" y="94" text-anchor="middle">BasePass 读 Lightmap</text>
+  <rect class="f1-sub" x="922" y="110" width="136" height="30"/>
+  <text class="f1-txt-s" x="990" y="130" text-anchor="middle">GetLightMapColorHQ</text>
+  <rect class="f1-sub" x="922" y="146" width="136" height="30"/>
+  <text class="f1-txt-s" x="990" y="166" text-anchor="middle">解码 Scale/Add + SH</text>
+  <rect class="f1-sub" x="922" y="182" width="136" height="30"/>
+  <text class="f1-txt-s" x="990" y="202" text-anchor="middle">体积光照图插值</text>
+  <rect class="f1-sub" x="922" y="218" width="136" height="30"/>
+  <text class="f1-txt-s" x="990" y="238" text-anchor="middle">（第 6 章）</text>
+
+  <rect class="f1-box" x="1090" y="40" width="140" height="260"/>
+  <text class="f1-title" x="1160" y="60" text-anchor="middle">⑦ 消费端</text>
+  <rect class="f1-sub" x="1102" y="74" width="116" height="30"/>
+  <text class="f1-txt-s" x="1160" y="94" text-anchor="middle">游戏画面显示</text>
+  <rect class="f1-sub" x="1102" y="110" width="116" height="30"/>
+  <text class="f1-txt-s" x="1160" y="130" text-anchor="middle">移动端/桌面</text>
+  <rect class="f1-sub" x="1102" y="146" width="116" height="30"/>
+  <text class="f1-txt-s" x="1160" y="166" text-anchor="middle">烘焙产物导出</text>
+  <rect class="f1-sub" x="1102" y="182" width="116" height="30"/>
+  <text class="f1-txt-s" x="1160" y="202" text-anchor="middle">（第 11 章）</text>
+
+  <!-- 箭头 -->
+  <path class="f1-arrow" d="M170,170 L188,170"/>
+  <path class="f1-arrow" d="M350,170 L368,170"/>
+  <path class="f1-arrow" d="M530,170 L548,170"/>
+  <path class="f1-arrow" d="M710,170 L728,170"/>
+  <path class="f1-arrow" d="M890,170 L908,170"/>
+  <path class="f1-arrow" d="M1070,170 L1088,170"/>
+
+  <!-- 底部标注 -->
+<p>  <text class="f1-txt-s" x="90" y="330" text-anchor="middle">第 1&#x2F;7 章</text><br>  <text class="f1-txt-s" x="270" y="330" text-anchor="middle">第 3 章</text><br>  <text class="f1-txt-s" x="450" y="330" text-anchor="middle">第 4 章</text><br>  <text class="f1-txt-s" x="630" y="330" text-anchor="middle">第 5&#x2F;10 章</text><br>  <text class="f1-txt-s" x="810" y="330" text-anchor="middle">第 6&#x2F;9 章</text><br>  <text class="f1-txt-s" x="990" y="330" text-anchor="middle">第 6 章</text><br>  <text class="f1-txt-s" x="1160" y="330" text-anchor="middle">第 11&#x2F;12 章</text></p>
+<p>  <text class="f1-txt-s" x="620" y="380" text-anchor="middle">跨引擎工作流（Unity→UE）：第 12 章——FBX&#x2F;USD&#x2F;Datasmith&#x2F;GLTF（经 Interchange）导入 + 材质&#x2F;灯光&#x2F;地表对齐</text><br>  <text class="f1-txt-s" x="620" y="400" text-anchor="middle">UE 当烘焙器：第 11 章——命令行烘焙 &#x2F; 分层烘焙 &#x2F; 产物导出</text><br></svg></p>
+</figure>
+
+<p><strong>读图方法</strong>：场景设置好了 → GPU Lightmass 逐 tile 路径追踪”烤”出光照 → 编码成 8bit 系数 → 装箱进 Atlas → 压缩存储 → 运行时 BasePass 廉价采样 → 显示。<strong>①~⑤ 是离线（构建期），⑥⑦ 是运行时</strong>——这就是”预计算”的全部含义。</p>
+<h2 id="0-5-章节地图"><a href="#0-5-章节地图" class="headerlink" title="0.5 章节地图"></a>0.5 章节地图</h2><table>
+<thead>
+<tr>
+<th>篇</th>
+<th>章节</th>
+<th>一句话</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>开篇</td>
+<td>第 0~1 章</td>
+<td>怎么读 + 静态光照的”预计算”哲学（Lumen vs Lightmap）</td>
+</tr>
+<tr>
+<td>概念篇</td>
+<td>第 2 章</td>
+<td>六大概念速览（每个一个类比）</td>
+</tr>
+<tr>
+<td>机制篇</td>
+<td>第 3~6 章</td>
+<td>烘焙管线 → 编码 → 装箱 → 运行时采样与流送</td>
+</tr>
+<tr>
+<td>专题篇</td>
+<td>第 7~12 章</td>
+<td><strong>六条主线（用户重点，占 54%）</strong></td>
+</tr>
+<tr>
+<td>调优篇</td>
+<td>第 13~14 章</td>
+<td>CVar 速查与常见坑 &#x2F; 局限与展望</td>
+</tr>
+<tr>
+<td>附录</td>
+<td>A~D</td>
+<td>源码地图、术语表、参考资料、自测题</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="第-1-章-Lightmap-是什么：静态光照的”预计算”哲学"><a href="#第-1-章-Lightmap-是什么：静态光照的”预计算”哲学" class="headerlink" title="第 1 章 Lightmap 是什么：静态光照的”预计算”哲学"></a>第 1 章 Lightmap 是什么：静态光照的”预计算”哲学</h1><blockquote>
+<p><strong>TL;DR</strong>｜Lightmap 是”<strong>给场景烤一层光照贴图</strong>“：把静态光照离线算好存成纹理，<br>运行时每像素读一下就行——<strong>把昂贵的实时光照计算换成廉价的贴图采样</strong>。Lumen 是<br>实时全局光照（贵但动态），Lightmap 是离线预烘焙（便宜但静态），Mobility 三态<br>（Static&#x2F;Stationary&#x2F;Movable）决定了灯光参与哪种方案。</p>
+</blockquote>
+<h2 id="1-1-烘焙-拍照片"><a href="#1-1-烘焙-拍照片" class="headerlink" title="1.1 烘焙 &#x3D; 拍照片"></a>1.1 烘焙 &#x3D; 拍照片</h2><blockquote>
+<p><strong>类比实验室：拍照片</strong><br>烘焙就像给场景”拍照片”：相机（光照求解器）花很长时间拍（计算），洗出来的照片<br>（Lightmap 贴图）被贴到模型表面，运行时”看照片”（采样贴图）——不重新拍。<br>照片是死的：灯移动了照片不会变；但看照片几乎零成本。<strong>这就是预计算的全部哲学：<br>把贵的计算挪到离线，把廉价的结果留给运行时</strong>。</p>
+</blockquote>
+<h2 id="1-2-为什么需要预计算"><a href="#1-2-为什么需要预计算" class="headerlink" title="1.2 为什么需要预计算"></a>1.2 为什么需要预计算</h2><p>一个静态场景（建筑、地形、道具）的光照其实<strong>不会变</strong>——灯不动、物体不动，光照结果就是确定的。实时重算它是浪费：每帧算全局光照 &#x3D; 每帧都要昂贵的路径追踪&#x2F;辐射度。<strong>预计算让”确定的结果”只算一次</strong>：</p>
+<ul>
+<li><strong>质量</strong>：离线可以跑几百采样&#x2F;像素（GPU Lightmass 默认 GISamples&#x3D;512），实时 GI 只能给几十；</li>
+<li><strong>成本</strong>：运行时每像素一次贴图采样（几十纳秒）vs 实时 GI 每像素几十微秒；</li>
+<li><strong>代价</strong>：静态（灯动&#x2F;物体动都需要重新烘焙）、存储（贴图占空间）。</li>
+</ul>
+<h2 id="1-3-Lumen-vs-Lightmap：实时-GI-vs-离线烘焙"><a href="#1-3-Lumen-vs-Lightmap：实时-GI-vs-离线烘焙" class="headerlink" title="1.3 Lumen vs Lightmap：实时 GI vs 离线烘焙"></a>1.3 Lumen vs Lightmap：实时 GI vs 离线烘焙</h2><table>
+<thead>
+<tr>
+<th></th>
+<th>Lumen（实时 GI）</th>
+<th>Lightmap（离线烘焙）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>计算时机</td>
+<td>每帧实时</td>
+<td>构建期离线</td>
+</tr>
+<tr>
+<td>质量</td>
+<td>好（但受帧预算限制）</td>
+<td><strong>极高</strong>（数百采样&#x2F;像素）</td>
+</tr>
+<tr>
+<td>动态物体</td>
+<td>✅ 支持</td>
+<td>❌ 静态</td>
+</tr>
+<tr>
+<td>移动端</td>
+<td>重（通常关）</td>
+<td><strong>轻（贴图采样）</strong></td>
+</tr>
+<tr>
+<td>存储</td>
+<td>无额外</td>
+<td>贴图占用</td>
+</tr>
+<tr>
+<td>适用</td>
+<td>动态光照游戏</td>
+<td>静态场景&#x2F;移动端</td>
+</tr>
+</tbody></table>
+<p><strong>决策树</strong>：移动端&#x2F;静态场景 → Lightmap；动态光照&#x2F;高端 PC → Lumen；混合（大多数游戏）→ <strong>静态部分 Lightmap + 动态物体 Lumen&#x2F;动态光</strong>。</p>
+<h2 id="1-4-Mobility-三态：灯光的三档开关"><a href="#1-4-Mobility-三态：灯光的三档开关" class="headerlink" title="1.4 Mobility 三态：灯光的三档开关"></a>1.4 Mobility 三态：灯光的三档开关</h2><p><code>ENetRole</code> 之外，灯光还有 <strong>Mobility</strong>（<code>Engine/Classes/Engine/EngineTypes.h</code> 的 EComponentMobility）：</p>
+<table>
+<thead>
+<tr>
+<th>Mobility</th>
+<th>行为</th>
+<th>Lightmap 参与</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Static</strong></td>
+<td>完全静态（烘焙全量）</td>
+<td>✅ 全烘焙（阴影&#x2F;间接光都进 Lightmap）</td>
+</tr>
+<tr>
+<td><strong>Stationary</strong></td>
+<td>位置固定但亮度可变</td>
+<td>✅ 烘焙间接光 + 动态阴影遮罩（ShadowMapChannel）</td>
+</tr>
+<tr>
+<td><strong>Movable</strong></td>
+<td>完全动态</td>
+<td>❌ 不烘焙（Lumen&#x2F;动态阴影）</td>
+</tr>
+</tbody></table>
+<p><strong>烘焙的本质</strong>：只有 Static&#x2F;Stationary 灯光参与 Lightmap 烘焙；Movable 灯完全走实时。<strong>场景里全是 Movable 灯 &#x3D; 烘焙了个寂寞</strong>（第 7 章检查清单第一条）。</p>
+<h2 id="1-5-体积光照图（Volumetric-Lightmap）"><a href="#1-5-体积光照图（Volumetric-Lightmap）" class="headerlink" title="1.5 体积光照图（Volumetric Lightmap）"></a>1.5 体积光照图（Volumetric Lightmap）</h2><p><code>VolumeLightingMethod</code>（<code>WorldSettings.h:123</code>）——除了表面贴图（Lightmap），烘焙还产出<strong>体积光照图</strong>：稀疏 3D 网格（brick）存 SH 光照，供<strong>动态物体</strong>（角色&#x2F;粒子）在静态光照环境中采样——“静态场景里的动态角色也有正确光照”。<code>VolumetricLightmapDetailCellSize=200</code>（:159）控制网格密度。</p>
+<h2 id="1-6-一点历史"><a href="#1-6-一点历史" class="headerlink" title="1.6 一点历史"></a>1.6 一点历史</h2><ul>
+<li><strong>UE4</strong>：CPU Lightmass（UnrealLightmass，独立进程多线程求解，还有 Swarm 分布式）；</li>
+<li><strong>UE5</strong>：<strong>GPU Lightmass</strong>（<code>Engine/Plugins/Experimental/GPULightmass/</code>）转正为默认——用 GPU 路径追踪逐 tile 收敛，<code>FStaticLightingSystemInterface::GetPreferredImplementation()</code>（<code>StaticLightingSystemInterface.cpp:113</code>）硬编码优先 GPULightmass；</li>
+<li><strong>本 fork</strong>：无 Lightmap&#x2F;Lightmass 改动（git 验证），移动端 one-pass 管线沿用现有 lightmap 采样路径。</li>
+</ul>
+<h2 id="1-7-小结"><a href="#1-7-小结" class="headerlink" title="1.7 小结"></a>1.7 小结</h2><p>这一章记住三句话：</p>
+<ol>
+<li><strong>Lightmap &#x3D; 离线预计算的光照贴图</strong>（拍照片哲学）；</li>
+<li><strong>Lumen vs Lightmap &#x3D; 实时 vs 离线</strong>——移动端&#x2F;静态场景选 Lightmap；</li>
+<li><strong>Mobility 三态决定参与度</strong>——只有 Static&#x2F;Stationary 灯进 Lightmap。</li>
+</ol>
+<p>下一章，六大概念各配一个类比。</p>
+<h1 id="第-2-章-六大核心概念速览（每个概念-一个类比）"><a href="#第-2-章-六大核心概念速览（每个概念-一个类比）" class="headerlink" title="第 2 章 六大核心概念速览（每个概念 &#x3D; 一个类比）"></a>第 2 章 六大核心概念速览（每个概念 &#x3D; 一个类比）</h1><blockquote>
+<p><strong>TL;DR</strong>｜Lightmap 的六个核心概念，用六个你早就懂的东西类比：<strong>纹素密度 &#x3D; 光照分辨率</strong>、<br><strong>UV 展开 &#x3D; 把橘子皮摊平</strong>、<strong>Atlas 装箱 &#x3D; 拼图游戏</strong>、<strong>填充率 &#x3D; 拼图的利用率</strong>、<br><strong>编码 &#x3D; 把亮度塞进 8bit 行李箱</strong>、<strong>Padding &#x3D; 拼图块之间的缝隙</strong>。这一章只立类比不给代码。</p>
+</blockquote>
+<h2 id="2-1-纹素密度（Texel-Density）-光照的”分辨率”"><a href="#2-1-纹素密度（Texel-Density）-光照的”分辨率”" class="headerlink" title="2.1 纹素密度（Texel Density）&#x3D; 光照的”分辨率”"></a>2.1 纹素密度（Texel Density）&#x3D; 光照的”分辨率”</h2><p><strong>定义</strong>：Lightmap 上每个纹素（texel）覆盖多少世界面积。<code>LightMapResolution</code>（<code>StaticMesh.h:1194-1196</code>）是<strong>纹理边长</strong>（texel 数），实际密度 &#x3D; 分辨率 ÷ 网格世界尺寸。</p>
+<blockquote>
+<p><strong>类比实验室：分辨率</strong><br>同样的照片，4K 屏看比 720p 屏看清晰——Lightmap 同理：大模型配小分辨率 &#x3D;<br>光照糊成一团（”光斑”）；小模型配大分辨率 &#x3D; 浪费显存。**纹素密度是光照的<br>“每平方米像素数”**，全场景统一密度（如 4 texel&#x2F;cm）是烘焙质量的第一要务。</p>
+</blockquote>
+<h2 id="2-2-UV-展开-把橘子皮摊平"><a href="#2-2-UV-展开-把橘子皮摊平" class="headerlink" title="2.2 UV 展开 &#x3D; 把橘子皮摊平"></a>2.2 UV 展开 &#x3D; 把橘子皮摊平</h2><p><strong>定义</strong>：模型表面（3D）→ UV 平面（2D）的映射。Lightmap 需要<strong>第二套 UV</strong>（<code>LightMapCoordinateIndex</code>，<code>StaticMesh.h:1221</code>，默认 UV1）——<strong>UV 岛（Chart）不得重叠、必须落在 0-1 空间</strong>，因为光照贴图是按 UV 位置写的。</p>
+<blockquote>
+<p><strong>类比实验室：橘子皮</strong><br>把橘子皮完整摊平（不撕裂、不重叠）就是 UV 展开。Lightmap UV 要求摊得<strong>均匀</strong><br>（每块面积与世界面积成比例——否则纹素密度不均）且<strong>留缝</strong>（岛与岛之间有<br>边距，否则采样会串色）。引擎能自动摊（第 8 章），但摊得好的关键参数<br>（MinLightmapResolution&#x2F;通道选择）需要人懂。</p>
+</blockquote>
+<h2 id="2-3-Atlas-装箱-拼图游戏"><a href="#2-3-Atlas-装箱-拼图游戏" class="headerlink" title="2.3 Atlas 装箱 &#x3D; 拼图游戏"></a>2.3 Atlas 装箱 &#x3D; 拼图游戏</h2><p><strong>定义</strong>：多个 Actor 的 Lightmap 打包进共享纹理（Atlas）。编辑器侧：<code>FLightMapPendingTexture</code> 用 <strong>skyline 装箱</strong>（4px 对齐，<code>LightMap.cpp:457</code>）；网格侧：<code>FLayoutUV</code> 的 <code>FindBestPacking</code>（<code>LayoutUV.h:67</code>）做 UV 岛装箱。</p>
+<blockquote>
+<p><strong>类比实验室：拼图游戏</strong><br>所有光照贴图拼进一张大画布（默认 1024×512，<code>PackedLightAndShadowMapTextureSize</code>）：<br>每块光照贴图是拼图片，拼图器（装箱算法）负责把片放进去。<strong>片太多&#x2F;太大 → 换更大的<br>画布或开新画布</strong>——这是显存与烘焙时间的权衡。</p>
+</blockquote>
+<h2 id="2-4-填充率-拼图的利用率"><a href="#2-4-填充率-拼图的利用率" class="headerlink" title="2.4 填充率 &#x3D; 拼图的利用率"></a>2.4 填充率 &#x3D; 拼图的利用率</h2><p><strong>定义</strong>：Atlas 中被光照贴图实际占用的面积比例。填充率低 &#x3D; 拼图有大量空白 &#x3D; 浪费显存。引擎的 <code>FindBestPackingEfficiency</code>（<code>LayoutUV.h:86</code>）专门统计装箱效率。</p>
+<blockquote>
+<p><strong>类比实验室：拼图利用率</strong><br>一堆形状怪异的拼图片（细长条、异形）放进画布，空隙多 → 利用率低。<br>填充率优化 &#x3D; 让拼图片更”方正”（UV 岛长宽比）、让片大小更匹配<br>（分辨率统一）、留缝更小（padding 恰到好处）。第 10 章专讲。</p>
+</blockquote>
+<h2 id="2-5-编码-把亮度塞进-8bit-行李箱"><a href="#2-5-编码-把亮度塞进-8bit-行李箱" class="headerlink" title="2.5 编码 &#x3D; 把亮度塞进 8bit 行李箱"></a>2.5 编码 &#x3D; 把亮度塞进 8bit 行李箱</h2><p><strong>定义</strong>：烘焙结果是高动态范围（RGBA16F），要存进 8bit 贴图——<code>QuantizeLightSamples</code>（<code>LightmapEncoding.cpp:35</code>）用 <strong>LogScale&#x3D;11.5</strong> 的对数量化 + 每图 <strong>Scale&#x2F;Add</strong>（min&#x2F;max 归一化）把亮度”塞进行李箱”。</p>
+<blockquote>
+<p><strong>类比实验室：8bit 行李箱</strong><br>亮度范围从 0 到几百（阳光下的墙 vs 阴影），8bit 只能存 0-255——直接存会爆。<br>解法：先取对数（LogScale，把大范围压缩进小范围），再整体缩放平移<br>（Scale&#x2F;Add，让 0-255 被用满）。**”行李箱装不下的亮度，先对数压缩再装箱”**。</p>
+</blockquote>
+<h2 id="2-6-Padding（边距）-拼图块之间的缝隙"><a href="#2-6-Padding（边距）-拼图块之间的缝隙" class="headerlink" title="2.6 Padding（边距）&#x3D; 拼图块之间的缝隙"></a>2.6 Padding（边距）&#x3D; 拼图块之间的缝隙</h2><p><strong>定义</strong>：UV 岛之间&#x2F;光照贴图之间留的空隙（纹素）。引擎装箱 4px 对齐（<code>LightMap.cpp:491</code>），官方建议约 4 纹素——**缝隙防”串色”**（双线性采样&#x2F;纹理压缩时相邻岛互相污染）。</p>
+<blockquote>
+<p><strong>类比实验室：拼图缝隙</strong><br>拼图块之间完全无缝 → 双线性插值会”抄”邻居的颜色（串色&#x2F;漏光）。<br>留缝（padding）防串色，但缝隙太宽浪费面积（填充率↓）——<strong>缝隙是质量与<br>效率的平衡</strong>。漏光（Light Bleeding）90% 是 padding 不足。</p>
+</blockquote>
+<h2 id="2-7-概念-→-源码落点预告表"><a href="#2-7-概念-→-源码落点预告表" class="headerlink" title="2.7 概念 → 源码落点预告表"></a>2.7 概念 → 源码落点预告表</h2><table>
+<thead>
+<tr>
+<th>概念</th>
+<th>类比</th>
+<th>核心类&#x2F;函数</th>
+<th>章节</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>纹素密度</td>
+<td>分辨率</td>
+<td>LightMapResolution &#x2F; GetUVDensity</td>
+<td>Ch8</td>
+</tr>
+<tr>
+<td>UV 展开</td>
+<td>橘子皮</td>
+<td>FLayoutUV &#x2F; CreateLightMapUVLayout</td>
+<td>Ch5&#x2F;Ch8</td>
+</tr>
+<tr>
+<td>Atlas 装箱</td>
+<td>拼图</td>
+<td>FLightMapPendingTexture &#x2F; FindBestPacking</td>
+<td>Ch5&#x2F;Ch10</td>
+</tr>
+<tr>
+<td>填充率</td>
+<td>拼图利用率</td>
+<td>FindBestPackingEfficiency &#x2F; FAllocator2D</td>
+<td>Ch10</td>
+</tr>
+<tr>
+<td>编码</td>
+<td>8bit 行李箱</td>
+<td>QuantizeLightSamples &#x2F; LogScale&#x3D;11.5</td>
+<td>Ch4&#x2F;Ch9</td>
+</tr>
+<tr>
+<td>Padding</td>
+<td>拼图缝隙</td>
+<td>FTextureLayout 4px &#x2F; GLightmassDebugOptions</td>
+<td>Ch5&#x2F;Ch10</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="第-3-章-烘焙管线：GPU-Lightmass-全流程"><a href="#第-3-章-烘焙管线：GPU-Lightmass-全流程" class="headerlink" title="第 3 章 烘焙管线：GPU Lightmass 全流程"></a>第 3 章 烘焙管线：GPU Lightmass 全流程</h1><blockquote>
+<p><strong>TL;DR</strong>｜UE5 的默认烘焙器是 <strong>GPU Lightmass</strong>（<code>Engine/Plugins/Experimental/GPULightmass/</code>）：<br>Build Lighting 触发 → <code>UGPULightmassSubsystem::Launch</code> → <code>FGPULightmass</code> 注册场景 →<br>后台每帧推进（<code>BackgroundTick</code>）→ <code>FLightmapRenderer</code> 逐 tile 路径追踪（默认 512 采样&#x2F;<br>像素 + 辐照度缓存 + OIDN 去噪）→ 渐进收敛。<strong>烘焙不是一次性的，是”洗衣机转桶”——<br>每转一圈（每帧）处理一批 tile，边转边看效果</strong>。</p>
+</blockquote>
+<h2 id="3-1-插件结构"><a href="#3-1-插件结构" class="headerlink" title="3.1 插件结构"></a>3.1 插件结构</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Engine/Plugins/Experimental/GPULightmass/</span><br><span class="line">├── GPULightmass.uplugin</span><br><span class="line">├── Shaders/Private/          # LightmapPathTracing.usf / LightmapEncoding.ush 等</span><br><span class="line">└── Source/</span><br><span class="line">    ├── GPULightmass/         # 核心：LightmapRenderer.cpp(4032行) / LightmapEncoding.cpp</span><br><span class="line">    │                         #   / LightmapTilePool.cpp / IrradianceCaching.cpp / Scene/</span><br><span class="line">    └── GPULightmassEditor/   # 编辑器入口（工具栏/设置面板/GPULM.* 命令）</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p><strong>避坑</strong>：路径是 <code>Experimental/GPULightmass/</code>（实验性插件目录）——不是 <code>Plugins/GPULightmass</code>。<br>老资料讲 UE4 的 Lightmass 是<strong>独立进程 CPU 求解器</strong>（UnrealLightmass），与 GPU Lightmass<br>完全不同：GPU 版在引擎进程内、用 GPU 路径追踪、逐 tile 渐进。</p>
+</blockquote>
+<h2 id="3-2-触发链"><a href="#3-2-触发链" class="headerlink" title="3.2 触发链"></a>3.2 触发链</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">编辑器 Build Lighting 按钮 / 控制台 GPULM.BuildLighting</span><br><span class="line">  → UGPULightmassSubsystem::Launch（GPULightmassSettings.cpp:195）</span><br><span class="line">  → FGPULightmass（GPULightmass.cpp:15）注册场景</span><br><span class="line">  → FScene::BackgroundTick 每帧推进</span><br><span class="line">  → FLightmapRenderer（IVirtualTextureFinalizer）逐 tile 路径追踪</span><br><span class="line">  → 渐进收敛（每帧可见效果变好）</span><br></pre></td></tr></table></figure>
+
+<p><strong>为什么 GPU Lightmass 是默认</strong>：<code>FStaticLightingSystemInterface::GetPreferredImplementation()</code>（<code>StaticLightingSystemInterface.cpp:113</code>）硬编码优先取 <code>&quot;GPULightmass&quot;</code> 实现——<strong>写死优先，无需配置</strong>。</p>
+<h2 id="3-3-关键参数：两张大表"><a href="#3-3-关键参数：两张大表" class="headerlink" title="3.3 关键参数：两张大表"></a>3.3 关键参数：两张大表</h2><p><strong>世界设置</strong>（<code>FLightmassWorldInfoSettings</code>，<code>WorldSettings.h:55-239</code>，挂载 :672）：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>StaticLightingLevelScale</code></td>
+<td>1</td>
+<td>世界缩放补偿（注释”1 UU &#x3D; 1 cm，大关卡设 2-4 可大幅缩短构建”）</td>
+</tr>
+<tr>
+<td><code>NumIndirectLightingBounces</code></td>
+<td>3</td>
+<td>间接光反弹次数</td>
+</tr>
+<tr>
+<td><code>IndirectLightingQuality</code></td>
+<td>1</td>
+<td>GI 求解采样数倍率（调高更慢更干净）</td>
+</tr>
+<tr>
+<td><code>IndirectLightingSmoothness</code></td>
+<td>1</td>
+<td>间接光平滑（调低细节多噪点多）</td>
+</tr>
+<tr>
+<td><code>bUseAmbientOcclusion</code></td>
+<td>false</td>
+<td>环境光遮蔽</td>
+</tr>
+<tr>
+<td><code>bCompressLightmaps</code></td>
+<td>true</td>
+<td>压缩光照贴图（注释”关闭后内存&#x2F;体积 ×4”）</td>
+</tr>
+<tr>
+<td><code>VolumetricLightmapDetailCellSize</code></td>
+<td>200</td>
+<td>体积光照图网格密度</td>
+</tr>
+<tr>
+<td><code>VolumeLightingMethod</code></td>
+<td>VLM_VolumetricLightmap</td>
+<td>体积光照法</td>
+</tr>
+</tbody></table>
+<p><strong>GPU Lightmass 面板</strong>（<code>UGPULightmassSettings</code>，<code>GPULightmassSettings.h:33</code>）：</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>GISamples</code></td>
+<td>512</td>
+<td>每像素 GI 采样数（质量核心旋钮）</td>
+</tr>
+<tr>
+<td><code>StationaryLightShadowSamples</code></td>
+<td>128</td>
+<td>Stationary 灯阴影采样</td>
+</tr>
+<tr>
+<td><code>bUseIrradianceCaching</code></td>
+<td>true</td>
+<td>辐照度缓存（复用相邻点 GI，大幅加速）</td>
+</tr>
+<tr>
+<td><code>IrradianceCacheQuality</code></td>
+<td>128</td>
+<td>缓存质量</td>
+</tr>
+<tr>
+<td><code>TilePassesInSlowMode/FullSpeedMode</code></td>
+<td>1&#x2F;8</td>
+<td>慢速&#x2F;全速模式每 tile 的 pass 数</td>
+</tr>
+<tr>
+<td><code>LightmapTilePoolSize</code></td>
+<td>55</td>
+<td>tile 池大小（显存预算）</td>
+</tr>
+<tr>
+<td><code>bCompressLightmaps</code></td>
+<td>true</td>
+<td>压缩</td>
+</tr>
+</tbody></table>
+<h2 id="3-4-与-CPU-Lightmass-的差异"><a href="#3-4-与-CPU-Lightmass-的差异" class="headerlink" title="3.4 与 CPU Lightmass 的差异"></a>3.4 与 CPU Lightmass 的差异</h2><table>
+<thead>
+<tr>
+<th></th>
+<th>CPU Lightmass（UE4）</th>
+<th>GPU Lightmass（UE5）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>计算设备</td>
+<td>CPU 多线程（可 Swarm 分布式）</td>
+<td>GPU（DX12 + 硬件光追&#x2F;DXR）</td>
+</tr>
+<tr>
+<td>方式</td>
+<td>一次性求解</td>
+<td><strong>渐进式</strong>（边烘边看，可中断续烘）</td>
+</tr>
+<tr>
+<td>采样</td>
+<td>静态配置</td>
+<td>GISamples 可实时调</td>
+</tr>
+<tr>
+<td>去噪</td>
+<td>无（靠采样数）</td>
+<td><strong>Intel OIDN 内置</strong></td>
+</tr>
+<tr>
+<td>分布式</td>
+<td>✅（多机）</td>
+<td>❌</td>
+</tr>
+</tbody></table>
+<h2 id="3-5-源码考古：Launch-触发链"><a href="#3-5-源码考古：Launch-触发链" class="headerlink" title="3.5 源码考古：Launch 触发链"></a>3.5 源码考古：Launch 触发链</h2><blockquote>
+<p><strong>源码考古</strong>：想看真东西的人进。</p>
+<p><code>GPULightmassSettings.cpp:195</code>（要点）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">UGPULightmassSubsystem::Launch</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">// 创建烘焙系统实例</span></span><br><span class="line">	GPULightmass = FGPULightmassModule::<span class="built_in">CreateGPULightmassForWorld</span>(World.<span class="built_in">Get</span>());</span><br><span class="line">	<span class="comment">// 注册为当前世界的静态光照系统（GetPreferredImplementation 优先 GPULightmass）</span></span><br><span class="line">	FStaticLightingSystemInterface::<span class="built_in">SetPreferredImplementation</span>(<span class="built_in">FName</span>(<span class="string">&quot;GPULightmass&quot;</span>));</span><br><span class="line">	...</span><br><span class="line">	<span class="comment">// 标记场景需要烘焙（编辑器勾选&quot;Build Lighting&quot;后进入后台推进）</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：Launch 是烘焙的”点火”——创建 FGPULightmass 并<strong>显式把 GPULightmass<br>设为首选实现</strong>（<code>SetPreferredImplementation</code>）。之后烘焙不再是一次性阻塞调用，而是<br><code>FScene::BackgroundTick</code> 每帧推进的<strong>渐进过程</strong>——这就是”边烘边看、可中断”的来源。</p>
+</blockquote>
+<hr>
+<h1 id="第-4-章-编码与数据结构：FLightMap2D-的行李箱"><a href="#第-4-章-编码与数据结构：FLightMap2D-的行李箱" class="headerlink" title="第 4 章 编码与数据结构：FLightMap2D 的行李箱"></a>第 4 章 编码与数据结构：FLightMap2D 的行李箱</h1><blockquote>
+<p><strong>TL;DR</strong>｜烘焙结果是高动态范围（RGBA16F），存进 8bit 贴图要靠<strong>量化 + Scale&#x2F;Add</strong>：<br><code>QuantizeLightSamples</code> 用 LogScale&#x3D;11.5 对数量化（HQ&#x3D;LogLUVW 亮度+方向、Simple&#x3D;LogRGB），<br>每张图按 min&#x2F;max 算 Scale&#x2F;Add 归一化。运行时 <code>FLightMap2D</code> 持有纹理数组与解码参数，<br>shader 用 <code>LightMapScale/LightMapAdd</code> 还原亮度。类比：<strong>8bit 行李箱——对数压缩 +<br>缩放平移，把大范围亮度装进小行李箱</strong>。</p>
+</blockquote>
+<h2 id="4-1-从-RGBA16F-到-8bit：量化"><a href="#4-1-从-RGBA16F-到-8bit：量化" class="headerlink" title="4.1 从 RGBA16F 到 8bit：量化"></a>4.1 从 RGBA16F 到 8bit：量化</h2><p>GPU Lightmass 的 tile 渲染目标是 <code>FLinearColor</code>（RGBA16F），最终 <code>QuantizeLightSamples</code>（<code>LightmapEncoding.cpp:35</code>）量化成 8bit 系数：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// LightmapEncoding.cpp:44-47</span></span><br><span class="line"><span class="type">const</span> <span class="type">float</span> LogScale = <span class="number">11.5f</span>;</span><br><span class="line"><span class="type">const</span> <span class="type">float</span> LogBlackPoint = FMath::<span class="built_in">Pow</span>(<span class="number">2.0f</span>, <span class="number">-0.5f</span> * LogScale);</span><br></pre></td></tr></table></figure>
+
+<p><strong>为什么取对数</strong>：亮度范围从 0.01（阴影）到 500+（阳光），线性量化会丢失暗部细节——对数压缩让<strong>暗部与亮部都有足够的 8bit 档位</strong>。</p>
+<h2 id="4-2-两种编码：HQ-与-LQ"><a href="#4-2-两种编码：HQ-与-LQ" class="headerlink" title="4.2 两种编码：HQ 与 LQ"></a>4.2 两种编码：HQ 与 LQ</h2><table>
+<thead>
+<tr>
+<th>编码</th>
+<th>内容</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>HQ（复杂）</strong></td>
+<td>LogLUVW（亮度+色度 UVW）+ SH 方向（Dx&#x2F;Dy&#x2F;Dz+残差）</td>
+<td>高质量（默认）</td>
+</tr>
+<tr>
+<td><strong>LQ（简单）</strong></td>
+<td>LogRGB（三分量对数）</td>
+<td>低质量&#x2F;移动端</td>
+</tr>
+</tbody></table>
+<p><strong>HQ 的方向性</strong>：不只是”这个像素多亮”，还有”光从哪来”（SH 球谐）——材质法线不同，同一 Lightmap 像素的间接光方向不同（法线贴图配合真实感的关键）。解码时 <code>Directionality = max(0, dot(SH, WorldNormal))</code>（<code>LightmapCommon.ush:166</code>）。</p>
+<h2 id="4-3-Scale-Add：整图归一化"><a href="#4-3-Scale-Add：整图归一化" class="headerlink" title="4.3 Scale&#x2F;Add：整图归一化"></a>4.3 Scale&#x2F;Add：整图归一化</h2><p>量化后还要按<strong>全图 min&#x2F;max</strong>算 <code>ScaleVectors</code>&#x2F;<code>AddVectors</code>（<code>LightMap.h:338-341</code>）：<code>最终亮度 = 量化值 * Scale + Add</code>——<strong>让 8bit 的 0-255 被全图用满</strong>（不然整张图只用了一半档位，暗部更糊）。</p>
+<h2 id="4-4-FLightMap2D：纹理布局"><a href="#4-4-FLightMap2D：纹理布局" class="headerlink" title="4.4 FLightMap2D：纹理布局"></a>4.4 FLightMap2D：纹理布局</h2><p><code>FLightMap2D</code>（<code>LightMap.h:198</code>）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// The textures containing the light-map data.</span></span><br><span class="line">TObjectPtr&lt;ULightMapTexture2D&gt; Textures[<span class="number">2</span>];       <span class="comment">// [0]=系数(LogLUVW) [1]=方向(SH)</span></span><br><span class="line">TObjectPtr&lt;ULightMapTexture2D&gt; SkyOcclusionTexture;</span><br><span class="line">TObjectPtr&lt;ULightMapTexture2D&gt; AOMaterialMaskTexture;</span><br><span class="line">TObjectPtr&lt;UShadowMapTexture2D&gt; ShadowMapTexture;</span><br><span class="line">...</span><br><span class="line">FVector4f ScaleVectors[NUM_STORED_LIGHTMAP_COEF];   <span class="comment">// 解码 scale</span></span><br><span class="line">FVector4f AddVectors[NUM_STORED_LIGHTMAP_COEF];     <span class="comment">// 解码 bias</span></span><br><span class="line">FVector2D CoordinateScale;   <span class="comment">// atlas 内 UV 缩放（PostEncode 计算）</span></span><br><span class="line">FVector2D CoordinateBias;</span><br></pre></td></tr></table></figure>
+
+<p><strong>运行时纹理</strong>：<code>ULightMapTexture2D</code>（<code>LightMapTexture2D.h:24</code>，<code>LODGroup=TEXTUREGROUP_Lightmap</code>）——源数据 FColor（8bit），压缩经 <code>SetModernSettingsForNewOrChangedTexture</code>（<code>LightMap.cpp:673</code>）决定格式。</p>
+<h2 id="4-5-运行时解码"><a href="#4-5-运行时解码" class="headerlink" title="4.5 运行时解码"></a>4.5 运行时解码</h2><p><code>FPrecomputedLightingUniformParameters</code>（<code>LightmapUniformShaderParameters.h:16-25</code>）携带 <code>LightMapCoordinateScaleBias</code>&#x2F;<code>LightMapScale[2]</code>&#x2F;<code>LightMapAdd[2]</code>；shader 解码（<code>LightmapCommon.ush:91-159</code>）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">LogL = Lightmap0.w</span><br><span class="line">UVW  = Lightmap0.rgb^2 * LightMapScale[0].rgb + LightMapAdd[0].rgb</span><br><span class="line">L    = exp2(LogL) - LogBlackPoint      // 还原真实亮度</span><br></pre></td></tr></table></figure>
+
+<h2 id="4-6-源码考古：PostEncode-的-atlas-收尾"><a href="#4-6-源码考古：PostEncode-的-atlas-收尾" class="headerlink" title="4.6 源码考古：PostEncode 的 atlas 收尾"></a>4.6 源码考古：PostEncode 的 atlas 收尾</h2><blockquote>
+<p><strong>源码考古</strong>：想看真东西的人进。</p>
+<p><code>LightMap.cpp:685-723</code>（<code>PostEncode</code>，要点）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 计算光照贴图在 atlas 内的 UV 缩放/偏移：</span></span><br><span class="line"><span class="comment">// 每个实例的光照贴图被装箱进共享纹理后，它的 UV 要乘以 Scale 加上 Bias</span></span><br><span class="line"><span class="comment">// 才能指向 atlas 中自己的位置</span></span><br><span class="line">FLightMap2D::CoordinateScale = PaddedSize / <span class="built_in">GetSizeX</span>();</span><br><span class="line">FLightMap2D::CoordinateBias  = Base / <span class="built_in">GetSizeX</span>();</span><br><span class="line">...</span><br><span class="line"><span class="comment">// 写入 ScaleVectors/AddVectors（解码用）</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：<strong>装箱的”坐标翻译”<strong>——光照贴图在 atlas 里的位置（Base&#x2F;Size）被<br>换算成 UV 的 Scale&#x2F;Bias，运行时每个实例的 lightmap UV 先乘 Scale 加 Bias 再采样，<br>就精确指向 atlas 中自己的区域。</strong>这是第 10 章”填充率”的收尾动作</strong>：装箱完成后，<br>每个实例都知道”我的光照贴图在 atlas 的哪个角落”。</p>
+</blockquote>
+<hr>
+<h1 id="第-5-章-打包装箱：Atlas-拼图游戏"><a href="#第-5-章-打包装箱：Atlas-拼图游戏" class="headerlink" title="第 5 章 打包装箱：Atlas 拼图游戏"></a>第 5 章 打包装箱：Atlas 拼图游戏</h1><blockquote>
+<p><strong>TL;DR</strong>｜装箱发生在两个层面：<strong>网格侧</strong>（<code>FLayoutUV</code>：UV 岛 FindCharts → FindBestPacking<br>→ CommitPackedUVs，把岛装进网格的 lightmap UV 空间）与<strong>编辑器侧</strong>（<code>FLightMapPendingTexture</code><br>的 skyline 装箱：把多个 Actor 的光照贴图装进共享 1024×512 atlas）。填充率 &#x3D; 装箱的<br>利用率，第 10 章专讲优化。类比：<strong>拼图游戏——岛装进网格，网格装进图集</strong>。</p>
+</blockquote>
+<h2 id="5-1-一条链两套实现"><a href="#5-1-一条链两套实现" class="headerlink" title="5.1 一条链两套实现"></a>5.1 一条链两套实现</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">网格侧（每网格）：</span><br><span class="line">  FLayoutUV（LayoutUV.h:40-87）</span><br><span class="line">    FindCharts（:66）        三角形聚成 UV 岛（Chart）</span><br><span class="line">    FindBestPacking（:67）   岛装箱进 lightmap UV 空间</span><br><span class="line">    CommitPackedUVs（:68）   写回 UV</span><br><span class="line">  → 调用链：StaticMeshOperations.cpp:1866-1973（CreateLightMapUVLayout）</span><br><span class="line"></span><br><span class="line">编辑器侧（每关卡）：</span><br><span class="line">  FLightMapAllocationGroup（LightMap.cpp:426）按 Outer/距离分组（GMaxLightmapRadius=5000）</span><br><span class="line">  FLightMapPendingTexture（:457）FTextureLayout 4px 对齐 skyline 装箱（:491）</span><br><span class="line">  PackedLightAndShadowMapTextureSize=1024（2:1 长宽比，:2478-2479）</span><br><span class="line">  降序装箱（:2525）→ PostEncode 算 CoordinateScale/Bias</span><br></pre></td></tr></table></figure>
+
+<p><strong>为什么两套</strong>：网格侧解决”<strong>这个网格的 UV 岛怎么摆</strong>“（每网格的 lightmap UV 空间），编辑器侧解决”<strong>每个实例的光照贴图怎么拼</strong>“（共享 atlas）——两层拼图。</p>
+<h2 id="5-2-FAllocator2D：段式-best-fit"><a href="#5-2-FAllocator2D：段式-best-fit" class="headerlink" title="5.2 FAllocator2D：段式 best-fit"></a>5.2 FAllocator2D：段式 best-fit</h2><p><code>FAllocator2D</code>（<code>Allocator2D.h:19-80</code>）：段式空闲空间分配器，<code>FindWithSegments</code>（:74）按”最合适矩形”准则（best-fit）找空位——<strong>装箱质量的核心算法</strong>。<code>FAllocator2DFlipFix</code> 是 ELightmapUVVersion 的一个修复版本（翻转修复）。</p>
+<h2 id="5-3-ELightmapUVVersion：装箱算法的演进"><a href="#5-3-ELightmapUVVersion：装箱算法的演进" class="headerlink" title="5.3 ELightmapUVVersion：装箱算法的演进"></a>5.3 ELightmapUVVersion：装箱算法的演进</h2><p><code>MeshUtilitiesCommon.h:7-21</code>：<code>BitByBit=0 → ... → ConsiderLightmapPadding=6 → ForceLightmapPadding=7 → Segments2D=8 → OptimalSurfaceArea=9 → ScaleByEdgesLength=10(=Latest)</code>——<strong>每个版本改进了装箱质量</strong>（padding 处理、段分配、按边长缩放岛）。</p>
+<blockquote>
+<p><strong>避坑</strong>：<code>LightmapUVVersion</code>（StaticMesh.h:772）是”UV 打包算法版本”——改了引擎的装箱<br>算法后，旧资产的 UV 布局不会自动重打（除非重新生成）。改装箱质量 &#x3D; 旧资产可能要<br>重新”Apply Changes”。</p>
+</blockquote>
+<h2 id="5-4-GPU-Lightmass-侧：tile-池"><a href="#5-4-GPU-Lightmass-侧：tile-池" class="headerlink" title="5.4 GPU Lightmass 侧：tile 池"></a>5.4 GPU Lightmass 侧：tile 池</h2><p>GPU Lightmass 不共享 atlas——<strong>每实例独立 FLightmap</strong>（<code>LightmapStorage.h:66</code>），渲染目标是 <strong>tile 池</strong>（<code>FLightmapTilePool</code>，<code>LightmapTilePool.h:28-72</code>，<code>LightmapTilePoolSize=55</code> 个 tile，FreeHeap 线性分配）；每实例 lightmap 尺寸向上取整到 128 tile（<code>GetPaddedSizeInTiles</code>，LightmapStorage.h:73-79）。</p>
+<p><strong>ISM 实例打包</strong>（<code>InstancedStaticMesh.cpp:108-119</code>）：<code>TotalLightmapRes = 宽 × ceil(sqrt(实例数))</code>——所有实例排进一个正方形大图。</p>
+<h2 id="5-5-源码考古：FindBestPacking-装箱循环"><a href="#5-5-源码考古：FindBestPacking-装箱循环" class="headerlink" title="5.5 源码考古：FindBestPacking 装箱循环"></a>5.5 源码考古：FindBestPacking 装箱循环</h2><blockquote>
+<p><strong>源码考古</strong>：想看真东西的人进。</p>
+<p><code>LayoutUV.h:67-86</code>（要点）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** 找到把全部 Chart 装进指定分辨率纹理的最佳排列 */</span></span><br><span class="line"><span class="function"><span class="type">bool</span> <span class="title">FindBestPacking</span><span class="params">(uint32 InTextureResolution)</span></span>;</span><br><span class="line"><span class="comment">/** 提交装箱结果（把 PackingScale/Bias 写回 UV） */</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">CommitPackedUVs</span><span class="params">()</span></span>;</span><br><span class="line"><span class="comment">/** 装箱效率统计（填充率！）——每帧统计，LogStats() 输出 */</span></span><br><span class="line"><span class="function">uint32 <span class="title">FindBestPackingEfficiency</span><span class="params">()</span> <span class="type">const</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：<code>FindBestPacking</code> 尝试把全部 UV 岛装进给定分辨率的纹理——<br>装不下就返回失败（调用方提高分辨率重试）；<code>FindBestPackingEfficiency</code> 量化<br>“装得满不满”（填充率）。<strong>这就是”自动生成 lightmap UV 时分辨率怎么定”的机制</strong>：<br>从 MinLightmapResolution 开始试，装不下就翻倍，直到装下或达上限。</p>
+</blockquote>
+<hr>
+<h1 id="第-6-章-运行时渲染与流送：烘焙结果怎么被画出来"><a href="#第-6-章-运行时渲染与流送：烘焙结果怎么被画出来" class="headerlink" title="第 6 章 运行时渲染与流送：烘焙结果怎么被画出来"></a>第 6 章 运行时渲染与流送：烘焙结果怎么被画出来</h1><blockquote>
+<p><strong>TL;DR</strong>｜运行时 BasePass 读 Lightmap：<code>FUniformLightMapPolicy</code> 绑定 uniform（Scale&#x2F;Add&#x2F;<br>CoordinateScaleBias）→ shader 里 <code>GetLightMapColorHQ</code> 解码 → 与直接光合并。UV 从<br>顶点流的 <code>LightMapCoordinate</code> 通道（默认 UV1）来，两个系数纹理上下打包进一张<br>（<code>float2(1,0.5)</code> 切分）。流送：<code>GAllowStreamingLightmaps</code> + <code>LightmapStreamingFactor=0.2</code><br>按距离流送 mip。类比：<strong>运行时是”看照片”——读贴图，不重算</strong>。</p>
+</blockquote>
+<h2 id="6-1-BasePass-采样链"><a href="#6-1-BasePass-采样链" class="headerlink" title="6.1 BasePass 采样链"></a>6.1 BasePass 采样链</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">BasePass 像素着色器（BasePassPixelShader.usf:717-731）：</span><br><span class="line">  #elif HQ_TEXTURE_LIGHTMAP</span><br><span class="line">    GetLightMapCoordinates(Interpolants, LightmapUV0, LightmapUV1, LightmapDataIndex);</span><br><span class="line">    GetLightMapColorHQ(...);            // 解码 + SH 方向性</span><br><span class="line">  OutDiffuseLighting *= View.PrecomputedIndirectLightingColorScale;</span><br></pre></td></tr></table></figure>
+
+<p><code>LightMapPolicyImpl::ModifyCompilationEnvironment</code>（<code>LightMapRendering.cpp:42-49</code>）设置 <code>HQ_TEXTURE_LIGHTMAP</code>&#x2F;<code>LQ_TEXTURE_LIGHTMAP</code> 宏；<code>FUniformLightMapPolicy::GetPixelShaderBindings</code>（:562-577）绑定 <code>PrecomputedLightingBuffer</code>（含 Scale&#x2F;Add 等）。</p>
+<h2 id="6-2-HQ-LQ-策略选择"><a href="#6-2-HQ-LQ-策略选择" class="headerlink" title="6.2 HQ&#x2F;LQ 策略选择"></a>6.2 HQ&#x2F;LQ 策略选择</h2><table>
+<thead>
+<tr>
+<th>宏</th>
+<th>触发</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>HQ_TEXTURE_LIGHTMAP</code></td>
+<td><code>r.HighQualityLightMaps=1</code>（<code>UnrealEngine.cpp:18478</code>）</td>
+<td>高质量（默认）</td>
+</tr>
+<tr>
+<td><code>LQ_TEXTURE_LIGHTMAP</code></td>
+<td><code>r.SupportLowQualityLightmaps=1</code>（<code>BasePassRendering.cpp:139</code>）</td>
+<td>低质量&#x2F;移动端</td>
+</tr>
+</tbody></table>
+<p><strong>HQ 需要两个系数纹理</strong>（方向 SH），LQ 只需一个（LogRGB）。</p>
+<h2 id="6-3-顶点流双纹理打包"><a href="#6-3-顶点流双纹理打包" class="headerlink" title="6.3 顶点流双纹理打包"></a>6.3 顶点流双纹理打包</h2><p><code>LocalVertexFactoryCommon.ush:118-128</code>（<code>LocalVertexFactoryCommon.ush</code>）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">// lightmap UV 来自顶点流的 LightMapCoordinate 通道（默认 UV1，LightMapCoordinateIndex）</span><br><span class="line">LightmapUV0 = Interpolants.LightMapCoordinate.xy * float2(1, 0.5);   // 上半区：系数纹理</span><br><span class="line">LightmapUV1 = LightmapUV0 + float2(0, 0.5);                          // 下半区：方向纹理</span><br></pre></td></tr></table></figure>
+
+<p><strong>关键技巧</strong>：两个系数纹理<strong>上下打包进一张贴图</strong>（UV.y 乘 0.5 切分上下半区）——省一次纹理绑定与采样。</p>
+<h2 id="6-4-VT-Lightmap-与流送"><a href="#6-4-VT-Lightmap-与流送" class="headerlink" title="6.4 VT Lightmap 与流送"></a>6.4 VT Lightmap 与流送</h2><ul>
+<li><strong>VT Lightmap</strong>：<code>r.VirtualTexturedLightmaps=1</code>（<code>LightMap.cpp:95</code>）时生成虚拟纹理光照贴图（每 tile 64×64 + 2px 边界）——按可视性流送，大世界省显存；</li>
+<li><strong>传统流送</strong>：<code>GAllowStreamingLightmaps</code>（<code>LightMap.cpp:53</code>，ini <code>[TextureStreaming] AllowStreamingLightmaps</code>）+ <code>LightmapStreamingFactor=0.2</code>（<code>BaseEngine.ini:2040</code>）——lightmap mip 按距离流送；</li>
+<li><strong>体积光照图流送</strong>：<code>FVolumetricLightmapStreamingManager</code>（<code>PrecomputedVolumetricLightmapStreaming.cpp</code>）。</li>
+</ul>
+<blockquote>
+<p><strong>避坑</strong>：老资料（UE4）的 <code>FLightmapStreamingManager</code> &#x2F; <code>r.LightmapStreaming</code> CVar 在<br><strong>本 fork 已不存在</strong>（UE4 遗留已删）——流送只走上面的三条路径。</p>
+</blockquote>
+<h2 id="6-5-源码考古：GetPixelShaderBindings"><a href="#6-5-源码考古：GetPixelShaderBindings" class="headerlink" title="6.5 源码考古：GetPixelShaderBindings"></a>6.5 源码考古：GetPixelShaderBindings</h2><blockquote>
+<p><strong>源码考古</strong>：想看真东西的人进。</p>
+<p><code>LightMapRendering.cpp:562-577</code>（要点）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">FUniformLightMapPolicy::GetPixelShaderBindings</span><span class="params">(...)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">// 绑定预计算光照 uniform（Scale/Add/CoordinateScaleBias/纹理引用）</span></span><br><span class="line">	FPrecomputedLightingUniformParameters LCI;</span><br><span class="line">	<span class="built_in">SetupLCIUniformBuffers</span>(FeatureLevel, Mesh, ...);</span><br><span class="line">	PixelShader-&gt;<span class="built_in">SetUniformBufferParameter</span>(..., PrecomputedLightingBuffer);</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：把烘焙结果（纹理 + 解码参数）打包进 uniform 绑给像素着色器——<br><strong>运行时”看照片”的全部准备</strong>。烘焙阶段算好的 Scale&#x2F;Add&#x2F;CoordinateScaleBias 在这里<br>变成 shader 可读的参数，<code>GetLightMapColorHQ</code> 用它们把 8bit 系数还原成亮度。</p>
+</blockquote>
+<h1 id="第-7-章-专题一：烘焙流程实操——从世界设置到贴图落地"><a href="#第-7-章-专题一：烘焙流程实操——从世界设置到贴图落地" class="headerlink" title="第 7 章 专题一：烘焙流程实操——从世界设置到贴图落地"></a>第 7 章 专题一：烘焙流程实操——从世界设置到贴图落地</h1><blockquote>
+<p><strong>TL;DR</strong>｜烘焙实操四步：<strong>检查</strong>（Mobility 归位&#x2F;UV 检查&#x2F;漏光预防）→ <strong>设参</strong>（世界设置<br>Lightmass + GPU Lightmass 面板）→ <strong>触发</strong>（Build Lighting &#x2F; GPULM.BuildLighting，渐进<br>烘烤边看边等）→ <strong>验证</strong>（视口&#x2F;Lightmap Density 视图&#x2F;对比）。类比：**相机的快门与<br>ISO——参数决定”拍多久、多干净”**。</p>
+</blockquote>
+<h2 id="7-1-烘焙前检查清单"><a href="#7-1-烘焙前检查清单" class="headerlink" title="7.1 烘焙前检查清单"></a>7.1 烘焙前检查清单</h2><table>
+<thead>
+<tr>
+<th>检查项</th>
+<th>为什么</th>
+<th>怎么查</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>灯光 Mobility</td>
+<td>只有 Static&#x2F;Stationary 灯进 Lightmap（Movable 白烘）</td>
+<td>选中灯光看 Mobility 面板</td>
+</tr>
+<tr>
+<td>Lightmap UV</td>
+<td>没有合法第二 UV 的网格会静默降级（错位&#x2F;发黑）</td>
+<td>视口 → Lightmap Density 视图</td>
+</tr>
+<tr>
+<td>漏光预防</td>
+<td>UV padding 不足 → 串色</td>
+<td>烘焙后检查墙角&#x2F;岛边缘</td>
+</tr>
+<tr>
+<td>网格 LightMapResolution</td>
+<td>密度统一（全场景同 texel 密度）</td>
+<td>静态网格资产面板</td>
+</tr>
+<tr>
+<td>世界规模</td>
+<td>大关卡设 <code>StaticLightingLevelScale</code> 2-4 缩短构建</td>
+<td>世界设置</td>
+</tr>
+</tbody></table>
+<h2 id="7-2-世界设置参数（逐项）"><a href="#7-2-世界设置参数（逐项）" class="headerlink" title="7.2 世界设置参数（逐项）"></a>7.2 世界设置参数（逐项）</h2><p>第 3.3 章的两张表是参考——实操要点：</p>
+<ul>
+<li>**<code>StaticLightingLevelScale</code>**：大关卡（数 km）设 2-4——注释原话”可大幅缩短构建时间”（尺度相关参数全部缩放）；</li>
+<li>**<code>NumIndirectLightingBounces</code>**：室内 3 足够；洞穴&#x2F;密闭空间可 4-5；室外 2 足够；</li>
+<li><strong><code>IndirectLightingQuality</code><strong>：正式烘焙 1；</strong>预览烘焙 0.5</strong>（快 4 倍，验证布局用）；</li>
+<li>**<code>bUseAmbientOcclusion</code>**：美术风格需要接触阴影时开；</li>
+<li>**<code>bCompressLightmaps</code>**：默认开（第 9 章详述，调试质量问题时可临时关）。</li>
+</ul>
+<h2 id="7-3-GPU-Lightmass-面板（编辑器）"><a href="#7-3-GPU-Lightmass-面板（编辑器）" class="headerlink" title="7.3 GPU Lightmass 面板（编辑器）"></a>7.3 GPU Lightmass 面板（编辑器）</h2><p><code>UGPULightmassSettings</code>（<code>GPULightmassSettings.h:33</code>）：</p>
+<ul>
+<li><strong>GISamples</strong>：512 是质量&#x2F;速度平衡；预览 64、最终 1024+；</li>
+<li><strong>bUseIrradianceCaching</strong>：开（默认）——相邻点复用 GI，大幅加速；</li>
+<li><strong>TilePassesInSlowMode&#x2F;FullSpeedMode</strong>：慢速模式（1 pass&#x2F;tile）用于”烘一会儿看效果”，全速模式（8 pass）用于定稿；</li>
+<li><strong>LightmapTilePoolSize</strong>：显存预算（默认 55 tile，爆显存就调小，会慢）。</li>
+</ul>
+<h2 id="7-4-触发与监控"><a href="#7-4-触发与监控" class="headerlink" title="7.4 触发与监控"></a>7.4 触发与监控</h2><ul>
+<li><strong>触发</strong>：工具栏 Build → Build Lighting；或控制台 <code>GPULM.BuildLighting</code>（<code>GPULightmassEditorModule.cpp:44</code>）；</li>
+<li><strong>监控</strong>：烘焙是<strong>渐进</strong>的——视口里光照逐帧变好（这是 GPU Lightmass 的标志性体验）；输出日志有进度；</li>
+<li><strong>中断</strong>：可以随时停止（渐进式 &#x3D; 已烘的部分保留）。</li>
+</ul>
+<h2 id="7-5-验证三件套"><a href="#7-5-验证三件套" class="headerlink" title="7.5 验证三件套"></a>7.5 验证三件套</h2><ol>
+<li><strong>视口目检</strong>：漏光（墙角发亮）、光斑（纹素密度不足）、噪点（采样不够）；</li>
+<li><strong>Lightmap Density 视图</strong>（编辑器视图模式）：红&#x3D;密度过高、蓝&#x3D;过低——<strong>全场景尽量同一色</strong>；</li>
+<li><strong>构建对比</strong>：改参数前先记录（截图&#x2F;时长），每次只动一个旋钮。</li>
+</ol>
+<h2 id="7-6-避坑清单"><a href="#7-6-避坑清单" class="headerlink" title="7.6 避坑清单"></a>7.6 避坑清单</h2><ol>
+<li><strong>漏光（Light Bleeding）</strong>：90% 是 UV padding 不足——装箱 4px 对齐是默认，官方建议约 4 纹素边距；</li>
+<li><strong>Stationary 灯阴影噪点</strong>：<code>StationaryLightShadowSamples=128</code> 不够就调高；</li>
+<li><strong>大关卡烘焙慢</strong>：先 <code>StaticLightingLevelScale</code>，再调 IndirectLightingQuality 预览；</li>
+<li><strong>烘焙结果与实机不一致</strong>：检查压缩（bCompressLightmaps）与分辨率差异。</li>
+</ol>
+<h2 id="7-7-动手实验室：从零烘焙一个室内关卡"><a href="#7-7-动手实验室：从零烘焙一个室内关卡" class="headerlink" title="7.7 动手实验室：从零烘焙一个室内关卡"></a>7.7 动手实验室：从零烘焙一个室内关卡</h2><table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>操作</th>
+<th>验收标准</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>① 场景准备</td>
+<td>建室内关卡（四面墙+地板），放 1 Static 定向光 + 1 Static 点光；所有网格确认有 Lightmap UV（自动生成已开）</td>
+<td>视口 Lightmap Density 视图无红色&#x2F;蓝色块</td>
+</tr>
+<tr>
+<td>② 参数</td>
+<td>世界设置：Bounces&#x3D;3、Quality&#x3D;1；GPU Lightmass：GISamples&#x3D;128（预览）</td>
+<td>参数面板正确</td>
+</tr>
+<tr>
+<td>③ 烘焙</td>
+<td>Build Lighting → 观察渐进收敛</td>
+<td>视口光照逐步变好，日志无 error</td>
+</tr>
+<tr>
+<td>④ 验证</td>
+<td>目检 + Density 视图 + 检查墙角漏光</td>
+<td>无漏光&#x2F;无光斑&#x2F;无噪点</td>
+</tr>
+<tr>
+<td>⑤ 迭代</td>
+<td>有问题 → 单旋钮调整重烘</td>
+<td>每次只改一个参数，记录对比</td>
+</tr>
+</tbody></table>
+<p><strong>检查清单</strong>：Mobility 全对 ✓、UV 全绿 ✓、无漏光 ✓、无噪点 ✓、烘焙时长记录 ✓。</p>
+<hr>
+<h1 id="第-8-章-专题二：自动化展开-UV——让引擎替你摊开橘子皮"><a href="#第-8-章-专题二：自动化展开-UV——让引擎替你摊开橘子皮" class="headerlink" title="第 8 章 专题二：自动化展开 UV——让引擎替你摊开橘子皮"></a>第 8 章 专题二：自动化展开 UV——让引擎替你摊开橘子皮</h1><blockquote>
+<p><strong>TL;DR</strong>｜引擎能自动生成 Lightmap UV：<strong>FMeshBuildSettings 的 <code>bGenerateLightmapUVs=true</code></strong><br>默认开启——构建时 <code>CreateLightMapUVLayout</code>（或旧路径 FLayoutUV Packer）自动把 UV 岛<br>装箱进第二通道（DstLightmapIndex&#x3D;1）。缺第二 UV 不会报错，而是<strong>静默降级钳制</strong>。<br>FBX 导入还会自动识别名为 <code>LightMapUV</code> 的 UV 集。类比：<strong>橘子皮自动摊平机</strong>。</p>
+</blockquote>
+<h2 id="8-1-两条生成路径"><a href="#8-1-两条生成路径" class="headerlink" title="8.1 两条生成路径"></a>8.1 两条生成路径</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">新 MeshDescription 路径（默认）：</span><br><span class="line">  MeshDescriptionHelper.cpp:101-129 → FStaticMeshOperations::CreateLightMapUVLayout</span><br><span class="line">    （校验 Src/Dst 索引 → 自动补通道 → 装箱）</span><br><span class="line">旧 RawMesh 路径（legacy）：</span><br><span class="line">  MeshUtilities.cpp:2612-2640 → FLayoutUV Packer（FindCharts → FindBestPacking → CommitPackedUVs）</span><br></pre></td></tr></table></figure>
+
+<p><strong>默认设置</strong>（<code>FMeshBuildSettings</code>，EngineTypes.h:2947）：<code>bGenerateLightmapUVs=true</code>、<code>MinLightmapResolution=64</code>、<code>SrcLightmapIndex=0</code>、<code>DstLightmapIndex=1</code>（:2988-3007，默认值 :3051-3056）——<strong>默认就从 UV0 复制并重新装箱到 UV1</strong>。</p>
+<h2 id="8-2-缺第二-UV-的”静默降级”"><a href="#8-2-缺第二-UV-的”静默降级”" class="headerlink" title="8.2 缺第二 UV 的”静默降级”"></a>8.2 缺第二 UV 的”静默降级”</h2><p><code>UStaticMesh::EnforceLightmapRestrictions</code>（<code>StaticMesh.cpp:9857-9941</code>）：计算实际 UV 通道数后把 <code>LightMapCoordinateIndex</code> <strong>钳制到合法范围</strong>——缺第二 UV 不报错，静默用 UV0 采样（lightmap 会错位&#x2F;发黑）。<code>CheckLightMapUVs</code>（:9952）区分 Missing&#x2F;Bad&#x2F;Valid 供审计。</p>
+<blockquote>
+<p><strong>避坑</strong>：**”没报错 &#x3D; 没问题”是错的**。烘焙后某个物体光照错位&#x2F;全黑，第一件事就是<br>查它的 Lightmap UV（视口 Lightmap Density 视图 + 资产 CheckLightMapUVs 工具）。</p>
+</blockquote>
+<h2 id="8-3-分辨率与密度"><a href="#8-3-分辨率与密度" class="headerlink" title="8.3 分辨率与密度"></a>8.3 分辨率与密度</h2><ul>
+<li>**<code>LightMapResolution</code><strong>（<code>StaticMesh.h:1194-1196</code>）：纹理边长 texel 数（ClampMax&#x3D;4096）——</strong>不是”每 texel 世界单位”**，实际密度 &#x3D; 分辨率 ÷ 网格尺寸；</li>
+<li>**<code>LightmapUVDensity</code>**（:1176）：按 Section 加权平均的密度（流送用），<code>GetUVDensity</code>（<code>StaticMesh.cpp:5194-5216</code>）；</li>
+<li><strong>GPU Lightmass 逐 LOD 减半</strong>（<code>StaticMesh.cpp:34-82</code>）：<code>LODIndex &gt; 0 ? max(基础分辨率 / 2^(LOD-1), 32) : 基础</code>——LOD 越高光照越粗（合理）。</li>
+</ul>
+<p><strong>实践</strong>：全场景统一纹素密度（如 4 texel&#x2F;cm）——大模型（建筑）分辨率 512-1024，小道具 64-128，<strong>按世界尺寸而不是感觉调</strong>。</p>
+<h2 id="8-4-FBX-导入的自动处理"><a href="#8-4-FBX-导入的自动处理" class="headerlink" title="8.4 FBX 导入的自动处理"></a>8.4 FBX 导入的自动处理</h2><p><code>FbxStaticMeshImport.cpp</code>：</p>
+<ul>
+<li><strong>:400-403</strong>：FBX 里有名为 <code>LightMapUV</code> 的 UV 集 → 自动设为 LightMapCoordinateIndex（<strong>DCC 导出时命名为 LightMapUV 就会被识别</strong>）；</li>
+<li><strong>:1865-1867</strong>：默认 <code>SetLightMapResolution(64)</code>、<code>SetLightMapCoordinateIndex(1)</code>；</li>
+<li><strong>:2065-2069</strong>：<code>bGenerateLightmapUVs</code> 时 <code>DstLightmapIndex = FirstOpenUVChannel</code>（自动找空通道）。</li>
+</ul>
+<h2 id="8-5-Datasmith-自动展-UV"><a href="#8-5-Datasmith-自动展-UV" class="headerlink" title="8.5 Datasmith 自动展 UV"></a>8.5 Datasmith 自动展 UV</h2><p>Datasmith 自带展平工具（<code>UVTools/</code>）：<code>UUVGenerationFlattenMapping::GenerateUVs</code>（<code>UVGenerationFlattenMapping.cpp:1218</code>，角度阈值 + 面积权重展平）；<code>SetupGeneratedLightmapUVResolution</code>（<code>UVGenerationUtils.cpp:48</code>：由 chart 数算最小分辨率）——<strong>Datasmith 导入无 UV 的模型会自动摊</strong>。</p>
+<h2 id="8-6-引擎级自动-UV-接口"><a href="#8-6-引擎级自动-UV-接口" class="headerlink" title="8.6 引擎级自动 UV 接口"></a>8.6 引擎级自动 UV 接口</h2><ul>
+<li>**<code>IGeometryProcessing_MeshAutoUV</code>**（<code>MeshAutoUV.h:17-72</code>）：<code>EAutoUVMethod&#123;PatchBuilder/UVAtlas/XAtlas&#125;</code> 三种算法——程序化批量摊 UV 的官方接口（建模工具&#x2F;程序化生成用）；</li>
+<li><strong>UVEditor 插件</strong>：<code>UVEditorLayoutTool</code>（自动排版）&#x2F; <code>UVEditorRecomputeUVsTool</code>（重算）&#x2F; <code>UVEditorTexelDensityTool</code>（纹素密度可视化）；</li>
+<li><strong>蓝图</strong>：<code>UStaticMeshEditorSubsystem::SetGenerateLightmapUVs</code>（<code>StaticMeshEditorSubsystem.cpp:1970</code>）。</li>
+</ul>
+<h2 id="8-7-动手实验室：自动生成-检查配方"><a href="#8-7-动手实验室：自动生成-检查配方" class="headerlink" title="8.7 动手实验室：自动生成 + 检查配方"></a>8.7 动手实验室：自动生成 + 检查配方</h2><table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>操作</th>
+<th>验收标准</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>① 开启</td>
+<td>静态网格资产 → Build Settings → Generate Lightmap UVs 勾选（默认已勾）</td>
+<td>复选框状态正确</td>
+</tr>
+<tr>
+<td>② 通道</td>
+<td>SrcLightmapIndex&#x3D;0、DstLightmapIndex&#x3D;1、MinLightmapResolution&#x3D;64</td>
+<td>参数默认</td>
+</tr>
+<tr>
+<td>③ 重建</td>
+<td>资产上右键 Reimport 或 Apply Changes</td>
+<td>构建日志无 UV 错误</td>
+</tr>
+<tr>
+<td>④ 检查</td>
+<td>视口 Lightmap Density 视图 + CheckLightMapUVs（资产工具）</td>
+<td>无 Missing&#x2F;Bad UV</td>
+</tr>
+<tr>
+<td>⑤ 密度微调</td>
+<td>LightMapResolution 按世界尺寸调（大模型 512+，小道具 64）</td>
+<td>Density 视图全场景同色</td>
+</tr>
+</tbody></table>
+<p><strong>检查清单</strong>：UV 集 Valid ✓、通道&#x3D;UV1 ✓、密度统一 ✓、无静默降级（烘焙后无错位物体）✓。</p>
+<hr>
+<h1 id="第-9-章-专题三：压缩-Lightmap——内存瘦身"><a href="#第-9-章-专题三：压缩-Lightmap——内存瘦身" class="headerlink" title="第 9 章 专题三：压缩 Lightmap——内存瘦身"></a>第 9 章 专题三：压缩 Lightmap——内存瘦身</h1><blockquote>
+<p><strong>TL;DR</strong>｜Lightmap 压缩三把刀：<strong>bCompressLightmaps</strong>（默认开，关掉内存×4——调试质量<br>才关）、<strong>纹理压缩格式</strong>（BC7 桌面&#x2F;ASTC 移动端）、<strong>流送</strong>（LightmapStreamingFactor&#x3D;0.2<br>按距离流送 mip）。移动端还有编码级优化（社区实测：跳 SkyOcclusion、AO 写 A 通道，<br>包体减 150MB——非本仓库实测）。类比：<strong>行李箱抽真空——质量与体积的权衡</strong>。</p>
+</blockquote>
+<h2 id="9-1-压缩链全貌"><a href="#9-1-压缩链全貌" class="headerlink" title="9.1 压缩链全貌"></a>9.1 压缩链全貌</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">烘焙（RGBA16F tile）→ 量化 8bit（FColor）→ SetModernSettingsForNewOrChangedTexture</span><br><span class="line">（LightMap.cpp:673）→ 纹理压缩（BC7 等）→ 存储/流送</span><br></pre></td></tr></table></figure>
+
+<p><strong>bCompressLightmaps</strong>（<code>WorldSettings.h:151</code>）：默认 true——注释原话”关闭后内存&#x2F;体积 ×4”。</p>
+<h2 id="9-2-什么时候不该关压缩"><a href="#9-2-什么时候不该关压缩" class="headerlink" title="9.2 什么时候不该关压缩"></a>9.2 什么时候不该关压缩</h2><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>建议</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>正常发布</td>
+<td>开（默认）</td>
+</tr>
+<tr>
+<td>调试漏光&#x2F;串色</td>
+<td><strong>临时关</strong>（压缩是串色的来源之一）</td>
+</tr>
+<tr>
+<td>移动端</td>
+<td>开（内存是移动端生命线）</td>
+</tr>
+</tbody></table>
+<h2 id="9-3-移动端格式与编码级优化（公开资料，非本仓库实测）"><a href="#9-3-移动端格式与编码级优化（公开资料，非本仓库实测）" class="headerlink" title="9.3 移动端格式与编码级优化（公开资料，非本仓库实测）"></a>9.3 移动端格式与编码级优化（公开资料，非本仓库实测）</h2><p>社区对移动端 Lightmap 的编码优化（知乎，写作时未能访问核实）：</p>
+<ul>
+<li><strong>编码格式</strong>：HQ&#x3D;RGBLogL 8:8:8:8、LQ&#x3D;移动端专属 24bit RGB8、SimpleLogScale&#x3D;16.0 对数量化、cook 后重映射 ASTC；</li>
+<li><strong>自定义优化</strong>（源码级改 <code>LightMap.cpp</code>）：跳过 SkyOcclusionTexture 分配、把全局 AO 写进系数纹理 A 通道、半尺寸 LQ Lightmap——实测包体减约 <strong>150MB</strong>。</li>
+</ul>
+<blockquote>
+<p><strong>避坑</strong>：这些文章基于 <strong>UE4</strong>——编码常量与本 fork 的 GPU Lightmass（LogScale&#x3D;11.5）<br>不同；思路可借鉴（AO 合并、跳纹理、半尺寸），<strong>数值别照抄</strong>。</p>
+</blockquote>
+<h2 id="9-4-VT-有损压缩"><a href="#9-4-VT-有损压缩" class="headerlink" title="9.4 VT 有损压缩"></a>9.4 VT 有损压缩</h2><p><code>r.VT.EnableLossyCompressLightmaps=1</code>（<code>LightMap.cpp:111</code>，默认 0）：VT Lightmap 路径下有损压缩——体积更小，质量略降（阴影过渡变糊）。</p>
+<h2 id="9-5-流送与内存账本"><a href="#9-5-流送与内存账本" class="headerlink" title="9.5 流送与内存账本"></a>9.5 流送与内存账本</h2><ul>
+<li><code>GAllowStreamingLightmaps</code>（<code>LightMap.cpp:53</code>，ini <code>[TextureStreaming] AllowStreamingLightmaps</code>）；</li>
+<li><code>LightmapStreamingFactor=0.2</code>（<code>BaseEngine.ini:2040</code>）：lightmap 流送权重（0.2 &#x3D; 比其他纹理更早降 mip——光照糊一点可接受）；</li>
+<li>内存估算：单张 1024×512 RGBA8 &#x3D; 2MB（未压缩）→ BC7 约 0.5MB。</li>
+</ul>
+<h2 id="9-6-动手实验室：内存测量与压缩对照"><a href="#9-6-动手实验室：内存测量与压缩对照" class="headerlink" title="9.6 动手实验室：内存测量与压缩对照"></a>9.6 动手实验室：内存测量与压缩对照</h2><table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>操作</th>
+<th>验收标准</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>① 基线</td>
+<td>烘焙完成，<code>stat memory</code> 记录 Lightmap 内存</td>
+<td>记录基线数字</td>
+</tr>
+<tr>
+<td>② 对照</td>
+<td>世界设置关 bCompressLightmaps → 重烘 → 对比内存</td>
+<td>内存约 ×4（验证注释）</td>
+</tr>
+<tr>
+<td>③ 恢复</td>
+<td>开回压缩，对比画质差异（墙角阴影过渡）</td>
+<td>无可见差异 &#x3D; 压缩无损观感</td>
+</tr>
+<tr>
+<td>④ 流送</td>
+<td>确认 ini AllowStreamingLightmaps&#x3D;true</td>
+<td>远距离光照糊、靠近变清晰</td>
+</tr>
+<tr>
+<td>⑤ 定案</td>
+<td>记录最终内存与画质</td>
+<td>达标</td>
+</tr>
+</tbody></table>
+<p><strong>检查清单</strong>：压缩开 ✓、流送生效 ✓、画质无可见损失 ✓、内存记录 ✓。</p>
+<hr>
+<h1 id="第-10-章-专题四：提高填充率——让拼图每一块都被用到"><a href="#第-10-章-专题四：提高填充率——让拼图每一块都被用到" class="headerlink" title="第 10 章 专题四：提高填充率——让拼图每一块都被用到"></a>第 10 章 专题四：提高填充率——让拼图每一块都被用到</h1><blockquote>
+<p><strong>TL;DR</strong>｜填充率 &#x3D; Atlas 中光照贴图的实际占用率。四把刀：<strong>统一纹素密度</strong>（片大小匹配）、<br><strong>岛形状方正</strong>（ELightmapUVVersion 的 ScaleByEdgesLength 减小细长岛）、<strong>合理 padding</strong><br>（缝隙够用就行）、<strong>分组装箱</strong>（编辑器按距离分组，PackedLightAndShadowMapTextureSize）。<br>测量：<code>FindBestPackingEfficiency</code>（引擎统计）+ Lightmap Density 视图。类比：<strong>拼图<br>利用率——片越方正、缝隙越小、利用率越高</strong>。</p>
+</blockquote>
+<h2 id="10-1-填充率为什么重要"><a href="#10-1-填充率为什么重要" class="headerlink" title="10.1 填充率为什么重要"></a>10.1 填充率为什么重要</h2><p>填充率低 &#x3D; Atlas 里有大片空白 &#x3D; <strong>显存浪费 + 烘焙时间浪费</strong>（空白区域也占 tile）。高填充率 &#x3D; 同样的显存装更多光照信息。</p>
+<h2 id="10-2-网格侧装箱：岛的”方正化”"><a href="#10-2-网格侧装箱：岛的”方正化”" class="headerlink" title="10.2 网格侧装箱：岛的”方正化”"></a>10.2 网格侧装箱：岛的”方正化”</h2><p><code>ELightmapUVVersion::ScaleByEdgesLength=10</code>（<code>MeshUtilitiesCommon.h:7-21</code>，&#x3D;Latest）：<strong>按边长缩放岛</strong>——细长岛（长宽比极端）装箱时浪费大，按边长缩放让岛更”方正”，填充率提升。<code>FAllocator2D</code> 的 best-fit 段分配（<code>Allocator2D.h:19-80</code>）负责找空位。</p>
+<h2 id="10-3-编辑器侧分组装箱"><a href="#10-3-编辑器侧分组装箱" class="headerlink" title="10.3 编辑器侧分组装箱"></a>10.3 编辑器侧分组装箱</h2><p><code>LightMap.cpp</code>：</p>
+<ul>
+<li><strong>分组</strong>（<code>FLightMapAllocationGroup</code> :426）：按 Outer（package）、LightmapFlags、<strong>空间距离</strong>分组——<code>GMaxLightmapRadius=5000</code>（:56）限制同图最大包围球半径；</li>
+<li><strong>装箱</strong>（<code>FLightMapPendingTexture</code> :457）：FTextureLayout 4px 对齐 skyline 装箱（:491）；</li>
+<li><strong>atlas 尺寸</strong>：<code>PackedLightAndShadowMapTextureSize=1024</code>（<code>WorldSettings.cpp:137</code>），2:1 长宽比（:2478-2479）；</li>
+<li><strong>降序装箱</strong>（:2525）：大的先放（大件先占位，小件填空——经典贪心）。</li>
+</ul>
+<h2 id="10-4-影响填充率的五因素"><a href="#10-4-影响填充率的五因素" class="headerlink" title="10.4 影响填充率的五因素"></a>10.4 影响填充率的五因素</h2><table>
+<thead>
+<tr>
+<th>因素</th>
+<th>影响</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>岛大小分布</td>
+<td>大小悬殊 → 空隙多</td>
+<td>统一分辨率&#x2F;拆分超大网格</td>
+</tr>
+<tr>
+<td>岛长宽比</td>
+<td>细长岛浪费</td>
+<td>ScaleByEdgesLength（默认已开）</td>
+</tr>
+<tr>
+<td>Padding</td>
+<td>缝隙宽 &#x3D; 浪费</td>
+<td>保持默认 4px，别乱加</td>
+</tr>
+<tr>
+<td>分辨率匹配</td>
+<td>大网格小分辨率 &#x3D; 岛小</td>
+<td>按世界尺寸定分辨率</td>
+</tr>
+<tr>
+<td>LOD 差异</td>
+<td>LOD 间分辨率不一致</td>
+<td>GPU Lightmass 已按 LOD 减半（合理）</td>
+</tr>
+</tbody></table>
+<h2 id="10-5-测量手段"><a href="#10-5-测量手段" class="headerlink" title="10.5 测量手段"></a>10.5 测量手段</h2><ul>
+<li><strong>引擎统计</strong>：<code>FindBestPackingEfficiency</code>（<code>LayoutUV.h:86</code>）——装箱效率原子统计，<code>LogStats()</code> 输出；</li>
+<li><strong>Lightmap Density 视图</strong>：红&#x3D;过密（浪费）、蓝&#x3D;过疏（糊）——<strong>全场景同色 &#x3D; 填充率健康</strong>；</li>
+<li><strong>AverageTexelDensity</strong>（UnrealLightmass，<code>TextureMapping.cpp:1892-1927</code>）：lightmap 面积 ÷ 世界面积的平均密度。</li>
+</ul>
+<h2 id="10-6-动手实验室：填充率测量与优化"><a href="#10-6-动手实验室：填充率测量与优化" class="headerlink" title="10.6 动手实验室：填充率测量与优化"></a>10.6 动手实验室：填充率测量与优化</h2><table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>操作</th>
+<th>验收标准</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>① 统计</td>
+<td>烘焙后看 Density 视图 + 引擎装箱效率日志</td>
+<td>记录填充率基线</td>
+</tr>
+<tr>
+<td>② 归因</td>
+<td>找出红色&#x2F;蓝色区域对应的网格</td>
+<td>定位密度不均来源</td>
+</tr>
+<tr>
+<td>③ 修复</td>
+<td>统一分辨率（大网格 512、小道具 64）+ 拆超大网格</td>
+<td>密度图趋于同色</td>
+</tr>
+<tr>
+<td>④ 复测</td>
+<td>重烘 → 对比填充率与显存</td>
+<td>填充率提升、显存下降</td>
+</tr>
+<tr>
+<td>⑤ 定案</td>
+<td>记录最终数据</td>
+<td>达标</td>
+</tr>
+</tbody></table>
+<p><strong>检查清单</strong>：Density 视图同色 ✓、无细长岛（ScaleByEdgesLength 已开）✓、padding 默认 ✓、显存记录 ✓。</p>
+<hr>
+<h1 id="第-11-章-专题五：把-UE-当烘焙器——离线光照工厂"><a href="#第-11-章-专题五：把-UE-当烘焙器——离线光照工厂" class="headerlink" title="第 11 章 专题五：把 UE 当烘焙器——离线光照工厂"></a>第 11 章 专题五：把 UE 当烘焙器——离线光照工厂</h1><blockquote>
+<p><strong>TL;DR</strong>｜把 UE 当纯烘焙器 &#x3D; <strong>让烘焙与关卡制作解耦</strong>：命令行&#x2F;脚本触发烘焙（无人值守）、<br>分层烘焙（直接光&#x2F;间接光分离）、产物导出（给其他引擎&#x2F;流程用）。三个配方：① 命令行<br>烘焙 ② 分层烘焙 ③ 产物导出。类比：<strong>离线光照工厂——输入场景，输出贴图</strong>。</p>
+</blockquote>
+<h2 id="11-1-定位：UE-作为烘焙器的价值"><a href="#11-1-定位：UE-作为烘焙器的价值" class="headerlink" title="11.1 定位：UE 作为烘焙器的价值"></a>11.1 定位：UE 作为烘焙器的价值</h2><ul>
+<li><strong>质量</strong>：GPU Lightmass 的 512 采样&#x2F;像素 + OIDN 去噪 &#x3D; 顶级离线光照质量；</li>
+<li><strong>可脚本化</strong>：<code>GPULM.BuildLighting</code> 控制台命令可进批处理（无人值守烘焙）；</li>
+<li><strong>产物可导出</strong>：GLTFExporter 等把带 lightmap 的网格导出（烘焙结果”带走”）。</li>
+</ul>
+<h2 id="11-2-管线架构"><a href="#11-2-管线架构" class="headerlink" title="11.2 管线架构"></a>11.2 管线架构</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">资产规范（分辨率/UV 规范）→ 自动 UV（第 8 章）→ GPU Lightmass（第 3 章）</span><br><span class="line">→ 产物管理（MapBuildDataRegistry）→ 导出（GLTFExporter 等）</span><br></pre></td></tr></table></figure>
+
+<h2 id="11-3-动手实验室配方-×3"><a href="#11-3-动手实验室配方-×3" class="headerlink" title="11.3 动手实验室配方 ×3"></a>11.3 动手实验室配方 ×3</h2><p><strong>配方 A：命令行&#x2F;批处理烘焙</strong></p>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>操作</th>
+<th>验收标准</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>① 打开</td>
+<td><code>UnrealEditor.exe 项目 -game -run=...</code>（或编辑器内执行 GPULM.BuildLighting）</td>
+<td>命令可执行</td>
+</tr>
+<tr>
+<td>② 触发</td>
+<td>控制台 <code>GPULM.BuildLighting</code>（<code>GPULightmassEditorModule.cpp:44</code>）</td>
+<td>日志出现烘焙进度</td>
+</tr>
+<tr>
+<td>③ 等待</td>
+<td>渐进收敛完成（观察视口&#x2F;日志）</td>
+<td>无 error</td>
+</tr>
+<tr>
+<td>④ 保存</td>
+<td>保存关卡（烘焙数据进 MapBuildDataRegistry）</td>
+<td>重新打开光照仍在</td>
+</tr>
+</tbody></table>
+<p><strong>配方 B：分层烘焙</strong>（引用公开资料《命运扳机》经验，非本仓库实测）</p>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>操作</th>
+<th>验收标准</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>① 分层</td>
+<td>直接光&#x2F;间接光分离（不同光照场景）</td>
+<td>两套烘焙可独立出</td>
+</tr>
+<tr>
+<td>② 地形</td>
+<td>RVT 地形需先 Scene Capture 预渲染（公开资料）</td>
+<td>地形光照正确</td>
+</tr>
+<tr>
+<td>③ 材质</td>
+<td>特殊材质需重写 Lightmass 材质导出模块（公开资料：顶点 Position 换 Lightmap UV 的 trick）</td>
+<td>材质光照正确</td>
+</tr>
+</tbody></table>
+<p><strong>配方 C：产物导出</strong>（把烘焙结果带出 UE）</p>
+<table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>操作</th>
+<th>验收标准</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>① 导出</td>
+<td>启用 GLTFExporter（<code>GLTFExporter</code>）导出网格</td>
+<td>导出成功</td>
+</tr>
+<tr>
+<td>② 检查</td>
+<td>确认 Lightmap 纹理随网格导出</td>
+<td>其他引擎可读</td>
+</tr>
+<tr>
+<td>③ 复用</td>
+<td>回导 Unity 等（第 12 章迁移流程）</td>
+<td>光照贴图可显示</td>
+</tr>
+</tbody></table>
+<h2 id="11-4-避坑"><a href="#11-4-避坑" class="headerlink" title="11.4 避坑"></a>11.4 避坑</h2><ol>
+<li><strong>烘焙与实机差异</strong>：分辨率&#x2F;去噪&#x2F;压缩在实机上观感不同——导出前用实机设置验收；</li>
+<li><strong>多场景烘焙</strong>：增量烘焙（只烘改动的场景）省时间；</li>
+<li><strong>版本管理</strong>：烘焙产物（MapBuildDataRegistry）进版本库——团队协作不重烘。</li>
+</ol>
+<hr>
+<h1 id="第-12-章-专题六：Unity-场景导入-UE——材质、灯光、地表对齐"><a href="#第-12-章-专题六：Unity-场景导入-UE——材质、灯光、地表对齐" class="headerlink" title="第 12 章 专题六：Unity 场景导入 UE——材质、灯光、地表对齐"></a>第 12 章 专题六：Unity 场景导入 UE——材质、灯光、地表对齐</h1><blockquote>
+<p><strong>TL;DR</strong>｜Unity→UE 迁移四关：<strong>坐标单位</strong>（100 倍缩放：UE 1UU&#x3D;1cm vs Unity 1 单位&#x3D;1m；<br>Y-up→Z-up 换手）、<strong>材质对齐</strong>（FBX 导入器自动映射 sDiffuse→BaseColor 等，多数需手动<br>修 Metallic&#x2F;Roughness）、<strong>灯光对齐</strong>（单位换算：UE 厘米制 vs Unity 米制，物理公式<br>在 <code>GetUnitsConversionFactor</code> 注释里）、<strong>地表对齐</strong>（Heightmap 导入 Landscape）。<br>导入通道：FBX（官方主线）&#x2F; USD &#x2F; Datasmith（清单无 Unity）&#x2F; GLTF（本 fork 经<br>Interchange 可用）。类比：<strong>度量衡转换 + 坐标系换手 + 材质翻译</strong>。</p>
+</blockquote>
+<h2 id="12-1-导入器现状对比"><a href="#12-1-导入器现状对比" class="headerlink" title="12.1 导入器现状对比"></a>12.1 导入器现状对比</h2><table>
+<thead>
+<tr>
+<th>通道</th>
+<th>本 fork 状态</th>
+<th>Unity 支持</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>FBX</strong></td>
+<td>✅ 经典 UnrealEd 管线</td>
+<td>✅ 官方推荐（FBX Exporter 包）</td>
+<td><strong>迁移主线</strong></td>
+</tr>
+<tr>
+<td><strong>USD</strong></td>
+<td>✅ Importers&#x2F;USDImporter&#x2F;</td>
+<td>✅ Unity 官方 USD 包</td>
+<td>复杂场景&#x2F;协同</td>
+</tr>
+<tr>
+<td><strong>Datasmith</strong></td>
+<td>✅ Enterprise 插件</td>
+<td>❌ 官方清单无 Unity</td>
+<td>3dsMax&#x2F;Revit 等</td>
+</tr>
+<tr>
+<td><strong>GLTF</strong></td>
+<td>✅ <strong>经 Interchange 可用</strong>（实测 <code>InterchangeGltfTranslator.cpp</code> 存在，<code>InterchangeImportModule.cpp:111</code> 注册）</td>
+<td>✅ Unity 可导出</td>
+<td>开源中间格式</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>避坑</strong>：此前资料说”本 fork 无 GLTF 导入器”——<strong>实测有</strong>（Interchange 的 GLTFCore&#x2F;<br>InterchangeImport 模块 + InterchangeGltfTranslator）。GLTF 可用，但 FBX 仍是 Unity<br>迁移官方主线（材质映射最成熟）。</p>
+</blockquote>
+<h2 id="12-2-坐标与单位：100-倍缩放-换手"><a href="#12-2-坐标与单位：100-倍缩放-换手" class="headerlink" title="12.2 坐标与单位：100 倍缩放 + 换手"></a>12.2 坐标与单位：100 倍缩放 + 换手</h2><ul>
+<li><strong>100 倍</strong>：UE 1 UU &#x3D; 1 cm，Unity 1 单位 &#x3D; 1 m——<code>WorldToMeters</code>（<code>WorldSettings.h:595</code>，本 fork 用旧名；注释 “1uu &#x3D; 1cm would be 100.0”）。FBX 导入勾 <strong>Convert Scene</strong> 自动处理；</li>
+<li><strong>换手</strong>：Unity Y-up → UE Z-up——FBX Import Options 勾 <strong>Force Front X Axis</strong>（官方迁移文档）；</li>
+<li><strong>佐证</strong>：UE 默认碰撞盒 32 单位 &#x3D; 32cm（<code>BoxComponent.cpp</code> 构造 <code>BoxExtent=32</code>）。</li>
+</ul>
+<h2 id="12-3-材质对齐：自动映射-手动修复"><a href="#12-3-材质对齐：自动映射-手动修复" class="headerlink" title="12.3 材质对齐：自动映射 + 手动修复"></a>12.3 材质对齐：自动映射 + 手动修复</h2><p>FBX 导入器自动映射（<code>FbxMaterialImport.cpp:817-834</code>）：</p>
+<table>
+<thead>
+<tr>
+<th>FBX 属性</th>
+<th>UE 属性</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>sDiffuse</code></td>
+<td>BaseColor</td>
+</tr>
+<tr>
+<td><code>sEmissive</code></td>
+<td>EmissiveColor</td>
+</tr>
+<tr>
+<td><code>sSpecular</code></td>
+<td>Specular</td>
+</tr>
+<tr>
+<td><code>sSpecularFactor</code></td>
+<td>Roughness</td>
+</tr>
+<tr>
+<td><code>sShininess</code></td>
+<td>Metallic</td>
+</tr>
+<tr>
+<td><code>sNormalMap</code> &#x2F; <code>sBump</code></td>
+<td>Normal</td>
+</tr>
+<tr>
+<td><code>sTransparentColor</code></td>
+<td>Opacity（+BlendMode&#x3D;Translucent）</td>
+</tr>
+</tbody></table>
+<p><strong>手动修复清单</strong>（自动映射的经典坑）：</p>
+<ol>
+<li><strong>Metallic&#x2F;Roughness 反了</strong>：Unity 的 Smoothness &#x3D; 1 - Roughness——FBX 导出器一般已处理，但检查”金属质感全无”；</li>
+<li><strong>纹理颜色空间</strong>：Unity 的 sRGB 标记可能丢失——检查 BaseColor 的 sRGB 开关；</li>
+<li><strong>透明度</strong>：Unity Transparent → UE 要手动设 BlendMode（自动映射设了但通常要微调）。</li>
+</ol>
+<h2 id="12-4-灯光对齐：单位换算"><a href="#12-4-灯光对齐：单位换算" class="headerlink" title="12.4 灯光对齐：单位换算"></a>12.4 灯光对齐：单位换算</h2><p>UE 灯光单位（<code>LocalLightComponent.h</code> 的 <code>IntensityUnits</code> 注释）：点光&#x2F;聚光默认 Candelas（cd）或 Lumens（lm）；方向光用 lux（<code>ELightUnits</code>，<code>LightComponent.h</code>）。</p>
+<p><strong>换算公式</strong>（<code>GetUnitsConversionFactor</code> 注释原文）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Flux = Lm = cd·sr          （光通量 = 坎德拉 × 立体角）</span><br><span class="line">Intensity = Cd             （峰值光强 = 坎德拉）</span><br><span class="line">Illuminance = Cd·sr/m² = Lux （照度 = 流明/平方米）</span><br><span class="line">UE unit is in centimeters (CM), while SI unit version are in meter (M),</span><br><span class="line">hence the conversion unit (100*100)</span><br></pre></td></tr></table></figure>
+
+<p><strong>与 Unity 的换算</strong>：Unity 用流明（Lumen）或 cd（Candela，米制）——迁入 UE 时：</p>
+<table>
+<thead>
+<tr>
+<th>Unity 值</th>
+<th>UE 值（单位换算后）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>点光 100 lm</td>
+<td>UE Lumens 单位直接填 100（同单位）</td>
+</tr>
+<tr>
+<td>点光 100 cd</td>
+<td>UE Candelas 直接填 100</td>
+</tr>
+<tr>
+<td>方向光（lux）</td>
+<td>直接填（同 lux 单位）</td>
+</tr>
+</tbody></table>
+<p><strong>关键</strong>：单位一致时数值直接搬；但 <strong>UE 的 100 倍缩放让”物理正确”的光强在厘米制下显得暗</strong>——光源面积&#x2F;距离都 ×100，<code>GetUnitsConversionFactor</code> 的 <code>100*100</code> 就是物理换算；实战中更多靠目测微调（方向光 10 lux 量级、点光按半径试）。</p>
+<p><strong>项目设置</strong>：<code>DefaultLightUnits</code>（<code>RendererSettings.h</code>，ConsoleVariable <code>r.DefaultFeature.LightUnits</code>）——新建灯光的默认单位。</p>
+<h2 id="12-5-地表对齐：Heightmap-导入-Landscape"><a href="#12-5-地表对齐：Heightmap-导入-Landscape" class="headerlink" title="12.5 地表对齐：Heightmap 导入 Landscape"></a>12.5 地表对齐：Heightmap 导入 Landscape</h2><p><code>LandscapeImportHelper</code>（<code>LandscapeImportHelper.cpp</code>）：<code>GetHeightmapImportDescriptor</code>&#x2F;<code>GetHeightmapImportData</code>&#x2F;<code>TransformHeightmapImportData</code>——支持 <code>MyHeightmap_x0_y0.png</code> 分块命名。Unity Terrain 导出 Heightmap（Raw&#x2F;PNG）→ UE Landscape 导入 → 材质重新指定（地形材质是 UE 的 Landscape 材质体系，Unity Terrain 材质不能直接搬）。</p>
+<h2 id="12-6-动手实验室：Unity-场景端到端迁移"><a href="#12-6-动手实验室：Unity-场景端到端迁移" class="headerlink" title="12.6 动手实验室：Unity 场景端到端迁移"></a>12.6 动手实验室：Unity 场景端到端迁移</h2><table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>操作</th>
+<th>验收标准</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>① Unity 导出</td>
+<td>装 FBX Exporter 包，导出场景 FBX（勾 Embed Textures）</td>
+<td>FBX 含材质贴图</td>
+</tr>
+<tr>
+<td>② 坐标核对</td>
+<td>UE 侧 FBX Import Options：Convert Scene ✓、Force Front X Axis ✓</td>
+<td>模型方向&#x2F;大小正确（人物 180cm 左右）</td>
+</tr>
+<tr>
+<td>③ 材质修复</td>
+<td>导入后检查 Metallic&#x2F;Roughness&#x2F;透明度（12.3 清单）</td>
+<td>材质观感接近 Unity</td>
+</tr>
+<tr>
+<td>④ 灯光换算</td>
+<td>灯光按 12.4 表换算（单位一致直接搬 + 目测微调）</td>
+<td>光照氛围接近</td>
+</tr>
+<tr>
+<td>⑤ 地表导入</td>
+<td>Terrain Heightmap → Landscape 导入 → 指定地形材质</td>
+<td>地形轮廓正确</td>
+</tr>
+<tr>
+<td>⑥ 烘焙</td>
+<td>第 7 章流程烘焙（Lightmap 替代 Unity 的烘焙）</td>
+<td>光照质量达标</td>
+</tr>
+</tbody></table>
+<p><strong>检查清单</strong>：缩放正确 ✓、轴向正确 ✓、材质观感一致 ✓、灯光氛围接近 ✓、地形轮廓正确 ✓、烘焙完成 ✓。</p>
+<h1 id="第-13-章-平台支持与性能调优"><a href="#第-13-章-平台支持与性能调优" class="headerlink" title="第 13 章 平台支持与性能调优"></a>第 13 章 平台支持与性能调优</h1><blockquote>
+<p><strong>TL;DR</strong>｜Lightmap 调优三板斧：<strong>内存</strong>（压缩&#x2F;分辨率&#x2F;流送）→ <strong>烘焙时间</strong>（采样数&#x2F;<br>LevelScale&#x2F;辐照度缓存）→ <strong>质量</strong>（漏光&#x2F;光斑&#x2F;噪点）。CVar 十一项速查 + 症状定位表。</p>
+</blockquote>
+<h2 id="13-1-CVar-速查表"><a href="#13-1-CVar-速查表" class="headerlink" title="13.1 CVar 速查表"></a>13.1 CVar 速查表</h2><table>
+<thead>
+<tr>
+<th>CVar&#x2F;参数</th>
+<th>默认</th>
+<th>作用</th>
+<th>位置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>r.HighQualityLightMaps</code></td>
+<td>1</td>
+<td>HQ 编码开关（ReadOnly）</td>
+<td>UnrealEngine.cpp:18478</td>
+</tr>
+<tr>
+<td><code>r.SupportLowQualityLightmaps</code></td>
+<td>1</td>
+<td>LQ 编码编译开关</td>
+<td>BasePassRendering.cpp:139</td>
+</tr>
+<tr>
+<td><code>r.VirtualTexturedLightmaps</code></td>
+<td>0</td>
+<td>VT Lightmap</td>
+<td>LightMap.cpp:95</td>
+</tr>
+<tr>
+<td><code>r.IncludeNonVirtualTexturedLightmaps</code></td>
+<td>0</td>
+<td>非 VT 光照贴图也保留</td>
+<td>LightMap.cpp:103</td>
+</tr>
+<tr>
+<td><code>r.VT.EnableLossyCompressLightmaps</code></td>
+<td>0</td>
+<td>VT 有损压缩</td>
+<td>LightMap.cpp:111</td>
+</tr>
+<tr>
+<td><code>r.MultithreadedLightmapEncode</code></td>
+<td>1</td>
+<td>多线程编码</td>
+<td>StaticLightingSystem.cpp:157</td>
+</tr>
+<tr>
+<td><code>GPULM.GISamples</code></td>
+<td>512</td>
+<td>GI 采样数（编辑器面板参数）</td>
+<td>GPULightmassSettings</td>
+</tr>
+<tr>
+<td><code>GPULM.LightmapTilePoolSize</code></td>
+<td>55</td>
+<td>tile 池（显存预算）</td>
+<td>GPULightmassSettings</td>
+</tr>
+<tr>
+<td><code>GPULM.TilePassesInSlowMode</code></td>
+<td>1</td>
+<td>慢速模式 pass 数</td>
+<td>GPULightmassSettings</td>
+</tr>
+<tr>
+<td><code>GPULM.TilePassesInFullSpeedMode</code></td>
+<td>8</td>
+<td>全速模式 pass 数</td>
+<td>GPULightmassSettings</td>
+</tr>
+<tr>
+<td><code>LightmapStreamingFactor</code>（ini）</td>
+<td>0.2</td>
+<td>流送权重</td>
+<td>BaseEngine.ini:2040</td>
+</tr>
+</tbody></table>
+<h2 id="13-2-调优工作流：三象限决策"><a href="#13-2-调优工作流：三象限决策" class="headerlink" title="13.2 调优工作流：三象限决策"></a>13.2 调优工作流：三象限决策</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">内存问题（显存涨/包体大）：</span><br><span class="line">  压缩已开？→ 分辨率降档（统一密度）→ 流送生效？→ VT Lightmap</span><br><span class="line">烘焙时间问题（等太久）：</span><br><span class="line">  StaticLightingLevelScale（大关卡）→ IndirectLightingQuality=0.5 预览</span><br><span class="line">  → GISamples 降 → 辐照度缓存确认开启</span><br><span class="line">质量问题（漏光/光斑/噪点）：</span><br><span class="line">  漏光 → padding/压缩（临时关压缩排查）</span><br><span class="line">  光斑 → 分辨率不够（密度视图定位）</span><br><span class="line">  噪点 → GISamples 升 / IndirectLightingQuality 升</span><br></pre></td></tr></table></figure>
+
+<h2 id="13-3-症状-→-定位表"><a href="#13-3-症状-→-定位表" class="headerlink" title="13.3 症状 → 定位表"></a>13.3 症状 → 定位表</h2><table>
+<thead>
+<tr>
+<th>症状</th>
+<th>大概率原因</th>
+<th>检查&#x2F;对策</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>烘焙慢</td>
+<td>采样太高&#x2F;关卡太大&#x2F;辐照度缓存关</td>
+<td>LevelScale → Quality 预览 → GISamples</td>
+</tr>
+<tr>
+<td>显存涨</td>
+<td>压缩关&#x2F;分辨率过高&#x2F;流送关</td>
+<td>压缩开 → 统一密度 → 流送确认</td>
+</tr>
+<tr>
+<td>漏光（Light Bleeding）</td>
+<td>UV padding 不足&#x2F;压缩串色</td>
+<td>padding 检查 → 临时关压缩排查</td>
+</tr>
+<tr>
+<td>光斑（糊）</td>
+<td>纹素密度不足</td>
+<td>Lightmap Density 视图定位 → 分辨率</td>
+</tr>
+<tr>
+<td>噪点</td>
+<td>采样不足</td>
+<td>GISamples&#x2F;IndirectLightingQuality</td>
+</tr>
+<tr>
+<td>物体光照错位&#x2F;发黑</td>
+<td>Lightmap UV 缺失（静默降级）</td>
+<td>CheckLightMapUVs → 重新生成 UV</td>
+</tr>
+<tr>
+<td>烘焙结果与实机不同</td>
+<td>压缩&#x2F;分辨率差异</td>
+<td>实机设置验收</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="第-14-章-局限、替代方案与展望"><a href="#第-14-章-局限、替代方案与展望" class="headerlink" title="第 14 章 局限、替代方案与展望"></a>第 14 章 局限、替代方案与展望</h1><blockquote>
+<p><strong>TL;DR</strong>｜Lightmap 的局限：<strong>静态</strong>（灯动&#x2F;物体动要重烘）、<strong>存储占用</strong>、<strong>迭代慢</strong>。<br>替代：Lumen（实时）、CPU Lightmass（分布式）、第三方烘焙器。方向：GPU Lightmass<br>成熟化、VT Lightmap 大世界标配。</p>
+</blockquote>
+<h2 id="14-1-局限与对策"><a href="#14-1-局限与对策" class="headerlink" title="14.1 局限与对策"></a>14.1 局限与对策</h2><table>
+<thead>
+<tr>
+<th>局限</th>
+<th>表现</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>静态</td>
+<td>动态物体&#x2F;灯光无光照</td>
+<td>体积光照图给动态物体 + Lumen 补动态</td>
+</tr>
+<tr>
+<td>存储</td>
+<td>贴图占用显存&#x2F;包体</td>
+<td>压缩 + 流送 + VT（第 9 章）</td>
+</tr>
+<tr>
+<td>迭代慢</td>
+<td>改灯重烘</td>
+<td>预览质量烘焙 + 单旋钮调参（第 7 章）</td>
+</tr>
+<tr>
+<td>移动端纹理格式</td>
+<td>不同平台格式差异</td>
+<td>ASTC（Android）&#x2F;BC7（桌面）</td>
+</tr>
+</tbody></table>
+<h2 id="14-2-替代路径"><a href="#14-2-替代路径" class="headerlink" title="14.2 替代路径"></a>14.2 替代路径</h2><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>定位</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Lumen</td>
+<td>实时 GI（动态场景）</td>
+</tr>
+<tr>
+<td>CPU Lightmass（UnrealLightmass）</td>
+<td>分布式&#x2F;无 GPU 环境</td>
+</tr>
+<tr>
+<td>第三方烘焙器</td>
+<td>特殊需求（更高采样&#x2F;特殊 GI）</td>
+</tr>
+</tbody></table>
+<h2 id="14-3-演进时间线与阅读进阶"><a href="#14-3-演进时间线与阅读进阶" class="headerlink" title="14.3 演进时间线与阅读进阶"></a>14.3 演进时间线与阅读进阶</h2><table>
+<thead>
+<tr>
+<th>时间</th>
+<th>里程碑</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>UE4</td>
+<td>CPU Lightmass（Swarm 分布式）</td>
+</tr>
+<tr>
+<td>UE5.0~5.2</td>
+<td>GPU Lightmass 实验性 → 默认</td>
+</tr>
+<tr>
+<td>5.3~5.9</td>
+<td>VT Lightmap、OIDN 去噪、辐照度缓存成熟</td>
+</tr>
+<tr>
+<td>未来</td>
+<td>GPU Lightmass 转正式、大世界 VT Lightmap 标配</td>
+</tr>
+</tbody></table>
+<p><strong>进阶路线</strong>：官方文档（Lighting the Environment → GPU Lightmass → Understanding Lightmapping → Generating Lightmap UVs → Migrating assets from Unity to Unreal）→ 中文深挖（附录 C）→ 本仓库源码（附录 A 指路）。</p>
+<hr>
+<h1 id="附录-A-源码地图"><a href="#附录-A-源码地图" class="headerlink" title="附录 A 源码地图"></a>附录 A 源码地图</h1><blockquote>
+<p>全部路径基于本仓库快照（2026-08-26，HEAD <code>6cea9bd20f8f</code>）。行号只用于定位；代码演进后以函数名为准。<br>阅读顺序建议：先 <code>GPULightmassSettings.cpp</code>（烘焙入口）→ <code>LightMap.cpp</code>（装箱&#x2F;编码）→ <code>LightmapCommon.ush</code>（解码）→ 按专题深入。</p>
+</blockquote>
+<h2 id="A-1-GPU-Lightmass-插件（Plugins-Experimental-GPULightmass-）"><a href="#A-1-GPU-Lightmass-插件（Plugins-Experimental-GPULightmass-）" class="headerlink" title="A.1 GPU Lightmass 插件（Plugins&#x2F;Experimental&#x2F;GPULightmass&#x2F;）"></a>A.1 GPU Lightmass 插件（Plugins&#x2F;Experimental&#x2F;GPULightmass&#x2F;）</h2><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>关键内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Source/GPULightmass/Private/GPULightmassSettings.cpp</code></td>
+<td><strong>Launch :195</strong>（烘焙触发链入口）、UGPULightmassSubsystem</td>
+</tr>
+<tr>
+<td><code>Source/GPULightmass/Public/GPULightmassSettings.h</code></td>
+<td><strong>UGPULightmassSettings :33</strong>（GISamples&#x3D;512&#x2F;StationaryLightShadowSamples&#x3D;128&#x2F;bUseIrradianceCaching&#x3D;true&#x2F;IrradianceCacheQuality&#x3D;128&#x2F;TilePassesInSlowMode&#x3D;1&#x2F;FullSpeedMode&#x3D;8&#x2F;LightmapTilePoolSize&#x3D;55&#x2F;bCompressLightmaps）</td>
+</tr>
+<tr>
+<td><code>Source/GPULightmass/Private/GPULightmass.cpp</code></td>
+<td><strong>FGPULightmass :15</strong>（场景注册）、GetPrimitiveMeshMapBuildData :278</td>
+</tr>
+<tr>
+<td><code>Source/GPULightmass/Private/LightmapRenderer.cpp</code></td>
+<td><strong>FLightmapRenderer</strong>（4032 行，逐 tile 路径追踪、IrradianceCaching 组合 :230&#x2F;:1287-1305）</td>
+</tr>
+<tr>
+<td><code>Source/GPULightmass/Private/LightmapEncoding.cpp</code></td>
+<td><strong>QuantizeLightSamples :35</strong>、LogScale&#x3D;11.5&#x2F;LogBlackPoint :44-47</td>
+</tr>
+<tr>
+<td><code>Source/GPULightmass/Private/LightmapTilePool.cpp</code></td>
+<td><strong>FLightmapTilePoolGPU :111</strong>（FreeHeap 线性分配）</td>
+</tr>
+<tr>
+<td><code>Source/GPULightmass/Private/LightmapStorage.h</code></td>
+<td><strong>FLightmap :66</strong>、GetPaddedSizeInTiles :73-79</td>
+</tr>
+<tr>
+<td><code>Source/GPULightmass/Private/IrradianceCaching.h/.cpp</code></td>
+<td>FIrradianceCache（辐照度缓存，上限 4194304 条）</td>
+</tr>
+<tr>
+<td><code>Source/GPULightmass/Private/Scene/StaticMesh.cpp</code></td>
+<td>AllocateLightmaps :34-82（逐 LOD 减半下限 32）</td>
+</tr>
+<tr>
+<td><code>Source/GPULightmass/Private/Scene/InstancedStaticMesh.cpp</code></td>
+<td>ISM 打包 :108-119（宽×ceil(sqrt(N))）</td>
+</tr>
+<tr>
+<td><code>Source/GPULightmass/Private/Scene/Landscape.cpp</code></td>
+<td>Landscape 烘焙（复用 GetTerrainExpandPatchCount）</td>
+</tr>
+<tr>
+<td><code>Source/GPULightmassEditor/Private/GPULightmassEditorModule.cpp</code></td>
+<td><strong>GPULM.BuildLighting 命令 :44</strong>、r.RayTracing 判定 :110</td>
+</tr>
+</tbody></table>
+<h2 id="A-2-引擎核心（Runtime-Engine）"><a href="#A-2-引擎核心（Runtime-Engine）" class="headerlink" title="A.2 引擎核心（Runtime&#x2F;Engine）"></a>A.2 引擎核心（Runtime&#x2F;Engine）</h2><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>关键内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Public/LightMap.h</code></td>
+<td><strong>FLightMap2D :198</strong>（Textures[2] :326&#x2F;SkyOcclusionTexture :328&#x2F;ScaleVectors :338&#x2F;AddVectors :341&#x2F;CoordinateScale :344&#x2F;CoordinateBias :347）</td>
+</tr>
+<tr>
+<td><code>Private/LightMap.cpp</code></td>
+<td><strong>FLightMapAllocationGroup :426</strong>、<strong>FLightMapPendingTexture :457</strong>（FTextureLayout 4px :491）、GMaxLightmapRadius :56、GAllowStreamingLightmaps :53、r.VirtualTexturedLightmaps :95、r.VT.EnableLossyCompressLightmaps :111、<strong>PostEncode :685-723</strong>、PackedLightAndShadowMapTextureSize 装箱 :2469-2585、SetModernSettingsForNewOrChangedTexture :673</td>
+</tr>
+<tr>
+<td><code>Classes/Engine/LightMapTexture2D.h</code></td>
+<td>ULightMapTexture2D :24（LODGroup&#x3D;TEXTUREGROUP_Lightmap）</td>
+</tr>
+<tr>
+<td><code>Public/LightmapUniformShaderParameters.h</code></td>
+<td>FPrecomputedLightingUniformParameters :16-25</td>
+</tr>
+<tr>
+<td><code>Renderer/Private/LightMapRendering.cpp</code></td>
+<td>LightMapPolicyImpl :42-49、FUniformLightMapPolicy::GetPixelShaderBindings :562-577、GEmptyPrecomputedLightingUniformBuffer :723</td>
+</tr>
+<tr>
+<td><code>Shaders/Private/LightmapCommon.ush</code></td>
+<td>GetLightMapColorLQ :78、解码 :91-159、GetLightMapColorHQ :132、SH 方向性 :166</td>
+</tr>
+<tr>
+<td><code>Shaders/Private/LocalVertexFactoryCommon.ush</code></td>
+<td><strong>GetLightMapCoordinates :118-128</strong>（UV0&#x3D;Coord*float2(1,0.5)&#x2F;UV1&#x3D;UV0+float2(0,0.5)）</td>
+</tr>
+<tr>
+<td><code>Shaders/Private/BasePassPixelShader.usf</code></td>
+<td>HQ_TEXTURE_LIGHTMAP 采样 :717-731</td>
+</tr>
+<tr>
+<td><code>Classes/GameFramework/WorldSettings.h</code></td>
+<td><strong>FLightmassWorldInfoSettings :55-239</strong>（StaticLightingLevelScale :67&#x2F;NumIndirectLightingBounces :76&#x2F;IndirectLightingQuality :92&#x2F;bCompressLightmaps :151&#x2F;VolumetricLightmapDetailCellSize :159）、WorldToMeters :595</td>
+</tr>
+<tr>
+<td><code>Classes/Engine/StaticMesh.h</code></td>
+<td><strong>LightMapCoordinateIndex :1221-1224</strong>、LightMapResolution :1194-1196、LightmapUVDensity :1176、LightmapUVVersion :772</td>
+</tr>
+<tr>
+<td><code>Private/StaticMesh.cpp</code></td>
+<td>GetUVDensity :5194-5216、<strong>EnforceLightmapRestrictions :9857-9941</strong>、<strong>CheckLightMapUVs :9952</strong></td>
+</tr>
+<tr>
+<td><code>Classes/Engine/EngineTypes.h</code></td>
+<td><strong>FMeshBuildSettings :2947</strong>（bGenerateLightmapUVs :2988&#x2F;MinLightmapResolution :3001&#x2F;SrcLightmapIndex :3004&#x2F;DstLightmapIndex :3007）</td>
+</tr>
+<tr>
+<td><code>Classes/Engine/MapBuildDataRegistry.h</code></td>
+<td><strong>UMapBuildDataRegistry :294</strong>（MeshBuildData :426&#x2F;LightmapResourceClusters :434）、FMeshMapBuildData :55</td>
+</tr>
+<tr>
+<td><code>Private/PrecomputedVolumetricLightmapStreaming.cpp</code></td>
+<td>FVolumetricLightmapStreamingManager</td>
+</tr>
+<tr>
+<td><code>MeshUtilitiesCommon/Public/LayoutUV.h</code></td>
+<td><strong>FLayoutUV :40-87</strong>（FindCharts :66&#x2F;FindBestPacking :67&#x2F;CommitPackedUVs :68&#x2F;<strong>FindBestPackingEfficiency :86</strong>）</td>
+</tr>
+<tr>
+<td><code>MeshUtilitiesCommon/Public/Allocator2D.h</code></td>
+<td>FAllocator2D :19-80（FindWithSegments :74）</td>
+</tr>
+<tr>
+<td><code>MeshUtilitiesCommon/Public/MeshUtilitiesCommon.h</code></td>
+<td><strong>ELightmapUVVersion :7-21</strong>（ScaleByEdgesLength&#x3D;10&#x3D;Latest）</td>
+</tr>
+<tr>
+<td><code>StaticMeshOperations.cpp</code></td>
+<td>CreateLightMapUVLayout :1866-1973</td>
+</tr>
+<tr>
+<td><code>MeshBuilder/Private/MeshDescriptionHelper.cpp</code></td>
+<td>自动 UV 生成 :101-129</td>
+</tr>
+<tr>
+<td><code>UnrealLightmass/Private/Lighting/TextureMapping.cpp</code></td>
+<td>AverageTexelDensity :1892-1927</td>
+</tr>
+</tbody></table>
+<h2 id="A-3-导入器与编辑器"><a href="#A-3-导入器与编辑器" class="headerlink" title="A.3 导入器与编辑器"></a>A.3 导入器与编辑器</h2><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>关键内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Editor/UnrealEd/Private/Fbx/FbxMaterialImport.cpp</code></td>
+<td><strong>材质属性映射 :817-834</strong>（sDiffuse→BaseColor 等）</td>
+</tr>
+<tr>
+<td><code>Editor/UnrealEd/Private/Fbx/FbxStaticMeshImport.cpp</code></td>
+<td>LightMapUV 命名识别 :400-403、默认 64&#x2F;Index&#x3D;1 :1865-1867、DstLightmapIndex&#x3D;FirstOpenUVChannel :2065-2069、EnforceLightmapRestrictions :2395</td>
+</tr>
+<tr>
+<td><code>Plugins/Interchange/Runtime/Source/Import/Private/Gltf/</code></td>
+<td><strong>InterchangeGltfTranslator.cpp</strong>（GLTF 导入，本 fork 存在）</td>
+</tr>
+<tr>
+<td><code>Plugins/Interchange/Runtime/Source/Import/Private/InterchangeImportModule.cpp</code></td>
+<td><strong>UInterchangeGLTFTranslator 注册 :111</strong></td>
+</tr>
+<tr>
+<td><code>Plugins/Enterprise/DatasmithImporter/Private/UVTools/</code></td>
+<td>UUVGenerationFlattenMapping::GenerateUVs :1218、SetupGeneratedLightmapUVResolution :48-69</td>
+</tr>
+<tr>
+<td><code>Plugins/Enterprise/DatasmithImporter/Private/DatasmithStaticMeshImporter.cpp</code></td>
+<td>GetLightmapSize :58-70</td>
+</tr>
+<tr>
+<td><code>Plugins/Enterprise/DatasmithImporter/Private/DatasmithLightImporter.cpp</code></td>
+<td>灯光单位映射（Candelas&#x2F;Lumens&#x2F;EV&#x2F;Unitless）</td>
+</tr>
+<tr>
+<td><code>Editor/LandscapeEditor/Private/LandscapeImportHelper.cpp</code></td>
+<td>Heightmap 导入（GetHeightmapImportDescriptor 等）</td>
+</tr>
+<tr>
+<td><code>Classes/Components/LocalLightComponent.h</code></td>
+<td>IntensityUnits（cd&#x2F;流明注释）</td>
+</tr>
+<tr>
+<td><code>Private/Components/LocalLightComponent.cpp</code></td>
+<td><strong>GetUnitsConversionFactor</strong>（”UE unit is in centimeters…100*100”）</td>
+</tr>
+<tr>
+<td><code>Classes/Engine/RendererSettings.h</code></td>
+<td><strong>DefaultLightUnits</strong>（r.DefaultFeature.LightUnits）</td>
+</tr>
+<tr>
+<td><code>GeometryProcessingInterfaces/Public/MeshAutoUV.h</code></td>
+<td>IGeometryProcessing_MeshAutoUV :17-72（PatchBuilder&#x2F;UVAtlas&#x2F;XAtlas）</td>
+</tr>
+<tr>
+<td><code>StaticMeshEditorSubsystem.cpp</code></td>
+<td>SetGenerateLightmapUVs :1970</td>
+</tr>
+</tbody></table>
+<h1 id="附录-B-术语表（中英对照）"><a href="#附录-B-术语表（中英对照）" class="headerlink" title="附录 B 术语表（中英对照）"></a>附录 B 术语表（中英对照）</h1><table>
+<thead>
+<tr>
+<th>英文</th>
+<th>中文（本文用词）</th>
+<th>一句话解释</th>
+<th>首次出现</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Lightmap</td>
+<td>光照贴图</td>
+<td>离线烘焙的光照纹理</td>
+<td>Ch1</td>
+</tr>
+<tr>
+<td>Bake</td>
+<td>烘焙</td>
+<td>离线预计算光照</td>
+<td>Ch1</td>
+</tr>
+<tr>
+<td>Texel Density</td>
+<td>纹素密度</td>
+<td>每纹素覆盖的世界面积</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>Atlas</td>
+<td>图集</td>
+<td>多张光照贴图拼成的共享纹理</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>Chart</td>
+<td>UV 岛</td>
+<td>UV 展开后的连通区域</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>Padding</td>
+<td>边距</td>
+<td>UV 岛&#x2F;贴图之间的缝隙</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>Packing</td>
+<td>装箱</td>
+<td>把片装进画布</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>Tile</td>
+<td>瓦片</td>
+<td>GPU Lightmass 的处理单元（128×128）</td>
+<td>Ch3</td>
+</tr>
+<tr>
+<td>HQ &#x2F; LQ</td>
+<td>（不译）</td>
+<td>高质量（LogLUVW+SH）&#x2F;低质量（LogRGB）编码</td>
+<td>Ch4</td>
+</tr>
+<tr>
+<td>LogScale</td>
+<td>（不译）</td>
+<td>对数量化尺度（11.5）</td>
+<td>Ch4</td>
+</tr>
+<tr>
+<td>Scale &#x2F; Add</td>
+<td>（不译）</td>
+<td>每图归一化的缩放&#x2F;平移</td>
+<td>Ch4</td>
+</tr>
+<tr>
+<td>CoordinateScale &#x2F; Bias</td>
+<td>（不译）</td>
+<td>atlas 内 UV 的缩放&#x2F;偏移</td>
+<td>Ch4</td>
+</tr>
+<tr>
+<td>SH</td>
+<td>（不译）</td>
+<td>球谐（方向性光照编码）</td>
+<td>Ch4</td>
+</tr>
+<tr>
+<td>Mobility</td>
+<td>移动性</td>
+<td>Static&#x2F;Stationary&#x2F;Movable 三态</td>
+<td>Ch1</td>
+</tr>
+<tr>
+<td>Stationary</td>
+<td>（不译）</td>
+<td>固定位置可变亮度的灯</td>
+<td>Ch1</td>
+</tr>
+<tr>
+<td>Bounce</td>
+<td>反弹</td>
+<td>间接光反弹次数</td>
+<td>Ch7</td>
+</tr>
+<tr>
+<td>Irradiance Caching</td>
+<td>辐照度缓存</td>
+<td>复用相邻点 GI（加速）</td>
+<td>Ch3</td>
+</tr>
+<tr>
+<td>OIDN</td>
+<td>（不译）</td>
+<td>Intel 开源降噪器</td>
+<td>Ch3</td>
+</tr>
+<tr>
+<td>MinLightmapResolution</td>
+<td>（不译）</td>
+<td>自动 UV 的最小分辨率</td>
+<td>Ch8</td>
+</tr>
+<tr>
+<td>LightMapCoordinateIndex</td>
+<td>（不译）</td>
+<td>Lightmap UV 通道号（默认 1）</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>ELightmapUVVersion</td>
+<td>（不译）</td>
+<td>UV 打包算法版本</td>
+<td>Ch5</td>
+</tr>
+<tr>
+<td>FAllocator2D</td>
+<td>（不译）</td>
+<td>段式 best-fit 装箱分配器</td>
+<td>Ch5</td>
+</tr>
+<tr>
+<td>PackedLightAndShadowMapTextureSize</td>
+<td>（不译）</td>
+<td>Atlas 最大尺寸（默认 1024）</td>
+<td>Ch5</td>
+</tr>
+<tr>
+<td>LightmapTilePoolSize</td>
+<td>（不译）</td>
+<td>GPU Lightmass tile 池大小</td>
+<td>Ch3</td>
+</tr>
+<tr>
+<td>ISM</td>
+<td>（不译）</td>
+<td>实例化静态网格</td>
+<td>Ch5</td>
+</tr>
+<tr>
+<td>VT</td>
+<td>（不译）</td>
+<td>虚拟纹理</td>
+<td>Ch6</td>
+</tr>
+<tr>
+<td>LightmapStreamingFactor</td>
+<td>（不译）</td>
+<td>流送权重（0.2）</td>
+<td>Ch6</td>
+</tr>
+<tr>
+<td>ELightUnits</td>
+<td>（不译）</td>
+<td>灯光单位（Candela&#x2F;Lumen&#x2F;Lux&#x2F;EV）</td>
+<td>Ch12</td>
+</tr>
+<tr>
+<td>WorldToMeters</td>
+<td>（不译）</td>
+<td>世界单位换算（1UU&#x3D;1cm → 100）</td>
+<td>Ch12</td>
+</tr>
+<tr>
+<td>Convert Scene</td>
+<td>（不译）</td>
+<td>FBX 导入的单位&#x2F;轴向转换</td>
+<td>Ch12</td>
+</tr>
+<tr>
+<td>Force Front X Axis</td>
+<td>（不译）</td>
+<td>FBX 导入的轴向修正</td>
+<td>Ch12</td>
+</tr>
+<tr>
+<td>Heightmap</td>
+<td>高度图</td>
+<td>地形高度数据（导入用）</td>
+<td>Ch12</td>
+</tr>
+<tr>
+<td>Interchange</td>
+<td>（不译）</td>
+<td>UE 新导入框架（GLTF 经此）</td>
+<td>Ch12</td>
+</tr>
+<tr>
+<td>Datasmith</td>
+<td>（不译）</td>
+<td>场景导入插件（无 Unity）</td>
+<td>Ch12</td>
+</tr>
+<tr>
+<td>Light Bleeding</td>
+<td>漏光</td>
+<td>UV 边距不足导致的串色</td>
+<td>Ch7</td>
+</tr>
+<tr>
+<td>Lightmap Density 视图</td>
+<td>（不译）</td>
+<td>编辑器密度可视化（红&#x2F;蓝）</td>
+<td>Ch7</td>
+</tr>
+</tbody></table>
+<h1 id="附录-C-参考资料"><a href="#附录-C-参考资料" class="headerlink" title="附录 C 参考资料"></a>附录 C 参考资料</h1><p><strong>Epic 官方（dev.epicgames.com）</strong>：</p>
+<ol>
+<li><em>Lighting the Environment in Unreal Engine</em>（5.0+）—— 光照总览（光源 Mobility&#x2F;Lumen&#x2F;VSM 导航）；</li>
+<li><em>GPU Lightmass Global Illumination</em>（含官方中文版）—— GPU 烘焙文档：DX12+DXR、Full Bake&#x2F;Bake What You See 两模式、面板参数、已知限制；</li>
+<li><em>Understanding Lightmapping</em>（5.2+）—— Lightmap UV 硬性要求：UV 岛不重叠、0-1 空间、约 4 纹素 padding；</li>
+<li><em>Generating Lightmap UVs</em>（5.3）—— Build Settings 自动生成（Generate Lightmap UVs&#x2F;Min Resolution&#x2F;Source→Destination）；</li>
+<li><em>Datasmith Supported Software and File Types</em>（5.6）—— <strong>官方清单无 Unity</strong>；</li>
+<li><em>Importing glTF Files Into Unreal Engine</em>（经 Interchange）—— <strong>本 fork 已实测可用</strong>；</li>
+<li><em>Migrating assets from Unity to Unreal Engine</em>（官方迁移文档）—— FBX Exporter 包、Convert Scene + Force Front X Axis、100 倍缩放、Y-up→Z-up。</li>
+</ol>
+<p><strong>中文社区</strong>（标注：以下基于 UE4 或写作时未能访问核实，非本仓库实测）：</p>
+<ol start="8">
+<li>知乎《UE5 光照烘焙—CPU Lightmass》（p&#x2F;660381167）—— 烘焙全流程（关 Lumen&#x2F;VSM、Lightmass 参数、Lightmap Density 视图）；</li>
+<li>知乎《UE4 LightMap 编码格式(移动端)》（p&#x2F;539598416）—— HQ&#x3D;RGBLogL 8:8:8:8、LQ&#x3D;24bit RGB8、SimpleLogScale&#x3D;16、cook 后 ASTC；</li>
+<li>知乎《UNREAL 移动端 LightMap 自定义优化修改（六）》（p&#x2F;261297862）—— 跳 SkyOcclusion、AO 写 A 通道、包体减 150MB；</li>
+<li>ldpk《Unity 光照贴图 UV 优化实战》—— UV 空间浪费与 packing 优化（跨引擎对照）；</li>
+<li>masterTOB《From Unity to Unreal》（Epic 论坛）—— 一键导出整个 Unity 场景为 FBX；</li>
+<li>知乎《全局光照引擎—Lightmap 烘焙器构件》（p&#x2F;384470030）—— 自研烘焙器视角的 Lightmap 管线拆解；</li>
+<li>知乎《命运扳机》的光与影（UFSH2025）—— UE 当烘焙器的坑（RVT 地形预渲染、Lightmass 材质导出模块重写）。</li>
+</ol>
+<h1 id="附录-D-自测练习"><a href="#附录-D-自测练习" class="headerlink" title="附录 D 自测练习"></a>附录 D 自测练习</h1><p><strong>入门级</strong>：</p>
+<ol>
+<li>用三句话 + 一个类比向同事解释”烘焙”（Lightmap）是什么。</li>
+<li>Lumen 和 Lightmap 的区别？什么场景选哪个？</li>
+<li><code>LightMapResolution</code> 是”每 texel 多少世界单位”吗？它实际是什么？</li>
+</ol>
+<p><strong>进阶级</strong>：</p>
+<ol start="4">
+<li>画出一张光照贴图从烘焙到显示的七段流程（图 F1 复述）。</li>
+<li>缺第二 UV 时引擎会怎样？为什么”没报错 &#x3D; 没问题”是错的？</li>
+<li>Unity 场景导入 UE 的 100 倍缩放是哪来的？灯光单位怎么换算？</li>
+<li>漏光（Light Bleeding）的成因与排查顺序是什么？</li>
+</ol>
+<p><strong>源码级</strong>：</p>
+<ol start="8">
+<li>在 <code>LightmapEncoding.cpp:35</code>（QuantizeLightSamples）找到 LogScale 常量，解释为什么要取对数。</li>
+<li>在 <code>LightMap.cpp:685</code>（PostEncode）找到 CoordinateScale&#x2F;Bias 的计算，说明它们解决什么问题。</li>
+<li>在 <code>LocalVertexFactoryCommon.ush:118</code> 找到双纹理打包的 UV 变换，推导 UV1 为什么是 <code>UV0 + float2(0,0.5)</code>。</li>
+<li>在 <code>FbxMaterialImport.cpp:817</code> 找到材质属性映射表，说出 Unity Smoothness 应该映射到 UE 的什么。</li>
+<li>实验：建一个室内关卡烘焙，用 Lightmap Density 视图找密度不均的物体，调整分辨率后对比显存占用。</li>
+</ol>
+</div></section><ul class="post-copyright"><li class="post-copyright-author"><strong>Post author: </strong>mx</li><li class="post-copyright-link"><strong>Post link: </strong><a href="https://1393650770.github.io/2026/08/27/2026-8-27-UELightmap/" title="Unreal Engine Lightmap 完全教程">https://1393650770.github.io/2026/08/27/2026-8-27-UELightmap/</a></li><li class="post-copyright-license"><strong>Copyright Notice: </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank" rel="noopener" title="CC BY-NC-SA 4.0 "><span class="icon iconify" data-icon="ri:creative-commons-line"></span><span class="icon iconify" data-icon="ri:creative-commons-by-line"></span><span class="icon iconify" data-icon="ri:creative-commons-nc-line"></span><span class="icon iconify" data-icon="ri:creative-commons-sa-line"></span></a> unless otherwise stated.</li></ul></article><div class="post-nav"><div class="post-nav-item"></div><div class="post-nav-item"><a class="post-nav-next" href="/2026/08/26/2026-8-26-UESpatialAudio/" rel="next" title="Unreal Engine 空间音频完全教程"><span class="post-nav-text">Unreal Engine 空间音频完全教程</span><span class="icon iconify" data-icon="ri:arrow-right-s-line"></span></a></div></div></div><div class="hty-card" id="comment"><style>.utterances {
+  max-width: 100%;
+}</style><script src="https://utteranc.es/client.js" repo="1393650770/1393650770.github.io" issue-term="title" label="comment" theme="dark-blue" crossorigin="anonymous" async></script></div></main><footer class="sidebar-translate" id="footer"><div class="copyright"><span>&copy; 2019 – 2026 </span><span class="with-love" id="animate"><span class="icon iconify" data-icon="ri:cloud-line"></span></span><span class="author"> mx</span></div><div class="powered"><span>Powered by <a href="https://hexo.io" target="_blank" rel="noopener">Hexo</a> v6.3.0</span><span class="footer-separator">|</span><span>Theme - <a rel="noopener" href="https://github.com/YunYouJun/hexo-theme-yun" target="_blank"><span>Yun</span></a> v1.10.9</span></div></footer></div><a class="hty-icon-button" id="back-to-top" aria-label="back-to-top" href="#"><span class="icon iconify" data-icon="ri:arrow-up-s-line"></span><svg class="progress-circle-container" viewBox="0 0 100 100"><circle class="progress-circle" id="progressCircle" cx="50" cy="50" r="48" fill="none" stroke="#0078E7" stroke-width="2" stroke-linecap="round"></circle></svg></a><a class="popup-trigger hty-icon-button icon-search" id="search" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:https://1393650770.github.io/" title="Search"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:search-line"></span></span></a></body></html>
