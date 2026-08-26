@@ -1,0 +1,1983 @@
+<!DOCTYPE html><html class="dark" lang="en"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#0078E7"><meta name="author" content="mx"><meta name="copyright" content="mx"><meta name="generator" content="Hexo 6.3.0"><meta name="theme" content="hexo-theme-yun"><title>Unreal Engine 空间音频完全教程 | MX的花海小屋与玩具恐龙</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@900&amp;display=swap" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/star-markdown-css@0.4.1/dist/yun/yun-markdown.min.css"><link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/prism-theme-vars/base.css"><script src="https://fastly.jsdelivr.net/npm/scrollreveal/dist/scrollreveal.min.js" defer></script><script>function initScrollReveal() {
+  [".post-card",".markdown-body img"].forEach((target)=> {
+    ScrollReveal().reveal(target);
+  })
+}
+document.addEventListener("DOMContentLoaded", initScrollReveal);
+document.addEventListener("pjax:success", initScrollReveal);
+</script><link rel="icon" type="image/svg+xml" href="/yun.svg"><link rel="mask-icon" href="/yun.svg" color="#0078E7"><link rel="preload" href="/css/hexo-theme-yun.css" as="style"><link rel="prefetch" href="/js/sidebar.js" as="script"><link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="preconnect" href="https://fastly.jsdelivr.net/npm/" crossorigin><script id="yun-config">
+    window.Yun = {}
+    window.CONFIG = {"hostname":"1393650770.github.io","root":"/","title":"MX的花海小屋与玩具恐龙","version":"1.10.9","mode":"dark","copycode":true,"page":{"isPost":true},"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}.","hits":"${hits} results found","hits_time":"${hits} results found in ${time} ms"},"anonymous_image":"https://cdn.yunyoujun.cn/img/avatar/none.jpg","fireworks":{"colors":null},"vendors":{"host":"https://fastly.jsdelivr.net/npm/","darken":"https://fastly.jsdelivr.net/npm/darken@1.5.0"}};
+  </script><link rel="stylesheet" href="/css/hexo-theme-yun.css"><script src="/js/hexo-theme-yun.js" type="module"></script><meta name="description" content="从”普通程序员能听懂”到”能改 UE 音频源码”——基于源码逐行考证：空间音频的原理、使用、玩法结合、优化、封装五条主线全覆盖   文档版本：1.0（2026-08-26） 源码快照：本地仓库 d:\Project\GameDevelop\UnrealEngine，UE 5.9 移动优化 fork，HEAD 6cea9bd20f8f 写作原则：文中所有”源码考古”块引用的文件路径、行号、函数名均">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Unreal Engine 空间音频完全教程">
+<meta property="og:url" content="https://1393650770.github.io/2026/08/26/2026-8-26-UESpatialAudio/index.html">
+<meta property="og:site_name" content="MX的花海小屋与玩具恐龙">
+<meta property="og:description" content="从”普通程序员能听懂”到”能改 UE 音频源码”——基于源码逐行考证：空间音频的原理、使用、玩法结合、优化、封装五条主线全覆盖   文档版本：1.0（2026-08-26） 源码快照：本地仓库 d:\Project\GameDevelop\UnrealEngine，UE 5.9 移动优化 fork，HEAD 6cea9bd20f8f 写作原则：文中所有”源码考古”块引用的文件路径、行号、函数名均">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2026-08-26T12:00:00.000Z">
+<meta property="article:modified_time" content="2026-08-26T05:18:25.342Z">
+<meta property="article:author" content="mx">
+<meta property="article:tag" content="技术">
+<meta property="article:tag" content="技术简要">
+<meta name="twitter:card" content="summary"><script>(function() {
+  if (CONFIG.mode !== 'auto') return
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+  const setting = localStorage.getItem('darken-mode') || 'auto'
+  if (setting === 'dark' || (prefersDark && setting !== 'light'))
+    document.documentElement.classList.toggle('dark', true)
+})()</script></head><body><script src="https://code.iconify.design/2/2.1.1/iconify.min.js"></script><script>// Define global variable
+IconifyProviders = {
+  // Empty prefix: overwrite default API provider configuration
+  '': {
+    // Use custom API first, use Iconify public API as backup
+    resources: [
+        'https://api.iconify.design',
+    ],
+    // Wait for 1 second before switching API hosts
+    rotate: 1000,
+  },
+};</script><script defer src="https://fastly.jsdelivr.net/npm/animejs@latest"></script><script defer src="/js/ui/fireworks.js" type="module"></script><canvas class="fireworks"></canvas><div class="container"><a class="sidebar-toggle hty-icon-button" id="menu-btn"><div class="hamburger hamburger--spin" type="button"><span class="hamburger-box"><span class="hamburger-inner"></span></span></div></a><div class="sidebar-toggle sidebar-overlay"></div><aside class="sidebar"><script src="/js/sidebar.js" type="module"></script><ul class="sidebar-nav"><li class="sidebar-nav-item sidebar-nav-toc hty-icon-button sidebar-nav-active" data-target="post-toc-wrap" title="Table of Contents"><span class="icon iconify" data-icon="ri:list-ordered"></span></li><li class="sidebar-nav-item sidebar-nav-overview hty-icon-button" data-target="site-overview-wrap" title="Overview"><span class="icon iconify" data-icon="ri:passport-line"></span></li></ul><div class="sidebar-panel" id="site-overview-wrap"><div class="site-info fix-top"><a class="site-author-avatar" href="/about/" title="mx"><img width="96" loading="lazy" src="/images/avatar.jpg" alt="mx"></a><div class="site-author-name"><a href="/about/">mx</a></div><span class="site-name">MX的花海小屋与玩具恐龙</span><sub class="site-subtitle">这里对于我来说什么都有</sub><div class="site-description">希望不断成长、不断进步</div></div><nav class="site-state"><a class="site-state-item hty-icon-button icon-home" href="/" title="Home"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:home-4-line"></span></span></a><div class="site-state-item"><a href="/archives/" title="Archives"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:archive-line"></span></span><span class="site-state-item-count">22</span></a></div><div class="site-state-item"><a href="/categories/" title="Categories"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:folder-2-line"></span></span><span class="site-state-item-count">3</span></a></div><div class="site-state-item"><a href="/tags/" title="Tags"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:price-tag-3-line"></span></span><span class="site-state-item-count">5</span></a></div><a class="site-state-item hty-icon-button" href="/about" title="about"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:clipboard-line"></span></span></a></nav><hr style="margin-bottom:0.5rem"><div class="links-of-author"><a class="links-of-author-item hty-icon-button" rel="noopener" href="https://github.com/1393650770" title="GitHub" target="_blank" style="color:undefined"><span class="icon iconify" data-icon="ri:github-line"></span></a><a class="links-of-author-item hty-icon-button" rel="noopener" href="https://github.com/1393650770" title="知乎" target="_blank" style="color:undefined"><span class="icon iconify" data-icon="ri:zhihu-line"></span></a></div><hr style="margin:0.5rem 1rem"><div class="links"><a class="links-item hty-icon-button" href="/" style="color:dodgerblue"><span class="icon iconify" data-icon="ri:genderless-line"></span></a></div></div><div class="sidebar-panel sidebar-panel-active" id="post-toc-wrap"><div class="post-toc"><div class="post-toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-0-%E7%AB%A0-%E5%AF%BC%E8%AF%BB%EF%BC%9A%E8%BF%99%E4%BB%BD%E6%96%87%E6%A1%A3%E6%80%8E%E4%B9%88%E8%AF%BB"><span class="toc-number">1.</span> <span class="toc-text">第 0 章 导读：这份文档怎么读</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#0-1-%E7%9B%AE%E6%A0%87%E8%AF%BB%E8%80%85%E4%B8%8E%E5%89%8D%E7%BD%AE%E7%9F%A5%E8%AF%86"><span class="toc-number">1.1.</span> <span class="toc-text">0.1 目标读者与前置知识</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0-2-%E4%B8%89%E6%9D%A1%E9%98%85%E8%AF%BB%E8%B7%AF%E5%BE%84"><span class="toc-number">1.2.</span> <span class="toc-text">0.2 三条阅读路径</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0-3-%E5%9D%97%E6%A0%87%E8%AE%B0%E7%BA%A6%E5%AE%9A"><span class="toc-number">1.3.</span> <span class="toc-text">0.3 块标记约定</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0-4-%E4%B8%80%E5%BC%A0%E5%9B%BE%E7%9C%8B%E6%87%82%E5%85%A8%E5%B1%80"><span class="toc-number">1.4.</span> <span class="toc-text">0.4 一张图看懂全局</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#0-5-%E7%AB%A0%E8%8A%82%E5%9C%B0%E5%9B%BE"><span class="toc-number">1.5.</span> <span class="toc-text">0.5 章节地图</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-1-%E7%AB%A0-%E7%A9%BA%E9%97%B4%E9%9F%B3%E9%A2%91%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9A%E4%BA%BA%E8%80%B3%E5%A6%82%E4%BD%95%E5%AE%9A%E4%BD%8D%E5%A3%B0%E9%9F%B3"><span class="toc-number">2.</span> <span class="toc-text">第 1 章 空间音频是什么：人耳如何定位声音</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-1-%E4%BA%BA%E8%80%B3%E5%AE%9A%E4%BD%8D%E5%9B%9B%E8%A6%81%E7%B4%A0"><span class="toc-number">2.1.</span> <span class="toc-text">1.1 人耳定位四要素</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-2-%E4%B8%A4%E6%9D%A1%E5%87%BA%E8%B7%AF%EF%BC%9A%E8%80%B3%E6%9C%BA%E4%B8%8E%E6%89%AC%E5%A3%B0%E5%99%A8"><span class="toc-number">2.2.</span> <span class="toc-text">1.2 两条出路：耳机与扬声器</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-3-%E6%B8%B8%E6%88%8F%E9%9F%B3%E9%A2%91%E5%9B%9B%E9%97%AE%E9%A2%98-%E2%86%94-UE-%E5%9B%9B%E4%BB%B6%E5%A5%97%EF%BC%88%E5%85%A8%E4%B9%A6%E6%80%BB%E7%BA%B2%EF%BC%89"><span class="toc-number">2.3.</span> <span class="toc-text">1.3 游戏音频四问题 ↔ UE 四件套（全书总纲）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-4-UE-%E5%AE%9E%E7%8E%B0%E8%B7%AF%E5%BE%84%E4%BA%94%E7%AB%99%E9%A2%84%E5%91%8A"><span class="toc-number">2.4.</span> <span class="toc-text">1.4 UE 实现路径五站预告</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-5-%E4%B8%80%E7%82%B9%E5%8E%86%E5%8F%B2%E4%B8%8E%E6%9C%AC-fork-%E4%BA%8B%E5%AE%9E"><span class="toc-number">2.5.</span> <span class="toc-text">1.5 一点历史与本 fork 事实</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#1-6-%E5%B0%8F%E7%BB%93"><span class="toc-number">2.6.</span> <span class="toc-text">1.6 小结</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-2-%E7%AB%A0-%E4%B9%9D%E5%A4%A7%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5%E9%80%9F%E8%A7%88%EF%BC%88%E6%AF%8F%E4%B8%AA%E6%A6%82%E5%BF%B5-%E4%B8%80%E4%B8%AA%E7%B1%BB%E6%AF%94%EF%BC%89"><span class="toc-number">3.</span> <span class="toc-text">第 2 章 九大核心概念速览（每个概念 &#x3D; 一个类比）</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#2-1-%E8%A1%B0%E5%87%8F%EF%BC%88Attenuation%EF%BC%89-%E5%A3%B0%E9%9F%B3%E7%9A%84%E2%80%9D%E9%9F%B3%E9%87%8F%E5%9C%B0%E5%9B%BE%E2%80%9D"><span class="toc-number">3.1.</span> <span class="toc-text">2.1 衰减（Attenuation）&#x3D; 声音的”音量地图”</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-2-%E7%A9%BA%E9%97%B4%E5%8C%96%EF%BC%88Spatialization%EF%BC%89-%E6%8A%8A%E5%A3%B0%E9%9F%B3%E2%80%9D%E6%94%BE%E2%80%9D%E8%BF%9B%E8%80%B3%E6%9C%B5%E9%87%8C"><span class="toc-number">3.2.</span> <span class="toc-text">2.2 空间化（Spatialization）&#x3D; 把声音”放”进耳朵里</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-3-%E9%81%AE%E6%8C%A1%EF%BC%88Occlusion%EF%BC%89-%E9%9A%94%E5%A2%99%E5%90%AC%E5%A3%B0"><span class="toc-number">3.3.</span> <span class="toc-text">2.3 遮挡（Occlusion）&#x3D; 隔墙听声</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-4-%E6%B7%B7%E5%93%8D%EF%BC%88Reverb%EF%BC%89-%E6%88%BF%E9%97%B4%E7%9A%84%E2%80%9D%E5%9B%9E%E5%A3%B0%E6%8C%87%E7%BA%B9%E2%80%9D"><span class="toc-number">3.4.</span> <span class="toc-text">2.4 混响（Reverb）&#x3D; 房间的”回声指纹”</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-5-%E5%B9%B6%E5%8F%91%EF%BC%88Concurrency%EF%BC%89-%E7%94%B5%E8%AF%9D%E5%8D%A0%E7%BA%BF"><span class="toc-number">3.5.</span> <span class="toc-text">2.5 并发（Concurrency）&#x3D; 电话占线</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-6-SoundClass-%E8%B0%83%E9%9F%B3%E5%8F%B0%E6%8E%A8%E5%AD%90%E3%80%81SoundMix-%E6%B7%B7%E9%9F%B3%E5%BF%AB%E7%85%A7"><span class="toc-number">3.6.</span> <span class="toc-text">2.6 SoundClass &#x3D; 调音台推子、SoundMix &#x3D; 混音快照</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-7-AudioBus-%E9%9F%B3%E9%A2%91%E6%8E%A5%E7%BA%BF%E6%9D%BF%E3%80%81MetaSound-%E9%9F%B3%E9%A2%91%E7%94%B5%E8%B7%AF%E6%9D%BF"><span class="toc-number">3.7.</span> <span class="toc-text">2.7 AudioBus &#x3D; 音频接线板、MetaSound &#x3D; 音频电路板</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-8-%E8%99%9A%E6%8B%9F%E5%BE%AA%E7%8E%AF-%E8%BF%9C%E5%A4%84%E5%A3%B0%E9%9F%B3%E2%80%9D%E6%94%BE%E5%81%87%E2%80%9D%E3%80%81AudioManager-%E9%9F%B3%E9%A2%91%E7%AE%A1%E5%AE%B6"><span class="toc-number">3.8.</span> <span class="toc-text">2.8 虚拟循环 &#x3D; 远处声音”放假”、AudioManager &#x3D; 音频管家</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-9-%E6%A6%82%E5%BF%B5-%E2%86%92-%E6%BA%90%E7%A0%81%E8%90%BD%E7%82%B9%E9%A2%84%E5%91%8A%E8%A1%A8"><span class="toc-number">3.9.</span> <span class="toc-text">2.9 概念 → 源码落点预告表</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-3-%E7%AB%A0-%E6%92%AD%E6%94%BE%E9%93%BE%E8%B7%AF%EF%BC%9A%E4%B8%80%E4%B8%AA%E5%A3%B0%E9%9F%B3%E7%9A%84%E5%AE%8C%E6%95%B4%E6%97%85%E7%A8%8B"><span class="toc-number">4.</span> <span class="toc-text">第 3 章 播放链路：一个声音的完整旅程</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#3-1-%E4%B8%A4%E4%B8%AA%E5%85%A5%E5%8F%A3%EF%BC%9APlaySoundAtLocation-vs-AudioComponent-Play"><span class="toc-number">4.1.</span> <span class="toc-text">3.1 两个入口：PlaySoundAtLocation vs AudioComponent::Play</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-2-%E8%B7%9D%E7%A6%BB%E9%97%A8%E6%8E%A7%EF%BC%9A%E5%90%AC%E4%B8%8D%E8%A7%81%E5%B0%B1%E4%B8%8D%E5%88%9B%E5%BB%BA"><span class="toc-number">4.2.</span> <span class="toc-text">3.2 距离门控：听不见就不创建</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-3-FActiveSound%EF%BC%9A%E4%B8%80%E4%B8%AA%E2%80%9D%E6%B4%BB%E7%9D%80%E7%9A%84%E5%A3%B0%E9%9F%B3%E2%80%9D"><span class="toc-number">4.3.</span> <span class="toc-text">3.3 FActiveSound：一个”活着的声音”</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-4-%E9%9F%B3%E9%A2%91%E7%BA%BF%E7%A8%8B%E5%9B%9B%E6%AD%A5%EF%BC%9A%E6%B1%82%E5%80%BC"><span class="toc-number">4.4.</span> <span class="toc-text">3.4 音频线程四步：求值</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-5-%E6%B8%B2%E6%9F%93%E7%BA%BF%E7%A8%8B%EF%BC%9A%E9%80%90%E6%BA%90%E5%A4%84%E7%90%86"><span class="toc-number">4.5.</span> <span class="toc-text">3.5 渲染线程：逐源处理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-6-%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B%EF%BC%9AGameThread-AudioThread-RenderThread"><span class="toc-number">4.6.</span> <span class="toc-text">3.6 线程模型：GameThread &#x2F; AudioThread &#x2F; RenderThread</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-7-%E6%BA%90%E7%A0%81%E8%80%83%E5%8F%A4%EF%BC%9APlaySoundAtLocation-%E5%85%A8%E9%93%BE"><span class="toc-number">4.7.</span> <span class="toc-text">3.7 源码考古：PlaySoundAtLocation 全链</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-4-%E7%AB%A0-%E8%A1%B0%E5%87%8F%EF%BC%9A%E5%A3%B0%E9%9F%B3%E7%9A%84%E2%80%9D%E9%9F%B3%E9%87%8F%E5%9C%B0%E5%9B%BE%E2%80%9D"><span class="toc-number">5.</span> <span class="toc-text">第 4 章 衰减：声音的”音量地图”</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#4-1-%E7%BB%93%E6%9E%84%E4%B8%8E%E8%B5%84%E4%BA%A7"><span class="toc-number">5.1.</span> <span class="toc-text">4.1 结构与资产</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-2-%E5%85%AD%E7%A7%8D%E8%B7%9D%E7%A6%BB%E6%9B%B2%E7%BA%BF"><span class="toc-number">5.2.</span> <span class="toc-text">4.2 六种距离曲线</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-3-%E5%9B%9B%E7%A7%8D%E5%BD%A2%E7%8A%B6"><span class="toc-number">5.3.</span> <span class="toc-text">4.3 四种形状</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-4-%E8%B7%9D%E7%A6%BB%E4%BD%8E%E9%80%9A%EF%BC%88%E7%A9%BA%E6%B0%94%E5%90%B8%E6%94%B6%EF%BC%89"><span class="toc-number">5.4.</span> <span class="toc-text">4.4 距离低通（空气吸收）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-5-%E7%BB%84%E4%BB%B6%E4%B8%89%E7%BA%A7%E8%A6%86%E7%9B%96%E4%B8%8E%E7%83%AD%E6%9B%B4%E6%96%B0"><span class="toc-number">5.5.</span> <span class="toc-text">4.5 组件三级覆盖与热更新</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-6-%E7%9B%91%E5%90%AC%E5%99%A8%E4%B8%8E-Focus"><span class="toc-number">5.6.</span> <span class="toc-text">4.6 监听器与 Focus</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-7-%E6%BA%90%E7%A0%81%E8%80%83%E5%8F%A4%EF%BC%9AUpdateAttenuation-%E6%B1%82%E5%80%BC"><span class="toc-number">5.7.</span> <span class="toc-text">4.7 源码考古：UpdateAttenuation 求值</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-5-%E7%AB%A0-%E7%A9%BA%E9%97%B4%E5%8C%96%EF%BC%9A%E6%8A%8A%E5%A3%B0%E9%9F%B3%E2%80%9D%E6%94%BE%E2%80%9D%E8%BF%9B%E8%80%B3%E6%9C%B5%E9%87%8C"><span class="toc-number">6.</span> <span class="toc-text">第 5 章 空间化：把声音”放”进耳朵里</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#5-1-%E4%BB%8E%E4%BD%8D%E7%BD%AE%E5%88%B0%E6%96%B9%E4%BD%8D%E8%A7%92"><span class="toc-number">6.1.</span> <span class="toc-text">5.1 从位置到方位角</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-2-Panning%EF%BC%9A%E7%9B%B8%E9%82%BB%E6%89%AC%E5%A3%B0%E5%99%A8%E6%8F%92%E5%80%BC"><span class="toc-number">6.2.</span> <span class="toc-text">5.2 Panning：相邻扬声器插值</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-3-HRTF-%E8%B7%AF%E7%BA%BF%EF%BC%9A%E6%8F%92%E4%BB%B6%E4%BD%93%E7%B3%BB"><span class="toc-number">6.3.</span> <span class="toc-text">5.3 HRTF 路线：插件体系</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-4-%E7%AB%8B%E4%BD%93%E5%A3%B0-3D%EF%BC%9AStereoSpread"><span class="toc-number">6.4.</span> <span class="toc-text">5.4 立体声 3D：StereoSpread</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-5-%E8%BF%91%E8%B7%9D%E8%BD%AC-2D%EF%BC%9ANonSpatializedRadius"><span class="toc-number">6.5.</span> <span class="toc-text">5.5 近距转 2D：NonSpatializedRadius</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-6-Ambisonics%EF%BC%9A%E7%8E%AF%E5%A2%83%E5%A3%B0%E5%9C%BA"><span class="toc-number">6.6.</span> <span class="toc-text">5.6 Ambisonics：环境声场</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-7-%E6%BA%90%E7%A0%81%E8%80%83%E5%8F%A4%EF%BC%9AGet3DChannelMap"><span class="toc-number">6.7.</span> <span class="toc-text">5.7 源码考古：Get3DChannelMap</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-6-%E7%AB%A0-%E9%81%AE%E6%8C%A1%EF%BC%9A%E9%9A%94%E5%A2%99%E5%90%AC%E5%A3%B0"><span class="toc-number">7.</span> <span class="toc-text">第 6 章 遮挡：隔墙听声</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#6-1-%E5%8F%8C%E9%80%9A%E9%81%93%EF%BC%9A%E9%97%B7-%E8%BD%BB"><span class="toc-number">7.1.</span> <span class="toc-text">6.1 双通道：闷 + 轻</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-2-%E6%A3%80%E6%B5%8B%EF%BC%9A%E7%89%A9%E7%90%86%E5%B0%84%E7%BA%BF"><span class="toc-number">7.2.</span> <span class="toc-text">6.2 检测：物理射线</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-3-%E5%BC%82%E6%AD%A5%E8%B7%AF%E5%BE%84%E4%B8%8E%E5%B9%B3%E6%BB%91"><span class="toc-number">7.3.</span> <span class="toc-text">6.3 异步路径与平滑</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-4-%E9%81%BF%E5%9D%91%E4%B8%8E%E6%80%A7%E8%83%BD"><span class="toc-number">7.4.</span> <span class="toc-text">6.4 避坑与性能</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-5-%E6%BA%90%E7%A0%81%E8%80%83%E5%8F%A4%EF%BC%9ACheckOcclusion-%E4%B8%89%E4%BB%B6%E4%BA%8B"><span class="toc-number">7.5.</span> <span class="toc-text">6.5 源码考古：CheckOcclusion 三件事</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-7-%E7%AB%A0-%E6%B7%B7%E5%93%8D%E4%B8%8E%E5%AE%A4%E5%86%85%E6%84%9F"><span class="toc-number">8.</span> <span class="toc-text">第 7 章 混响与室内感</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#7-1-%E6%B7%B7%E5%93%8D%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9A%E6%97%A9%E5%8F%8D%E5%B0%84-%E6%99%9A%E5%8F%8D%E5%B0%84"><span class="toc-number">8.1.</span> <span class="toc-text">7.1 混响是什么：早反射 + 晚反射</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-2-%E5%8F%91%E9%80%81%E9%93%BE%EF%BC%9A%E4%BB%8E%E5%A3%B0%E6%BA%90%E5%88%B0%E6%B7%B7%E5%93%8D%E5%AD%90%E6%B7%B7%E9%9F%B3"><span class="toc-number">8.2.</span> <span class="toc-text">7.2 发送链：从声源到混响子混音</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-3-AAudioVolume%EF%BC%9A%E5%A3%B0%E5%AD%A6%E5%8C%BA%E5%9F%9F"><span class="toc-number">8.3.</span> <span class="toc-text">7.3 AAudioVolume：声学区域</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-4-%E5%AE%A4%E5%86%85%E5%A4%96%E8%BF%87%E6%B8%A1"><span class="toc-number">8.4.</span> <span class="toc-text">7.4 室内外过渡</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-5-%E6%88%BF%E9%97%B4%E2%80%9D%E6%8C%87%E7%BA%B9%E2%80%9D%E9%85%8D%E6%96%B9%E8%A1%A8%EF%BC%88%E4%BE%9B%E7%AC%AC-10-%E7%AB%A0%E7%8E%A9%E6%B3%95%E7%94%A8%EF%BC%89"><span class="toc-number">8.5.</span> <span class="toc-text">7.5 房间”指纹”配方表（供第 10 章玩法用）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#7-6-%E6%BA%90%E7%A0%81%E8%80%83%E5%8F%A4%EF%BC%9A%E5%8F%91%E9%80%81%E7%82%B9%E4%B8%8E%E5%AE%A4%E5%86%85%E5%A4%96"><span class="toc-number">8.6.</span> <span class="toc-text">7.6 源码考古：发送点与室内外</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-8-%E7%AB%A0-%E5%B9%B6%E5%8F%91%E4%B8%8E%E4%BC%98%E5%85%88%E7%BA%A7%EF%BC%9A%E7%94%B5%E8%AF%9D%E5%8D%A0%E7%BA%BF"><span class="toc-number">9.</span> <span class="toc-text">第 8 章 并发与优先级：电话占线</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#8-1-%E9%97%AE%E9%A2%98%EF%BC%9A%E6%B7%B7%E9%9F%B3%E5%99%A8%E9%A2%84%E7%AE%97"><span class="toc-number">9.1.</span> <span class="toc-text">8.1 问题：混音器预算</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-2-FSoundConcurrencySettings%EF%BC%9A%E5%B9%B6%E5%8F%91%E7%BB%84"><span class="toc-number">9.2.</span> <span class="toc-text">8.2 FSoundConcurrencySettings：并发组</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-3-%E4%B8%83%E7%A7%8D%E8%A3%81%E5%86%B3%E8%A7%84%E5%88%99%EF%BC%88%E5%86%B3%E7%AD%96%E8%A1%A8%EF%BC%89"><span class="toc-number">9.3.</span> <span class="toc-text">8.3 七种裁决规则（决策表）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-4-%E5%9B%9B%E7%A7%8D%E4%BD%9C%E7%94%A8%E5%9F%9F"><span class="toc-number">9.4.</span> <span class="toc-text">8.4 四种作用域</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-5-Ducking%EF%BC%9A%E4%B8%8D%E6%8C%82%E6%96%AD%E5%8F%AA%E8%B0%83%E5%B0%8F"><span class="toc-number">9.5.</span> <span class="toc-text">8.5 Ducking：不挂断只调小</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-6-%E6%B1%82%E5%80%BC%E9%93%BE"><span class="toc-number">9.6.</span> <span class="toc-text">8.6 求值链</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-7-%E5%85%A8%E5%B1%80%E9%A2%84%E7%AE%97%E4%B8%8E%E4%BC%98%E5%85%88%E7%BA%A7"><span class="toc-number">9.7.</span> <span class="toc-text">8.7 全局预算与优先级</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#8-8-%E6%BA%90%E7%A0%81%E8%80%83%E5%8F%A4%EF%BC%9AEvaluateConcurrency"><span class="toc-number">9.8.</span> <span class="toc-text">8.8 源码考古：EvaluateConcurrency</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-9-%E7%AB%A0-%E4%BD%BF%E7%94%A8%E7%AF%87%EF%BC%9A%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%E9%85%8D%E7%BD%AE%E4%B8%80%E4%B8%AA-3D-%E5%A3%B0%E6%BA%90"><span class="toc-number">10.</span> <span class="toc-text">第 9 章 使用篇：从零开始配置一个 3D 声源</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#9-1-%E7%B4%A0%E6%9D%90%E5%87%86%E5%A4%87%EF%BC%9A%E5%8D%95%E5%A3%B0%E9%81%93%E6%98%AF%E7%A9%BA%E9%97%B4%E5%8C%96%E7%9A%84%E5%89%8D%E6%8F%90"><span class="toc-number">10.1.</span> <span class="toc-text">9.1 素材准备：单声道是空间化的前提</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-2-%E8%B5%84%E4%BA%A7%E4%B8%89%E4%BB%B6%E5%A5%97"><span class="toc-number">10.2.</span> <span class="toc-text">9.2 资产三件套</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-3-%E8%A1%B0%E5%87%8F%E8%B5%84%E4%BA%A7%E9%85%8D%E7%BD%AE"><span class="toc-number">10.3.</span> <span class="toc-text">9.3 衰减资产配置</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-4-%E7%A9%BA%E9%97%B4%E5%8C%96%E9%85%8D%E7%BD%AE"><span class="toc-number">10.4.</span> <span class="toc-text">9.4 空间化配置</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-5-%E9%81%AE%E6%8C%A1%E4%B8%8E%E6%B7%B7%E5%93%8D%E9%85%8D%E7%BD%AE"><span class="toc-number">10.5.</span> <span class="toc-text">9.5 遮挡与混响配置</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-6-%E6%91%86%E6%94%BE%E4%B8%8E%E6%92%AD%E6%94%BE%EF%BC%9A%E7%BB%84%E4%BB%B6-vs-%E9%9D%99%E6%80%81%E5%87%BD%E6%95%B0"><span class="toc-number">10.6.</span> <span class="toc-text">9.6 摆放与播放：组件 vs 静态函数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-7-SoundCue-%E8%8A%82%E7%82%B9%E5%9B%BE%EF%BC%9A%E6%92%AD%E6%94%BE%E7%BC%96%E6%8E%92"><span class="toc-number">10.7.</span> <span class="toc-text">9.7 SoundCue 节点图：播放编排</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-8-%E5%8F%82%E6%95%B0%E5%8C%96%EF%BC%9A%E8%BF%90%E8%A1%8C%E6%97%B6%E7%9A%84%E2%80%9D%E6%97%8B%E9%92%AE%E2%80%9D"><span class="toc-number">10.8.</span> <span class="toc-text">9.8 参数化：运行时的”旋钮”</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-9-%E9%9F%B3%E9%87%8F%E5%88%86%E5%B1%82%EF%BC%9A%E8%B0%83%E9%9F%B3%E5%8F%B0%E6%8E%A8%E5%AD%90"><span class="toc-number">10.9.</span> <span class="toc-text">9.9 音量分层：调音台推子</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#9-10-%E5%8A%A8%E6%89%8B%E5%AE%9E%E9%AA%8C%E5%AE%A4%EF%BC%9A%E7%AF%9D%E7%81%AB%E5%A3%B0%EF%BC%88%E4%BA%94%E6%AD%A5%E5%AE%8C%E6%95%B4%E9%85%8D%E6%96%B9%EF%BC%89"><span class="toc-number">10.10.</span> <span class="toc-text">9.10 动手实验室：篝火声（五步完整配方）</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-10-%E7%AB%A0-%E7%8E%A9%E6%B3%95%E7%BB%93%E5%90%88%E7%AF%87%EF%BC%9A%E4%BA%8B%E4%BB%B6%E9%A9%B1%E5%8A%A8%E9%9F%B3%E9%A2%91%E3%80%81%E5%A4%9A%E4%BA%BA%E5%90%8C%E6%AD%A5%E3%80%81%E7%8E%AF%E5%A2%83%E4%B8%8E%E5%8C%BA%E5%9F%9F"><span class="toc-number">11.</span> <span class="toc-text">第 10 章 玩法结合篇：事件驱动音频、多人同步、环境与区域</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#10-1-%E4%BA%8B%E4%BB%B6%E9%A9%B1%E5%8A%A8%E5%93%B2%E5%AD%A6%EF%BC%9A%E8%B0%81%E8%A7%A6%E5%8F%91%E5%A3%B0%E9%9F%B3"><span class="toc-number">11.1.</span> <span class="toc-text">10.1 事件驱动哲学：谁触发声音</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-2-%E9%9F%B3%E9%A2%91%E4%B8%8E%E7%8E%A9%E6%B3%95%E8%A7%A3%E8%80%A6%EF%BC%9A%E6%8E%A5%E5%8F%A3%E5%B1%82"><span class="toc-number">11.2.</span> <span class="toc-text">10.2 音频与玩法解耦：接口层</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-3-%E5%A4%9A%E4%BA%BA%E5%90%8C%E6%AD%A5%EF%BC%9AUAudioComponent-%E6%B2%A1%E6%9C%89%E5%A4%8D%E5%88%B6%EF%BC%88%E6%9C%AC%E7%AB%A0%E6%A0%B8%E5%BF%83%EF%BC%89"><span class="toc-number">11.3.</span> <span class="toc-text">10.3 多人同步：UAudioComponent 没有复制（本章核心）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-4-%E5%90%AC%E8%80%85%E7%AE%A1%E7%90%86"><span class="toc-number">11.4.</span> <span class="toc-text">10.4 听者管理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-5-%E7%8E%AF%E5%A2%83%E4%B8%8E%E5%8C%BA%E5%9F%9F%EF%BC%9AAAudioVolume"><span class="toc-number">11.5.</span> <span class="toc-text">10.5 环境与区域：AAudioVolume</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-6-%E7%A9%BA%E9%97%B4%E5%8C%96%E7%9A%84%E7%8E%A9%E6%B3%95%E4%BB%B7%E5%80%BC%EF%BC%9A%E5%90%AC%E5%A3%B0%E8%BE%A8%E4%BD%8D"><span class="toc-number">11.6.</span> <span class="toc-text">10.6 空间化的玩法价值：听声辨位</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-7-%E5%8A%A8%E6%80%81%E6%B7%B7%E9%9F%B3%EF%BC%9ABoss-%E6%88%98%E5%8E%8B%E4%BD%8E-BGM"><span class="toc-number">11.7.</span> <span class="toc-text">10.7 动态混音：Boss 战压低 BGM</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-8-%E8%AF%AD%E9%9F%B3%E8%81%8A%E5%A4%A9%EF%BC%9A%E5%A4%9A%E4%BA%BA%E6%B8%B8%E6%88%8F%E7%9A%84%E2%80%9D%E6%9C%80%E5%90%8E%E4%B8%80%E5%B1%82%E7%A9%BA%E9%97%B4%E9%9F%B3%E9%A2%91%E2%80%9D"><span class="toc-number">11.8.</span> <span class="toc-text">10.8 语音聊天：多人游戏的”最后一层空间音频”</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-9-%E9%9F%B3%E4%B9%90%E7%B3%BB%E7%BB%9F"><span class="toc-number">11.9.</span> <span class="toc-text">10.9 音乐系统</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#10-10-%E5%8A%A8%E6%89%8B%E5%AE%9E%E9%AA%8C%E5%AE%A4%EF%BC%9A%E5%A4%9A%E4%BA%BA%E5%B0%84%E5%87%BB%E8%84%9A%E6%AD%A5%E5%A3%B0%E6%96%B9%E6%A1%88"><span class="toc-number">11.10.</span> <span class="toc-text">10.10 动手实验室：多人射击脚步声方案</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-11-%E7%AB%A0-%E4%BC%98%E5%8C%96%E7%AF%87%EF%BC%9A%E5%B9%B6%E5%8F%91%E9%A2%84%E7%AE%97%E3%80%81%E6%B5%81%E9%80%81%E3%80%81%E8%99%9A%E6%8B%9F%E5%BE%AA%E7%8E%AF%E3%80%81%E7%A7%BB%E5%8A%A8%E7%AB%AF"><span class="toc-number">12.</span> <span class="toc-text">第 11 章 优化篇：并发预算、流送、虚拟循环、移动端</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#11-1-%E6%80%A7%E8%83%BD%E8%B4%A6%E6%9C%AC%EF%BC%9A%E9%9F%B3%E9%A2%91-CPU-%E4%B8%89%E8%8A%B1%E9%94%80"><span class="toc-number">12.1.</span> <span class="toc-text">11.1 性能账本：音频 CPU 三花销</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#11-2-%E5%B9%B6%E5%8F%91%E9%A2%84%E7%AE%97%EF%BC%88%E7%AC%AC%E4%B8%80%E9%81%93%E9%97%B8%EF%BC%89"><span class="toc-number">12.2.</span> <span class="toc-text">11.2 并发预算（第一道闸）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#11-3-%E6%B5%81%E9%80%81%EF%BC%88%E7%AC%AC%E4%BA%8C%E9%81%93%E9%97%B8%EF%BC%89"><span class="toc-number">12.3.</span> <span class="toc-text">11.3 流送（第二道闸）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#11-4-%E8%99%9A%E6%8B%9F%E5%BE%AA%E7%8E%AF%EF%BC%88%E7%AC%AC%E4%B8%89%E9%81%93%E9%97%B8%EF%BC%89"><span class="toc-number">12.4.</span> <span class="toc-text">11.4 虚拟循环（第三道闸）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#11-5-%E5%86%85%E5%AD%98%EF%BC%9A%E9%A2%84%E8%BD%BD-vs-%E6%B5%81%E9%80%81"><span class="toc-number">12.5.</span> <span class="toc-text">11.5 内存：预载 vs 流送</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#11-6-%E9%81%AE%E6%8C%A1%E4%B8%8E%E6%B7%B7%E5%93%8D%E5%BC%80%E9%94%80"><span class="toc-number">12.6.</span> <span class="toc-text">11.6 遮挡与混响开销</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#11-7-%E7%A7%BB%E5%8A%A8%E7%AB%AF"><span class="toc-number">12.7.</span> <span class="toc-text">11.7 移动端</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#11-8-%E8%B0%83%E8%AF%95%E5%B7%A5%E5%85%B7%E9%93%BE"><span class="toc-number">12.8.</span> <span class="toc-text">11.8 调试工具链</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#11-9-%E7%97%87%E7%8A%B6-%E2%86%92-%E5%AE%9A%E4%BD%8D%E8%A1%A8"><span class="toc-number">12.9.</span> <span class="toc-text">11.9 症状 → 定位表</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#11-10-%E5%8A%A8%E6%89%8B%E5%AE%9E%E9%AA%8C%E5%AE%A4%EF%BC%9A%E5%BC%80%E6%94%BE%E4%B8%96%E7%95%8C-500-%E5%A3%B0%E6%BA%90%E9%A2%84%E7%AE%97%E5%88%86%E8%A7%A3"><span class="toc-number">12.10.</span> <span class="toc-text">11.10 动手实验室：开放世界 500 声源预算分解</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-12-%E7%AB%A0-%E5%B0%81%E8%A3%85%E7%AF%87%EF%BC%9AAudioManager-%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E3%80%81%E6%95%B0%E6%8D%AE%E9%A9%B1%E5%8A%A8%E3%80%81%E6%8E%A5%E5%8F%A3%E6%8A%BD%E8%B1%A1"><span class="toc-number">13.</span> <span class="toc-text">第 12 章 封装篇：AudioManager 设计模式、数据驱动、接口抽象</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#12-1-%E5%BC%95%E6%93%8E%E9%87%8C%E6%B2%A1%E6%9C%89%E2%80%9D%E9%9F%B3%E9%A2%91%E7%AE%A1%E7%90%86%E5%99%A8%E2%80%9D"><span class="toc-number">13.1.</span> <span class="toc-text">12.1 引擎里没有”音频管理器”</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#12-2-%E4%B8%BA%E4%BB%80%E4%B9%88%E6%B8%B8%E6%88%8F%E9%9C%80%E8%A6%81%E5%B0%81%E8%A3%85"><span class="toc-number">13.2.</span> <span class="toc-text">12.2 为什么游戏需要封装</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#12-3-%E9%85%8D%E7%BD%AE%E6%95%B0%E6%8D%AE%E5%B1%82%EF%BC%9A%E4%BA%8B%E4%BB%B6-%E2%86%92-%E8%B5%84%E4%BA%A7%E6%98%A0%E5%B0%84"><span class="toc-number">13.3.</span> <span class="toc-text">12.3 配置数据层：事件 → 资产映射</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#12-4-%E8%BF%90%E8%A1%8C%E6%97%B6%E8%B0%83%E5%BA%A6%E5%B1%82%EF%BC%9AWorldSubsystem"><span class="toc-number">13.4.</span> <span class="toc-text">12.4 运行时调度层：WorldSubsystem</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#12-5-%E7%BB%9F%E4%B8%80%E4%BA%8B%E4%BB%B6-API%EF%BC%9A%E7%8E%A9%E6%B3%95%E5%8F%AA%E8%B0%83%E8%AF%AD%E4%B9%89"><span class="toc-number">13.5.</span> <span class="toc-text">12.5 统一事件 API：玩法只调语义</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#12-6-%E5%8F%82%E6%95%B0%E8%B7%AF%E7%94%B1%EF%BC%9A%E4%BA%8B%E4%BB%B6%E5%8F%82%E6%95%B0-%E2%86%92-FAudioParameter"><span class="toc-number">13.6.</span> <span class="toc-text">12.6 参数路由：事件参数 → FAudioParameter</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#12-7-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E7%AE%A1%E7%90%86"><span class="toc-number">13.7.</span> <span class="toc-text">12.7 生命周期管理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#12-8-%E6%B7%B7%E9%9F%B3%E5%B1%82%E5%B0%81%E8%A3%85%EF%BC%9A%E5%9C%BA%E6%99%AF%E5%87%BD%E6%95%B0"><span class="toc-number">13.8.</span> <span class="toc-text">12.8 混音层封装：场景函数</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#12-9-%E6%95%B0%E6%8D%AE%E9%A9%B1%E5%8A%A8%E4%B8%8E%E7%83%AD%E6%9B%B4%E6%96%B0"><span class="toc-number">13.9.</span> <span class="toc-text">12.9 数据驱动与热更新</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#12-10-%E5%8A%A8%E6%89%8B%E5%AE%9E%E9%AA%8C%E5%AE%A4%EF%BC%9A200-%E8%A1%8C-AudioManager-%E9%AA%A8%E6%9E%B6"><span class="toc-number">13.10.</span> <span class="toc-text">12.10 动手实验室：200 行 AudioManager 骨架</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-13-%E7%AB%A0-%E5%B9%B3%E5%8F%B0%E6%94%AF%E6%8C%81%E4%B8%8E%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98"><span class="toc-number">14.</span> <span class="toc-text">第 13 章 平台支持与性能调优</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#13-1-CVar-%E9%80%9F%E6%9F%A5%E8%A1%A8%EF%BC%88%E4%B8%83%E7%BB%84%EF%BC%8C%E5%86%99%E4%BD%9C%E6%97%B6%E5%B7%B2-grep-%E6%A0%B8%E5%AE%9E%E9%BB%98%E8%AE%A4%E5%80%BC%EF%BC%89"><span class="toc-number">14.1.</span> <span class="toc-text">13.1 CVar 速查表（七组，写作时已 grep 核实默认值）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#13-2-%E8%B0%83%E4%BC%98%E5%B7%A5%E4%BD%9C%E6%B5%81%EF%BC%9A%E4%B8%89%E6%9D%BF%E6%96%A7"><span class="toc-number">14.2.</span> <span class="toc-text">13.2 调优工作流：三板斧</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#13-3-%E5%B8%B8%E8%A7%81%E5%9D%91%E6%B8%85%E5%8D%95"><span class="toc-number">14.3.</span> <span class="toc-text">13.3 常见坑清单</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AC%AC-14-%E7%AB%A0-%E5%B1%80%E9%99%90%E3%80%81%E6%9B%BF%E4%BB%A3%E6%96%B9%E6%A1%88%E4%B8%8E%E5%B1%95%E6%9C%9B"><span class="toc-number">15.</span> <span class="toc-text">第 14 章 局限、替代方案与展望</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#14-1-%E5%B1%80%E9%99%90%E4%B8%8E%E5%AF%B9%E7%AD%96"><span class="toc-number">15.1.</span> <span class="toc-text">14.1 局限与对策</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#14-2-%E6%9B%BF%E4%BB%A3%E8%B7%AF%E5%BE%84"><span class="toc-number">15.2.</span> <span class="toc-text">14.2 替代路径</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#14-3-%E6%BC%94%E8%BF%9B%E6%97%B6%E9%97%B4%E7%BA%BF%E4%B8%8E%E9%98%85%E8%AF%BB%E8%BF%9B%E9%98%B6"><span class="toc-number">15.3.</span> <span class="toc-text">14.3 演进时间线与阅读进阶</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%99%84%E5%BD%95-A-%E6%BA%90%E7%A0%81%E5%9C%B0%E5%9B%BE"><span class="toc-number">16.</span> <span class="toc-text">附录 A 源码地图</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#A-1-%E5%BC%95%E6%93%8E%E6%A0%B8%E5%BF%83%EF%BC%88Runtime-Engine%EF%BC%89"><span class="toc-number">16.1.</span> <span class="toc-text">A.1 引擎核心（Runtime&#x2F;Engine）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#A-2-%E7%BB%84%E4%BB%B6%E4%B8%8E%E6%B8%B8%E6%88%8F%E6%80%A7%EF%BC%88Runtime-Engine%EF%BC%89"><span class="toc-number">16.2.</span> <span class="toc-text">A.2 组件与游戏性（Runtime&#x2F;Engine）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#A-3-%E9%9F%B3%E9%A2%91%E6%B7%B7%E5%90%88%E5%99%A8%EF%BC%88Runtime-AudioMixer%EF%BC%89"><span class="toc-number">16.3.</span> <span class="toc-text">A.3 音频混合器（Runtime&#x2F;AudioMixer）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#A-4-%E6%89%A9%E5%B1%95%E4%B8%8E%E6%8F%92%E4%BB%B6"><span class="toc-number">16.4.</span> <span class="toc-text">A.4 扩展与插件</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%99%84%E5%BD%95-B-%E6%9C%AF%E8%AF%AD%E8%A1%A8%EF%BC%88%E4%B8%AD%E8%8B%B1%E5%AF%B9%E7%85%A7%EF%BC%89"><span class="toc-number">17.</span> <span class="toc-text">附录 B 术语表（中英对照）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%99%84%E5%BD%95-C-%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="toc-number">18.</span> <span class="toc-text">附录 C 参考资料</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%99%84%E5%BD%95-D-%E8%87%AA%E6%B5%8B%E7%BB%83%E4%B9%A0"><span class="toc-number">19.</span> <span class="toc-text">附录 D 自测练习</span></a></li></ol></div></div></div></aside><main class="sidebar-translate" id="content"><div id="post"><article class="hty-card post-block" itemscope itemtype="https://schema.org/Article" style="--smc-primary:#0078E7;"><link itemprop="mainEntityOfPage" href="https://1393650770.github.io/2026/08/26/2026-8-26-UESpatialAudio/"><span hidden itemprop="author" itemscope itemtype="https://schema.org/Person"><meta itemprop="name" content="mx"><meta itemprop="description"></span><span hidden itemprop="publisher" itemscope itemtype="https://schema.org/Organization"><meta itemprop="name" content="MX的花海小屋与玩具恐龙"></span><header class="post-header"><h1 class="post-title" itemprop="name headline">Unreal Engine 空间音频完全教程</h1><div class="post-meta"><div class="post-time"><span class="post-meta-item-icon"><span class="icon iconify" data-icon="ri:calendar-line"></span></span> <time title="Created: 2026-08-26 20:00:00" itemprop="dateCreated datePublished" datetime="2026-08-26T20:00:00+08:00">2026-08-26</time></div><div class="post-classify"><span class="post-category"> <span class="post-meta-item-icon" style="margin-right:3px;"><span class="icon iconify" data-icon="ri:folder-line"></span></span><span itemprop="about" itemscope itemtype="https://schema.org/Thing"><a class="category-item" href="/categories/mx%E7%9A%84%E8%AE%B0%E5%BD%95/" style="--text-color:var(--hty-text-color)" itemprop="url" rel="index"><span itemprop="text">mx的记录</span></a></span></span><span class="post-tag"><span class="post-meta-divider">-</span><a class="tag-item" href="/tags/%E6%8A%80%E6%9C%AF/" style="--text-color:var(--hty-text-color)"><span class="post-meta-item-icon"><span class="icon iconify" data-icon="ri:price-tag-3-line"></span></span><span class="tag-name">技术</span></a><a class="tag-item" href="/tags/%E6%8A%80%E6%9C%AF%E7%AE%80%E8%A6%81/" style="--text-color:var(--hty-text-color)"><span class="post-meta-item-icon"><span class="icon iconify" data-icon="ri:price-tag-3-line"></span></span><span class="tag-name">技术简要</span></a></span></div></div></header><section class="post-body" itemprop="articleBody"><div class="post-content markdown-body"><blockquote>
+<p>从”普通程序员能听懂”到”能改 UE 音频源码”——基于源码逐行考证：空间音频的<strong>原理、使用、<br>玩法结合、优化、封装</strong>五条主线全覆盖</p>
+</blockquote>
+<ul>
+<li><strong>文档版本</strong>：1.0（2026-08-26）</li>
+<li><strong>源码快照</strong>：本地仓库 <code>d:\Project\GameDevelop\UnrealEngine</code>，UE 5.9 移动优化 fork，HEAD <code>6cea9bd20f8f</code></li>
+<li><strong>写作原则</strong>：文中所有”源码考古”块引用的文件路径、行号、函数名均在本仓库中实际验证过；行号只用于定位，请以 <code>路径:函数名</code> 为准</li>
+<li><strong>姊妹文档</strong>：本文是《Nanite》《VSM》《UE 网络架构》之后的第四篇——前两篇是 GPU 侧单进程，网络篇是 CPU 侧跨进程，本篇是 <strong>CPU 侧单进程 + 每音频帧 10ms 级实时循环</strong>。无需先读前三篇，但第 10 章（玩法结合）会引用网络文档的 RPC 章节</li>
+<li><strong>符号说明</strong>：<code>Attenuation</code>&#x3D;衰减，<code>Occlusion</code>&#x3D;遮挡，<code>Reverb</code>&#x3D;混响，<code>Concurrency</code>&#x3D;并发，<code>Spatialization</code>&#x3D;空间化，<code>Panning</code>&#x3D;声像（扬声器声像），<code>Listener</code>&#x3D;听者，<code>Ducking</code>&#x3D;避让；<code>Submix</code>&#x2F;<code>Bus</code>&#x2F;<code>HRTF</code>&#x2F;<code>ITD</code>&#x2F;<code>ILD</code>&#x2F;<code>Ambisonics</code>&#x2F;<code>FOA</code>&#x2F;<code>Focus</code> 不翻译</li>
+</ul>
+<hr>
+<h1 id="第-0-章-导读：这份文档怎么读"><a href="#第-0-章-导读：这份文档怎么读" class="headerlink" title="第 0 章 导读：这份文档怎么读"></a>第 0 章 导读：这份文档怎么读</h1><blockquote>
+<p><strong>TL;DR</strong>｜这份文档把 UE 空间音频拆成五条主线讲透：<strong>原理</strong>（人耳如何定位声音）、<strong>机制</strong><br>（一个声音从游戏代码到耳朵的完整旅程）、<strong>使用</strong>（从零配置一个 3D 声源）、<strong>玩法结合</strong><br>（事件驱动&#x2F;多人同步&#x2F;环境区域）、<strong>优化与封装</strong>（并发预算&#x2F;流送&#x2F;音频管家模式）。<br>心智模型：<strong>空间音频 &#x3D; 衰减（距离感）+ 空间化（方向感）+ 遮挡（隔墙感）+ 混响（空间感）<br>四件套的合奏</strong>。三个深度档位：30 秒看懂、半天学会用、1 天读源码。</p>
+</blockquote>
+<h2 id="0-1-目标读者与前置知识"><a href="#0-1-目标读者与前置知识" class="headerlink" title="0.1 目标读者与前置知识"></a>0.1 目标读者与前置知识</h2><p>目标读者是<strong>普通程序员</strong>：会写 C++ 或蓝图、用过 UE 的场景与组件、想给自己的游戏加上”听声辨位”级别的音频体验。每个音频术语第一次出现都配一句直觉解释。</p>
+<p>前置知识三个：</p>
+<ol>
+<li><strong>C++&#x2F;蓝图与 Actor 组件</strong>：声音挂在场景里（AudioComponent），由代码触发；</li>
+<li><strong>向量与距离</strong>：衰减&#x2F;遮挡全是”声源与听者的距离&#x2F;方向”计算；</li>
+<li><strong>实时循环</strong>：音频线程以 10ms 级周期处理声音——理解”每帧几十个声音 × 每个几毫秒 DSP”的预算思维。</li>
+</ol>
+<p><strong>本文的特别之处</strong>：前四篇只讲”引擎如何工作”，本篇额外回答”<strong>项目里怎么用、怎么管</strong>“——第 9~12 章的”动手实验室”块是新增的配方型内容。</p>
+<h2 id="0-2-三条阅读路径"><a href="#0-2-三条阅读路径" class="headerlink" title="0.2 三条阅读路径"></a>0.2 三条阅读路径</h2><table>
+<thead>
+<tr>
+<th>通道</th>
+<th>读什么</th>
+<th>耗时</th>
+<th>读完能做什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>🚀 30 秒通道</td>
+<td>每章 TL;DR + 第 2 章九类比 + 图 F1</td>
+<td>10 分钟</td>
+<td>跟人讲清空间音频四件套与游戏音频预算</td>
+</tr>
+<tr>
+<td>📚 标准通道</td>
+<td>TL;DR + 正文 + 第 9~12 章（四大重点）</td>
+<td>6~8 小时</td>
+<td>能配衰减&#x2F;遮挡&#x2F;混响、能写事件驱动音频、能做并发预算、能搭 AudioManager</td>
+</tr>
+<tr>
+<td>🔬 源码考古通道</td>
+<td>全部 + 源码考古块 + 附录 A 对照</td>
+<td>1~2 天</td>
+<td>敢打开 <code>Engine/Private/</code> 对照着读，能定位任意音频子系统</td>
+</tr>
+</tbody></table>
+<h2 id="0-3-块标记约定"><a href="#0-3-块标记约定" class="headerlink" title="0.3 块标记约定"></a>0.3 块标记约定</h2><p>与前三篇一致，新增一种：</p>
+<ul>
+<li>**<code>TL;DR</code>**（每章开头）：30 秒读完本章，3~5 句、必须含类比名、不含源码路径；</li>
+<li>**<code>类比实验室</code>**（正文小节）：用普通程序员已懂的东西讲陌生概念；</li>
+<li>**<code>源码考古</code>**（每章末尾，折叠块）：贴真实源码（≤25 行&#x2F;段），逐行翻译；</li>
+<li>**<code>避坑</code>**（正文穿插）：版本差异、已删除类、公开资料不一致；</li>
+<li>**<code>动手实验室</code>**（第 9~12 章新增）：配方型内容——资产配置步骤&#x2F;代码骨架&#x2F;验收标准，给”想马上用起来”的读者。</li>
+</ul>
+<h2 id="0-4-一张图看懂全局"><a href="#0-4-一张图看懂全局" class="headerlink" title="0.4 一张图看懂全局"></a>0.4 一张图看懂全局</h2><figure>
+<figcaption>图 F1　声音的完整旅程（从游戏代码到耳朵；贯穿全文的主干图）</figcaption>
+<svg viewBox="0 0 1240 440" xmlns="http://www.w3.org/2000/svg" font-family="system-ui, 'Microsoft YaHei', sans-serif">
+  <style>
+    .f1-box { fill: #ffffff; stroke: #b9b4a8; stroke-width: 1.5; rx: 8; }
+    .f1-step { fill: #fdf0e0; stroke: #c2702a; stroke-width: 1.5; rx: 8; }
+    .f1-txt { fill: #33312c; font-size: 13px; }
+    .f1-txt-s { fill: #6b675e; font-size: 11.5px; }
+    .f1-title { fill: #33312c; font-size: 13px; font-weight: bold; }
+    .f1-arrow { stroke: #8a857a; stroke-width: 2; marker-end: url(#f1arr); fill: none; }
+    .f1-loop { stroke: #0f766e; stroke-width: 2; stroke-dasharray: 6 4; marker-end: url(#f1arr); fill: none; }
+  </style>
+  <defs>
+    <marker id="f1arr" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#8a857a"/>
+    </marker>
+  </defs>
+
+  <!-- 游戏线程 -->
+  <rect class="f1-box" x="10" y="30" width="220" height="330"/>
+  <text class="f1-title" x="120" y="50" text-anchor="middle">游戏线程（GameThread）</text>
+  <rect class="f1-step" x="25" y="64" width="190" height="40"/>
+  <text class="f1-txt" x="120" y="90" text-anchor="middle">PlaySoundAtLocation / Play</text>
+  <rect class="f1-sub" x="25" y="112" width="190" height="30"/>
+  <text class="f1-txt-s" x="120" y="132" text-anchor="middle">SoundIsAudible 距离门控</text>
+  <rect class="f1-sub" x="25" y="148" width="190" height="30"/>
+  <text class="f1-txt-s" x="120" y="168" text-anchor="middle">并发检查（Concurrency）</text>
+  <rect class="f1-sub" x="25" y="184" width="190" height="30"/>
+  <text class="f1-txt-s" x="120" y="204" text-anchor="middle">构造 FActiveSound</text>
+  <rect class="f1-sub" x="25" y="220" width="190" height="30"/>
+  <text class="f1-txt-s" x="120" y="240" text-anchor="middle">AddNewActiveSound（入队）</text>
+  <rect class="f1-sub" x="25" y="256" width="190" height="60"/>
+  <text class="f1-txt-s" x="120" y="276" text-anchor="middle">并发管理器（第 8 章）</text>
+  <text class="f1-txt-s" x="120" y="292" text-anchor="middle">偷声/避让/预算截断</text>
+
+  <!-- 音频线程 -->
+  <rect class="f1-box" x="260" y="30" width="250" height="330"/>
+  <text class="f1-title" x="385" y="50" text-anchor="middle">音频线程（AudioThread）</text>
+  <rect class="f1-step" x="275" y="64" width="220" height="40"/>
+  <text class="f1-txt" x="385" y="90" text-anchor="middle">FAudioDevice::Update（每帧）</text>
+  <rect class="f1-sub" x="275" y="112" width="220" height="30"/>
+  <text class="f1-txt-s" x="385" y="132" text-anchor="middle">GetSortedActiveWaveInstances（排序）</text>
+  <rect class="f1-sub" x="275" y="148" width="220" height="30"/>
+  <text class="f1-txt-s" x="385" y="168" text-anchor="middle">UpdateWaveInstances</text>
+  <rect class="f1-sub" x="275" y="184" width="220" height="30"/>
+  <text class="f1-txt-s" x="385" y="204" text-anchor="middle">UpdateAttenuation（衰减/遮挡/混响求值）</text>
+  <rect class="f1-sub" x="275" y="220" width="220" height="30"/>
+  <text class="f1-txt-s" x="385" y="240" text-anchor="middle">Parse（生成 FWaveInstance）</text>
+  <rect class="f1-sub" x="275" y="256" width="220" height="30"/>
+  <text class="f1-txt-s" x="385" y="276" text-anchor="middle">StartSources → new FMixerSource</text>
+  <rect class="f1-sub" x="275" y="292" width="220" height="30"/>
+  <text class="f1-txt-s" x="385" y="312" text-anchor="middle">SourceVoice（绑定音频流）</text>
+
+  <!-- 渲染线程 -->
+  <rect class="f1-box" x="540" y="30" width="290" height="330"/>
+  <text class="f1-title" x="685" y="50" text-anchor="middle">音频渲染线程（每 callback 10ms 级）</text>
+  <rect class="f1-step" x="555" y="64" width="260" height="40"/>
+  <text class="f1-txt" x="685" y="90" text-anchor="middle">FMixerSourceManager::ComputeNextBlock</text>
+  <rect class="f1-sub" x="555" y="112" width="260" height="30"/>
+  <text class="f1-txt-s" x="685" y="132" text-anchor="middle">逐源链：解码 → 衰减 → 滤波 → 空间化</text>
+  <rect class="f1-sub" x="555" y="148" width="260" height="30"/>
+  <text class="f1-txt-s" x="685" y="168" text-anchor="middle">Panning 声像 / HRTF 插件（第 5 章）</text>
+  <rect class="f1-sub" x="555" y="184" width="260" height="30"/>
+  <text class="f1-txt-s" x="685" y="204" text-anchor="middle">遮挡 LPF / 混响发送（第 6/7 章）</text>
+  <rect class="f1-sub" x="555" y="220" width="260" height="30"/>
+  <text class="f1-txt-s" x="685" y="240" text-anchor="middle">子混音图（MasterSubmix→Reverb…）</text>
+  <rect class="f1-sub" x="555" y="256" width="260" height="30"/>
+  <text class="f1-txt-s" x="685" y="276" text-anchor="middle">总线/效果链/混响 DSP</text>
+  <rect class="f1-sub" x="555" y="292" width="260" height="30"/>
+  <text class="f1-txt-s" x="685" y="312" text-anchor="middle">最终混合 → 平台输出（扬声器/耳机）</text>
+
+  <!-- 听者 -->
+  <rect class="f1-box" x="860" y="30" width="370" height="330"/>
+  <text class="f1-title" x="1045" y="50" text-anchor="middle">听者（Listener）与空间输入</text>
+  <rect class="f1-sub" x="875" y="64" width="340" height="30"/>
+  <text class="f1-txt-s" x="1045" y="84" text-anchor="middle">监听器位置/朝向（通常绑玩家 Pawn）</text>
+  <rect class="f1-sub" x="875" y="100" width="340" height="30"/>
+  <text class="f1-txt-s" x="1045" y="120" text-anchor="middle">音量区域（AAudioVolume 混响/遮挡优先级）</text>
+  <rect class="f1-sub" x="875" y="136" width="340" height="30"/>
+  <text class="f1-txt-s" x="1045" y="156" text-anchor="middle">Focus 聚焦参数（"音频变焦"）</text>
+  <rect class="f1-sub" x="875" y="172" width="340" height="60"/>
+  <text class="f1-txt-s" x="1045" y="192" text-anchor="middle">音量分层（SoundClass 树 + SoundMix）</text>
+  <text class="f1-txt-s" x="1045" y="208" text-anchor="middle">SFX / 音乐 / 语音 独立推子</text>
+  <rect class="f1-sub" x="875" y="238" width="340" height="30"/>
+  <text class="f1-txt-s" x="1045" y="258" text-anchor="middle">环境声（AmbientSound / 循环声）</text>
+  <rect class="f1-sub" x="875" y="274" width="340" height="60"/>
+  <text class="f1-txt-s" x="1045" y="294" text-anchor="middle">优化（第 11 章）</text>
+  <text class="f1-txt-s" x="1045" y="310" text-anchor="middle">并发预算 / 流送 / 虚拟循环 / 移动端</text>
+
+  <!-- 主流程箭头 -->
+  <path class="f1-arrow" d="M230,165 L258,165"/>
+  <path class="f1-arrow" d="M510,165 L538,165"/>
+  <path class="f1-arrow" d="M830,165 L858,165"/>
+
+  <!-- 回环 -->
+<p>  <text class="f1-txt-s" x="1045" y="390" text-anchor="middle">听者移动&#x2F;音量区域变化 → 下一音频帧重新求值（UpdateAttenuation）</text><br>  <path class="f1-loop" d="M1045,362 C1045,400 385,400 385,362"/></p>
+  <!-- 底部章节标注 -->
+<p>  <text class="f1-txt-s" x="120" y="430" text-anchor="middle">第 3 章</text><br>  <text class="f1-txt-s" x="385" y="430" text-anchor="middle">第 3&#x2F;4 章</text><br>  <text class="f1-txt-s" x="685" y="430" text-anchor="middle">第 5<del>7 章</text><br>  <text class="f1-txt-s" x="1045" y="430" text-anchor="middle">第 9</del>12 章</text><br></svg></p>
+</figure>
+
+<p><strong>读图方法</strong>：一个声音从游戏代码出发，过三道门（距离门控 → 并发检查 → 入队），在音频线程被求值（衰减&#x2F;遮挡&#x2F;混响算好”该多响、多闷、多少回声”），在渲染线程被逐源处理（解码 → 滤波 → 空间化 → 混音），最终被听者”接收”。<strong>四件套（衰减&#x2F;空间化&#x2F;遮挡&#x2F;混响）在音频线程求值、渲染线程执行</strong>——这是全书的骨架。</p>
+<h2 id="0-5-章节地图"><a href="#0-5-章节地图" class="headerlink" title="0.5 章节地图"></a>0.5 章节地图</h2><table>
+<thead>
+<tr>
+<th>篇</th>
+<th>章节</th>
+<th>一句话</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>开篇</td>
+<td>第 0~1 章</td>
+<td>怎么读 + 人耳如何定位声音（四要素）</td>
+</tr>
+<tr>
+<td>概念篇</td>
+<td>第 2 章</td>
+<td>九大概念速览（每个一个类比）</td>
+</tr>
+<tr>
+<td>机制篇</td>
+<td>第 3~8 章</td>
+<td>播放链路 → 衰减 → 空间化 → 遮挡 → 混响 → 并发</td>
+</tr>
+<tr>
+<td><strong>使用篇</strong></td>
+<td><strong>第 9 章</strong></td>
+<td><strong>从零配置一个 3D 声源（重点）</strong></td>
+</tr>
+<tr>
+<td><strong>玩法篇</strong></td>
+<td><strong>第 10 章</strong></td>
+<td><strong>事件驱动 &#x2F; 多人同步 &#x2F; 环境区域（重点）</strong></td>
+</tr>
+<tr>
+<td><strong>优化篇</strong></td>
+<td><strong>第 11 章</strong></td>
+<td><strong>并发预算 &#x2F; 流送 &#x2F; 虚拟循环 &#x2F; 移动端（重点）</strong></td>
+</tr>
+<tr>
+<td><strong>封装篇</strong></td>
+<td><strong>第 12 章</strong></td>
+<td><strong>AudioManager 设计模式 &#x2F; 数据驱动（重点）</strong></td>
+</tr>
+<tr>
+<td>调优篇</td>
+<td>第 13~14 章</td>
+<td>CVar 速查与常见坑 &#x2F; 局限与展望</td>
+</tr>
+<tr>
+<td>附录</td>
+<td>A~D</td>
+<td>源码地图、术语表、参考资料、自测题</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="第-1-章-空间音频是什么：人耳如何定位声音"><a href="#第-1-章-空间音频是什么：人耳如何定位声音" class="headerlink" title="第 1 章 空间音频是什么：人耳如何定位声音"></a>第 1 章 空间音频是什么：人耳如何定位声音</h1><blockquote>
+<p><strong>TL;DR</strong>｜空间音频的目标是”<strong>让玩家凭耳朵知道声音在哪</strong>“。人耳用四要素定位：<strong>ITD</strong><br>（双耳时间差，低频）&#x2F; <strong>ILD</strong>（双耳响度差，高频）&#x2F; <strong>耳廓滤波</strong>（前后上下）&#x2F; <strong>转头动态线索</strong>。<br>游戏把这四要素拆成<strong>四件套</strong>：<strong>衰减</strong>管距离感、<strong>空间化</strong>管方向感、<strong>遮挡</strong>管隔墙感、<br><strong>混响</strong>管空间感。类比：<strong>人耳是立体声雷达，游戏是雷达的模拟器</strong>。</p>
+</blockquote>
+<h2 id="1-1-人耳定位四要素"><a href="#1-1-人耳定位四要素" class="headerlink" title="1.1 人耳定位四要素"></a>1.1 人耳定位四要素</h2><table>
+<thead>
+<tr>
+<th>线索</th>
+<th>全称</th>
+<th>原理</th>
+<th>频段</th>
+<th>游戏实现</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ITD</td>
+<td>Interaural Time Difference</td>
+<td>声音先到近耳（时间差 ~0.6ms 量级）</td>
+<td>低频（波长长，相位差可辨）</td>
+<td>空间化（Panning 近似 + HRTF 插件精确模拟）</td>
+</tr>
+<tr>
+<td>ILD</td>
+<td>Interaural Level Difference</td>
+<td>近耳更响（头部遮挡高频）</td>
+<td>高频（头影效应）</td>
+<td>声像增益差（EqualPower&#x2F;Linear）</td>
+</tr>
+<tr>
+<td>耳廓滤波</td>
+<td>Pinna Filtering</td>
+<td>外耳形状对特定角度滤波</td>
+<td>全频段</td>
+<td>仅 HRTF 插件能模拟（本 fork 无内置）</td>
+</tr>
+<tr>
+<td>动态线索</td>
+<td>Head Movement</td>
+<td>转头时线索变化</td>
+<td>—</td>
+<td>听者朝向（Listener 旋转）</td>
+</tr>
+</tbody></table>
+<p><strong>为什么”前后与上下最难分”<strong>：同一距离球面上的点，ITD&#x2F;ILD 相同——所以”正前方 vs 正后方”在双耳线索上几乎等价。游戏里常见解决：</strong>轻微增益差异 + 混响差异 + 玩家转头</strong>。</p>
+<h2 id="1-2-两条出路：耳机与扬声器"><a href="#1-2-两条出路：耳机与扬声器" class="headerlink" title="1.2 两条出路：耳机与扬声器"></a>1.2 两条出路：耳机与扬声器</h2><ul>
+<li><strong>耳机</strong>：双声道直达双耳，天然适合 ITD&#x2F;ILD&#x2F;HRTF——<strong>双耳渲染（Binaural）</strong>的舞台；</li>
+<li><strong>扬声器</strong>：左扬声器会响进右耳（串音），需要交叉串音消除（Crosstalk Cancellation）才能模拟双耳效果——游戏里通常退化为<strong>声像（Panning）</strong>：把声音按方位角分配到最近的两个扬声器。</li>
+</ul>
+<p><strong>UE 的默认路径</strong>：扬声器声像（Panning，引擎内置）为兜底，<strong>双耳渲染（HRTF）完全交给插件</strong>（第 5 章详述）——这是本 fork 的架构事实。</p>
+<h2 id="1-3-游戏音频四问题-↔-UE-四件套（全书总纲）"><a href="#1-3-游戏音频四问题-↔-UE-四件套（全书总纲）" class="headerlink" title="1.3 游戏音频四问题 ↔ UE 四件套（全书总纲）"></a>1.3 游戏音频四问题 ↔ UE 四件套（全书总纲）</h2><figure>
+<figcaption>图 F2　四件套总纲：玩家听到的每个"空间感"都由一个子系统负责</figcaption>
+<pre>
+ 玩家的问题                          引擎的答案                   章节
+ ┌───────────────────┐   ┌──────────────────────────────┐
+ │ "它离我多远？"      │ → │ Attenuation 衰减（距离→音量曲线） │ Ch4
+ │ "它在哪个方向？"    │ → │ Spatialization 空间化（方位→声道）│ Ch5
+ │ "中间有堵墙？"      │ → │ Occlusion 遮挡（射线+低通+音量）  │ Ch6
+ │ "我在什么房间？"    │ → │ Reverb 混响（回声指纹）           │ Ch7
+ └───────────────────┘   └──────────────────────────────┘
+ 外加两个全局系统：
+ │ "太多声音了怎么办？" │ → │ Concurrency 并发（占线/偷声）     │ Ch8
+ │ "怎么管理全部声音？" │ → │ SoundClass/Mix 分层（调音台推子） │ Ch9
+</pre>
+</figure>
+
+<p><strong>记住这张表</strong>——后文所有章节都是它的展开。</p>
+<h2 id="1-4-UE-实现路径五站预告"><a href="#1-4-UE-实现路径五站预告" class="headerlink" title="1.4 UE 实现路径五站预告"></a>1.4 UE 实现路径五站预告</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">① 游戏代码（PlaySoundAtLocation）          —— 事件出口（Ch3/Ch9）</span><br><span class="line">② 距离门控 + 并发检查                     —— 进不进场（Ch8）</span><br><span class="line">③ 音频线程求值（衰减/遮挡/混响参数）       —— 该多响多闷（Ch4/6/7）</span><br><span class="line">④ 渲染线程执行（解码→滤波→空间化→混音）   —— 变成电信号（Ch5/6/7）</span><br><span class="line">⑤ 听者接收（Listener）                    —— 耳朵（Ch9/10）</span><br></pre></td></tr></table></figure>
+
+<h2 id="1-5-一点历史与本-fork-事实"><a href="#1-5-一点历史与本-fork-事实" class="headerlink" title="1.5 一点历史与本 fork 事实"></a>1.5 一点历史与本 fork 事实</h2><ul>
+<li><strong>UE4 早期</strong>：平台专属音频（XAudio2&#x2F;OpenAL 等 ~95% 平台差异代码）；</li>
+<li><strong>AudioMixer（4.20+）</strong>：统一跨平台渲染器（<code>Engine/Source/Runtime/AudioMixer/</code>），平台层只剩设备查询&#x2F;缓冲提交；</li>
+<li><strong>本 fork（5.9）</strong>：无内置 HRTF&#x2F;ITD DSP（双耳渲染全靠插件，见 <code>au.EnableBinauralAudioForAllSpatialSounds</code>，<code>AudioDevice.cpp:121</code>）；fork 对音频<strong>零改动</strong>（git 验证）。</li>
+</ul>
+<blockquote>
+<p><strong>避坑</strong>：网上很多文章会教你”打开 HRTF”——本 fork 里<strong>没有内置 HRTF</strong>。<code>bSpatialize + SPATIALIZATION_HRTF</code> 只是”请求走插件路径”，必须<strong>启用空间化插件</strong>（项目插件里开<br>Windows Spatial Audio &#x2F; ResonanceAudio &#x2F; Oculus 等）才有双耳效果。第 5.4 章详述。</p>
+</blockquote>
+<h2 id="1-6-小结"><a href="#1-6-小结" class="headerlink" title="1.6 小结"></a>1.6 小结</h2><p>这一章记住三句话：</p>
+<ol>
+<li>人耳四要素：ITD &#x2F; ILD &#x2F; 耳廓滤波 &#x2F; 动态线索；</li>
+<li>游戏四件套：衰减（距离）&#x2F; 空间化（方向）&#x2F; 遮挡（障碍）&#x2F; 混响（空间）；</li>
+<li>耳机走双耳渲染（插件），扬声器走声像（引擎内置）。</li>
+</ol>
+<p>下一章，九大概念各配一个类比。</p>
+<h1 id="第-2-章-九大核心概念速览（每个概念-一个类比）"><a href="#第-2-章-九大核心概念速览（每个概念-一个类比）" class="headerlink" title="第 2 章 九大核心概念速览（每个概念 &#x3D; 一个类比）"></a>第 2 章 九大核心概念速览（每个概念 &#x3D; 一个类比）</h1><blockquote>
+<p><strong>TL;DR</strong>｜UE 音频的九个核心概念，用九个你早就懂的东西类比：<strong>衰减 &#x3D; 音量地图</strong>、<br><strong>空间化 &#x3D; 把声音放进耳朵</strong>、<strong>遮挡 &#x3D; 隔墙听声</strong>、<strong>混响 &#x3D; 房间的回声指纹</strong>、<br><strong>并发 &#x3D; 电话占线</strong>、<strong>SoundClass &#x3D; 调音台推子</strong>、<strong>AudioBus &#x3D; 音频接线板</strong>、<br><strong>虚拟循环 &#x3D; 远处声音放假</strong>、<strong>AudioManager &#x3D; 音频管家</strong>。这一章只立类比不给代码。</p>
+</blockquote>
+<h2 id="2-1-衰减（Attenuation）-声音的”音量地图”"><a href="#2-1-衰减（Attenuation）-声音的”音量地图”" class="headerlink" title="2.1 衰减（Attenuation）&#x3D; 声音的”音量地图”"></a>2.1 衰减（Attenuation）&#x3D; 声音的”音量地图”</h2><p><strong>定义</strong>：声源与听者距离 → 音量的映射曲线。<code>FSoundAttenuationSettings</code>（<code>SoundAttenuation.h:148</code>）定义距离算法（线性&#x2F;对数&#x2F;逆距离等六种）、形状（球&#x2F;胶囊&#x2F;盒&#x2F;锥）与衰减距离。<strong>衰减范围同时也是”听不见就跳过”的性能参数</strong>（SoundIsAudible 门控）。</p>
+<blockquote>
+<p><strong>类比实验室：音量地图</strong><br>想象手机地图的”声音图层”：离声源越近音量越大，曲线形状决定了”多快变小声”。<br>线性 &#x3D; 匀速衰减（直观）；逆距离平方 &#x3D; 真实物理（声音按距离平方衰减）；<br>对数 &#x3D; 可听距离长（远处还有声）。<strong>地图画多大，声音就能传多远——超出地图边界<br>的声音引擎根本不创建</strong>（省 CPU）。</p>
+</blockquote>
+<h2 id="2-2-空间化（Spatialization）-把声音”放”进耳朵里"><a href="#2-2-空间化（Spatialization）-把声音”放”进耳朵里" class="headerlink" title="2.2 空间化（Spatialization）&#x3D; 把声音”放”进耳朵里"></a>2.2 空间化（Spatialization）&#x3D; 把声音”放”进耳朵里</h2><p><strong>定义</strong>：方位角（声源相对听者头部的方向）→ 左右声道增益的转换。默认走<strong>声像（Panning）</strong>：方位角在相邻扬声器间插值（<code>Get3DChannelMap</code>，<code>AudioMixerDevice.cpp:2915</code>）；走插件则用 <strong>HRTF</strong> 模拟完整双耳滤波。</p>
+<blockquote>
+<p><strong>类比实验室：舞台上的音箱</strong><br>声像是”舞台上的两只音箱”：声音在左音箱响一点、右音箱轻一点，你的大脑就以为<br>声源在左边。HRTF 是”直接塞进耳朵的耳机”：连”声音来自斜后方”这种细节都能模拟。<br>简单游戏用音箱（Panning）够了，听声辨位射击游戏才需要耳机（HRTF 插件）。</p>
+</blockquote>
+<h2 id="2-3-遮挡（Occlusion）-隔墙听声"><a href="#2-3-遮挡（Occlusion）-隔墙听声" class="headerlink" title="2.3 遮挡（Occlusion）&#x3D; 隔墙听声"></a>2.3 遮挡（Occlusion）&#x3D; 隔墙听声</h2><p><strong>定义</strong>：声源与听者之间有墙时，声音变”闷”（低通滤波）变”轻”（音量衰减）。引擎用<strong>物理射线</strong>（<code>LineTraceTestByChannel</code>，<code>ActiveSound.cpp:1636</code>）检测遮挡，结果平滑插值避免”咔哒”声。</p>
+<blockquote>
+<p><strong>类比实验室：隔墙听邻居</strong><br>墙后的电视声：听得到”在响”但听不清”在说啥”（高频被墙吸收 &#x3D; 低通滤波），<br>音量也小一截。遮挡就是把”墙”翻译成”低通 + 音量”两个旋钮。</p>
+</blockquote>
+<h2 id="2-4-混响（Reverb）-房间的”回声指纹”"><a href="#2-4-混响（Reverb）-房间的”回声指纹”" class="headerlink" title="2.4 混响（Reverb）&#x3D; 房间的”回声指纹”"></a>2.4 混响（Reverb）&#x3D; 房间的”回声指纹”</h2><p><strong>定义</strong>：声音在房间里的多次反射形成的尾音。引擎把混响发送到专用子混音（<code>MasterReverbSubmix</code>，<code>AudioMixerDevice.cpp:2082</code>），用板式混响算法（<code>FPlateReverbFast</code>）模拟。</p>
+<blockquote>
+<p><strong>类比实验室：房间的回声指纹</strong><br>山洞喊一声有长回声，卫生间拍手有清脆的短回声，客厅几乎没有——每个房间都有<br>自己的”回声指纹”（衰减时间、密度、高频吸收）。混响参数 &#x3D; 给声音盖上房间的<br>指纹章。**玩家闭眼也能听出”我进山洞了”**，这就是玩法价值。</p>
+</blockquote>
+<h2 id="2-5-并发（Concurrency）-电话占线"><a href="#2-5-并发（Concurrency）-电话占线" class="headerlink" title="2.5 并发（Concurrency）&#x3D; 电话占线"></a>2.5 并发（Concurrency）&#x3D; 电话占线</h2><p><strong>定义</strong>：同时播放的声音超过预算时的裁决规则。<code>FSoundConcurrencySettings</code>（<code>SoundConcurrency.h:73</code>）的 <code>MaxCount</code> + <code>ResolutionRule</code>（七种规则：阻止新的&#x2F;停最老的&#x2F;停最远的&#x2F;停最低优先级的……）。</p>
+<blockquote>
+<p><strong>类比实验室：电话占线</strong><br>同一时刻只能有 N 通电话（MaxCount）。第 N+1 通打进来怎么办？七种规则任选：<br>挂断新来的（PreventNew）、挂断最老的（StopOldest）、挂断最远的（StopFarthest）、<br>挂断最不重要的（StopLowestPriority）……还能”不挂断只调小”（Ducking 避让——<br>语音通话时把背景音乐调小，而不是挂断音乐）。</p>
+</blockquote>
+<h2 id="2-6-SoundClass-调音台推子、SoundMix-混音快照"><a href="#2-6-SoundClass-调音台推子、SoundMix-混音快照" class="headerlink" title="2.6 SoundClass &#x3D; 调音台推子、SoundMix &#x3D; 混音快照"></a>2.6 SoundClass &#x3D; 调音台推子、SoundMix &#x3D; 混音快照</h2><p><strong>定义</strong>：<code>USoundClass</code>（<code>SoundClass.h:208</code>）组成层级树（Master → SFX&#x2F;音乐&#x2F;语音&#x2F;UI），每个推子管音量&#x2F;音高&#x2F;低通；<code>USoundMix</code>（<code>SoundMix.h:170</code>）是”一组推子的预设快照”（进战斗时压低音乐、Boss 战时再加一层）。</p>
+<blockquote>
+<p><strong>类比实验室：调音台</strong><br>游戏混音 &#x3D; 电台调音台：主持人（语音）一档、背景音乐一档、音效一档，各有一个<br>推子。SoundMix 是”预录好的推子操作”：按一下”Boss 战”按钮，音乐推子自动<br>拉低 20%、音效推子抬高 10%，还带淡入淡出。</p>
+</blockquote>
+<h2 id="2-7-AudioBus-音频接线板、MetaSound-音频电路板"><a href="#2-7-AudioBus-音频接线板、MetaSound-音频电路板" class="headerlink" title="2.7 AudioBus &#x3D; 音频接线板、MetaSound &#x3D; 音频电路板"></a>2.7 AudioBus &#x3D; 音频接线板、MetaSound &#x3D; 音频电路板</h2><p><strong>定义</strong>：<code>UAudioBus</code>（<code>AudioBus.h:87</code>，头注释原话 “An audio bus is an object which represents an audio patch cord”）是音频的”跳线”——声音送进总线，总线接进子混音；<code>UMetaSoundSource</code>（<code>MetasoundSource.h:89</code>）是<strong>程序化音频的 DSP 图</strong>——采样级实时计算（合成、调制、包络），与 SoundCue 的”波形编排”定位不同。</p>
+<blockquote>
+<p><strong>类比实验室：接线板与电路板</strong><br>AudioBus &#x3D; 电源接线板：所有设备插上去，统一供电（所有声音汇入总线统一处理）。<br>MetaSound &#x3D; 自己焊电路板：不播放现成录音，而是实时”算”出声音——振荡器、<br>包络、滤波器按你连的线路发声。想合成引擎轰鸣？焊一块 MetaSound 电路板。</p>
+</blockquote>
+<h2 id="2-8-虚拟循环-远处声音”放假”、AudioManager-音频管家"><a href="#2-8-虚拟循环-远处声音”放假”、AudioManager-音频管家" class="headerlink" title="2.8 虚拟循环 &#x3D; 远处声音”放假”、AudioManager &#x3D; 音频管家"></a>2.8 虚拟循环 &#x3D; 远处声音”放假”、AudioManager &#x3D; 音频管家</h2><p><strong>定义</strong>：<code>FAudioVirtualLoop</code>（<code>AudioVirtualLoop.cpp</code>）让<strong>远处循环声降频更新</strong>（更新间隔按距离在 0.1s~3.0s 插值）——声音还在逻辑上”播着”，但 CPU 不陪它每帧跑；”音频管理器”引擎<strong>没有内置</strong>（只有 FAudioDevice 设备层）——游戏自己封装（第 12 章）。</p>
+<blockquote>
+<p><strong>类比实验室：远处声音放假</strong><br>远处的瀑布声：玩家听得到（音量小但存在），但引擎不会让它每帧精细计算——<br>放假模式：每 3 秒醒来检查一次”玩家靠近了吗？”，靠近了恢复全职工作。<br>100 个远处循环声 × 每帧计算 &#x3D; CPU 灾难；100 个 × 每 3 秒一次 &#x3D; 几乎免费。</p>
+</blockquote>
+<h2 id="2-9-概念-→-源码落点预告表"><a href="#2-9-概念-→-源码落点预告表" class="headerlink" title="2.9 概念 → 源码落点预告表"></a>2.9 概念 → 源码落点预告表</h2><table>
+<thead>
+<tr>
+<th>概念</th>
+<th>类比</th>
+<th>核心类&#x2F;函数</th>
+<th>章节</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>衰减</td>
+<td>音量地图</td>
+<td>FSoundAttenuationSettings &#x2F; UpdateAttenuation</td>
+<td>Ch4</td>
+</tr>
+<tr>
+<td>空间化</td>
+<td>放进耳朵</td>
+<td>Get3DChannelMap &#x2F; IAudioSpatialization</td>
+<td>Ch5</td>
+</tr>
+<tr>
+<td>遮挡</td>
+<td>隔墙听声</td>
+<td>CheckOcclusion（LineTraceTestByChannel）</td>
+<td>Ch6</td>
+</tr>
+<tr>
+<td>混响</td>
+<td>回声指纹</td>
+<td>MasterReverbSubmix &#x2F; FSubmixEffectReverbSettings</td>
+<td>Ch7</td>
+</tr>
+<tr>
+<td>并发</td>
+<td>电话占线</td>
+<td>FSoundConcurrencySettings &#x2F; EvaluateConcurrency</td>
+<td>Ch8</td>
+</tr>
+<tr>
+<td>SoundClass&#x2F;Mix</td>
+<td>调音台推子</td>
+<td>USoundClass &#x2F; USoundMix &#x2F; UGameplayStatics</td>
+<td>Ch9</td>
+</tr>
+<tr>
+<td>AudioBus&#x2F;MetaSound</td>
+<td>接线板&#x2F;电路板</td>
+<td>UAudioBus &#x2F; UMetaSoundSource</td>
+<td>Ch9</td>
+</tr>
+<tr>
+<td>虚拟循环</td>
+<td>远处放假</td>
+<td>FAudioVirtualLoop</td>
+<td>Ch11</td>
+</tr>
+<tr>
+<td>AudioManager</td>
+<td>音频管家</td>
+<td>FAudioDeviceManager &#x2F; 游戏侧自建</td>
+<td>Ch12</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="第-3-章-播放链路：一个声音的完整旅程"><a href="#第-3-章-播放链路：一个声音的完整旅程" class="headerlink" title="第 3 章 播放链路：一个声音的完整旅程"></a>第 3 章 播放链路：一个声音的完整旅程</h1><blockquote>
+<p><strong>TL;DR</strong>｜一个声音从游戏代码到耳朵走<strong>三线程四阶段</strong>：游戏线程<strong>触发</strong>（PlaySoundAtLocation<br>或 AudioComponent::Play → 距离门控 → 并发检查 → 入队）→ 音频线程<strong>求值</strong>（Update →<br>排序 → UpdateAttenuation 算出衰减&#x2F;遮挡&#x2F;混响参数 → Parse 生成波形实例 → new FMixerSource）<br>→ 渲染线程<strong>执行</strong>（每 10ms 级回调逐源处理：解码→滤波→空间化→混音→输出）→ 听者<strong>接收</strong>。<br>类比：<strong>点外卖——下单（游戏线程）、厨房配菜（音频线程）、炒菜出餐（渲染线程）</strong>。</p>
+</blockquote>
+<h2 id="3-1-两个入口：PlaySoundAtLocation-vs-AudioComponent-Play"><a href="#3-1-两个入口：PlaySoundAtLocation-vs-AudioComponent-Play" class="headerlink" title="3.1 两个入口：PlaySoundAtLocation vs AudioComponent::Play"></a>3.1 两个入口：PlaySoundAtLocation vs AudioComponent::Play</h2><table>
+<thead>
+<tr>
+<th></th>
+<th><code>UGameplayStatics::PlaySoundAtLocation</code></th>
+<th><code>UAudioComponent::Play</code></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>需要组件</td>
+<td>否（纯静态函数）</td>
+<td>是（场景组件）</td>
+</tr>
+<tr>
+<td>生命周期</td>
+<td>播完即毁（FActiveSound 自动清理）</td>
+<td>跟随组件（可停止&#x2F;淡出&#x2F;换声）</td>
+</tr>
+<tr>
+<td>参数控制</td>
+<td>有限（音量&#x2F;音高&#x2F;衰减资产）</td>
+<td>完整（SetVolumeMultiplier&#x2F;FadeIn&#x2F;参数接口）</td>
+</tr>
+<tr>
+<td>适用</td>
+<td>一次性事件（开火&#x2F;拾取&#x2F;爆炸）</td>
+<td>持续声音（引擎&#x2F;环境&#x2F;对话）</td>
+</tr>
+</tbody></table>
+<p>两个入口最终都构造同一个 <code>FActiveSound</code>（活动的声音实例）并 <code>AddNewActiveSound</code> 入队——<strong>殊途同归</strong>。</p>
+<h2 id="3-2-距离门控：听不见就不创建"><a href="#3-2-距离门控：听不见就不创建" class="headerlink" title="3.2 距离门控：听不见就不创建"></a>3.2 距离门控：听不见就不创建</h2><p><code>FAudioDevice::PlaySoundAtLocation</code>（<code>AudioDevice.cpp:6705</code>）先调 <code>SoundIsAudible</code>（:6318，按衰减 MaxDistance 判定）：<strong>听不见 → 直接返回，不创建实例</strong>。</p>
+<p><strong>这是音频性能的第一道闸</strong>：世界里有 500 个声源事件，只有玩家周围的几十个真正创建了 FActiveSound。</p>
+<h2 id="3-3-FActiveSound：一个”活着的声音”"><a href="#3-3-FActiveSound：一个”活着的声音”" class="headerlink" title="3.3 FActiveSound：一个”活着的声音”"></a>3.3 FActiveSound：一个”活着的声音”</h2><p><code>FActiveSound</code>（<code>ActiveSound.h</code>）是<strong>音频线程上的声音实例</strong>：记录声源位置、音量&#x2F;音高倍率、衰减资产引用、并发组、SoundNode 实例状态等。它是音频系统的”灵魂对象”——游戏线程说”播这个声音”，音频线程操作的就是它。</p>
+<h2 id="3-4-音频线程四步：求值"><a href="#3-4-音频线程四步：求值" class="headerlink" title="3.4 音频线程四步：求值"></a>3.4 音频线程四步：求值</h2><p><code>FAudioDevice::Update</code>（<code>AudioDevice.cpp:4725</code>，音频线程每帧）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Update</span><br><span class="line">  → GetSortedActiveWaveInstances（:4159）：所有 WaveInstance 按音量×优先级排序</span><br><span class="line">  → FActiveSound::UpdateWaveInstances（ActiveSound.cpp:1081）：逐声音</span><br><span class="line">      → UpdateAttenuation（:2053）：衰减/遮挡/混响参数求值（第 4/6/7 章）</span><br><span class="line">      → Sound-&gt;Parse（:1225）：SoundCue 节点图展开 → 生成 FWaveInstance</span><br><span class="line">  → StopSources / StartSources（AudioDevice.cpp:4890/:4541）</span><br><span class="line">      → new FMixerSource（AudioMixerDevice.cpp:1546）→ FMixerSourceVoice（:2888）</span><br></pre></td></tr></table></figure>
+
+<p><strong>FWaveInstance</strong>（波形实例）是”一个 FActiveSound 展开出的可播放流”——一个 SoundCue 可以展开出多个 WaveInstance（多节点同时响）。</p>
+<h2 id="3-5-渲染线程：逐源处理"><a href="#3-5-渲染线程：逐源处理" class="headerlink" title="3.5 渲染线程：逐源处理"></a>3.5 渲染线程：逐源处理</h2><p><code>FMixerDevice::OnProcessAudioStream</code>（<code>AudioMixerDevice.cpp:1599</code>，每 10ms 级回调）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Compute the next block of audio in the source manager</span></span><br><span class="line">SourceManager-&gt;<span class="built_in">ComputeNextBlockOfSamples</span>();          <span class="comment">// 逐源：解码→衰减→滤波→空间化→send</span></span><br><span class="line">...</span><br><span class="line">MainSubmixPtr-&gt;<span class="built_in">ProcessAudio</span>(Output);                 <span class="comment">// 子混音图最终混合 → 平台输出</span></span><br></pre></td></tr></table></figure>
+
+<p><code>FMixerSourceManager::ComputeNextBlockOfSamples</code>（<code>AudioMixerSourceManager.cpp:3919</code>）按 SourceId 逐个处理——<strong>每个声源每回调的 DSP 成本 &#x3D; 解码 + 衰减增益 + 滤波器 + 空间化 + 混响发送</strong>，这是第 11 章性能预算的原子单位。</p>
+<h2 id="3-6-线程模型：GameThread-AudioThread-RenderThread"><a href="#3-6-线程模型：GameThread-AudioThread-RenderThread" class="headerlink" title="3.6 线程模型：GameThread &#x2F; AudioThread &#x2F; RenderThread"></a>3.6 线程模型：GameThread &#x2F; AudioThread &#x2F; RenderThread</h2><table>
+<thead>
+<tr>
+<th>线程</th>
+<th>干什么</th>
+<th>同步方式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>游戏线程</td>
+<td>触发声音（Play&#x2F;Stop）、改参数</td>
+<td><code>FAudioThread::RunCommandOnAudioThread</code>（<code>AudioThread.h:58</code>）命令队列</td>
+</tr>
+<tr>
+<td>音频线程</td>
+<td>FActiveSound 求值（衰减&#x2F;遮挡&#x2F;混响）</td>
+<td>命令队列 + 事件</td>
+</tr>
+<tr>
+<td>音频渲染线程</td>
+<td>逐源 DSP + 混合输出</td>
+<td>回调驱动（OnProcessAudioStream）</td>
+</tr>
+</tbody></table>
+<p><strong>关键</strong>：游戏线程<strong>绝不直接碰</strong>音频数据——一切通过命令队列。所以”播放中改音量”是异步生效的（第 9 章的热更新机制）。</p>
+<h2 id="3-7-源码考古：PlaySoundAtLocation-全链"><a href="#3-7-源码考古：PlaySoundAtLocation-全链" class="headerlink" title="3.7 源码考古：PlaySoundAtLocation 全链"></a>3.7 源码考古：PlaySoundAtLocation 全链</h2><blockquote>
+<p><strong>源码考古</strong>：想看真东西的人进。</p>
+<p><strong>① 静态入口</strong>，<code>GameplayStatics.cpp:1526</code>（要点）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">UGameplayStatics::PlaySoundAtLocation</span><span class="params">(...)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	FAudioDevice* AudioDevice = World-&gt;<span class="built_in">GetAudioDevice</span>();</span><br><span class="line">	<span class="comment">// 转发给音频设备；无设备（无音频）直接返回</span></span><br><span class="line">	<span class="keyword">if</span> (AudioDevice)</span><br><span class="line">	&#123;</span><br><span class="line">		AudioDevice-&gt;<span class="built_in">PlaySoundAtLocation</span>(Sound, World, Location, Rotation, VolumeMultiplier, ...);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：蓝图&#x2F;C++ 的音频静态入口是个<strong>薄转发</strong>——真正的逻辑全在<br><code>FAudioDevice</code>。这也是”引擎把音频抽象成设备层”的体现：游戏代码不直接碰<br>平台音频 API。</p>
+<p><strong>② 设备层</strong>，<code>AudioDevice.cpp:6705</code>（要点）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">FAudioDevice::PlaySoundAtLocation</span><span class="params">(...)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (Sound == <span class="literal">nullptr</span>) <span class="keyword">return</span>;</span><br><span class="line">	<span class="comment">// 距离门控：听不见就不创建</span></span><br><span class="line">	<span class="keyword">if</span> (!<span class="built_in">SoundIsAudible</span>(Sound, World, Location, ...)) <span class="keyword">return</span>;</span><br><span class="line">	<span class="comment">// 构造活动声音实例</span></span><br><span class="line">	FActiveSound NewActiveSound;</span><br><span class="line">	NewActiveSound.Priority = Sound-&gt;Priority;</span><br><span class="line">	... <span class="comment">// 填充位置/音量/衰减引用</span></span><br><span class="line">	<span class="built_in">AddNewActiveSound</span>(<span class="built_in">MoveTemp</span>(NewActiveSound), ...);   <span class="comment">// 入队到音频线程</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：设备层的三步——<strong>空检查 → 距离门控 → 构造入队</strong>。<br><code>SoundIsAudible</code> 用衰减的 MaxDistance 算”玩家能不能听到”：听不到直接 return，<br>连 FActiveSound 都不建。<strong>这就是”500 个声源只有几十个真活着”的机制</strong>。</p>
+<p><strong>③ 组件路径</strong>，<code>AudioComponent.cpp:499-673</code>（要点）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">UAudioComponent::Play</span><span class="params">()</span> </span>&#123; <span class="built_in">PlayInternal</span>(...); &#125;</span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">UAudioComponent::PlayInternal</span><span class="params">(...)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">// 构造 FActiveSound 并填充：衰减（三级覆盖）、优先级（bOverridePriority）、</span></span><br><span class="line">	<span class="comment">// 并发组、参数（SetFloatParameter 等）</span></span><br><span class="line">	...</span><br><span class="line">	AudioDevice-&gt;<span class="built_in">AddNewActiveSound</span>(NewSharedActiveSound, ...);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：组件路径与静态路径的区别——组件<strong>携带完整上下文</strong>（衰减覆盖、<br>参数、生命周期），静态函数只带基本参数。**”需要控制的用组件，一次性的用静态函数”**<br>就是从这里来的。</p>
+</blockquote>
+<hr>
+<h1 id="第-4-章-衰减：声音的”音量地图”"><a href="#第-4-章-衰减：声音的”音量地图”" class="headerlink" title="第 4 章 衰减：声音的”音量地图”"></a>第 4 章 衰减：声音的”音量地图”</h1><blockquote>
+<p><strong>TL;DR</strong>｜衰减把”距离”翻译成”音量”：<code>FSoundAttenuationSettings</code>（改名自 FAttenuationSettings）<br>定义<strong>六种距离曲线</strong>（线性&#x2F;对数&#x2F;逆距离…）与<strong>四种形状</strong>（球&#x2F;胶囊&#x2F;盒&#x2F;锥），<code>FalloffDistance</code><br>是”多快衰减”，<code>MaxDistance</code> 同时是<strong>性能门控</strong>（听不见就跳过）。组件可以<strong>三级覆盖</strong><br>（组件覆盖 &gt; 资产 &gt; 声音回退），播放中还能热更新。类比：<strong>音量地图——画多大、怎么<br>渐变，全在这张图上</strong>。</p>
+</blockquote>
+<h2 id="4-1-结构与资产"><a href="#4-1-结构与资产" class="headerlink" title="4.1 结构与资产"></a>4.1 结构与资产</h2><ul>
+<li><code>FBaseAttenuationSettings</code>（<code>Attenuation.h:56</code>）：形状与曲线基类——<code>DistanceAlgorithm</code>（六种曲线）、<code>AttenuationShape</code>（四种形状）、<code>FalloffDistance</code>、<code>CustomAttenuationCurve</code>；</li>
+<li><code>FSoundAttenuationSettings</code>（<code>SoundAttenuation.h:148</code>）：在基类上加空间化&#x2F;遮挡&#x2F;混响开关（第 5&#x2F;6&#x2F;7 章的开关都在这里）；</li>
+<li><code>USoundAttenuation</code>（:452）：<code>FSoundAttenuationSettings</code> 的资产容器。</li>
+</ul>
+<blockquote>
+<p><strong>避坑</strong>：<code>FAttenuationSettings</code> 是 UE 5.1 前的旧名——老教程的类名引用一律按<br><code>FSoundAttenuationSettings</code> 处理。另外 <code>FBaseAttenuationSettings</code> 定义在<br><code>Classes/Engine/Attenuation.h</code>（不是 Classes&#x2F;Sound&#x2F; 下），源码地图容易找错。</p>
+</blockquote>
+<h2 id="4-2-六种距离曲线"><a href="#4-2-六种距离曲线" class="headerlink" title="4.2 六种距离曲线"></a>4.2 六种距离曲线</h2><table>
+<thead>
+<tr>
+<th>DistanceAlgorithm</th>
+<th>形状</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Linear</td>
+<td>直线衰减</td>
+<td>直观调试</td>
+</tr>
+<tr>
+<td>Logarithmic</td>
+<td>对数衰减（快）</td>
+<td>短距离事件声</td>
+</tr>
+<tr>
+<td>Inverse</td>
+<td>逆距离（真实物理）</td>
+<td>枪声&#x2F;爆炸（近处巨响）</td>
+</tr>
+<tr>
+<td>LogReverse</td>
+<td>对数反向</td>
+<td>远处仍有声</td>
+</tr>
+<tr>
+<td>NaturalSound</td>
+<td>自然声（带 dBAttenuationAtMax）</td>
+<td>环境音</td>
+</tr>
+<tr>
+<td>Custom</td>
+<td>自定义曲线</td>
+<td>精确控制</td>
+</tr>
+</tbody></table>
+<h2 id="4-3-四种形状"><a href="#4-3-四种形状" class="headerlink" title="4.3 四种形状"></a>4.3 四种形状</h2><table>
+<thead>
+<tr>
+<th>形状</th>
+<th>语义</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Sphere（球）</td>
+<td>各向均匀</td>
+<td>通用</td>
+</tr>
+<tr>
+<td>Capsule（胶囊）</td>
+<td>轴向拉长</td>
+<td>走廊&#x2F;道路</td>
+</tr>
+<tr>
+<td>Box（盒）</td>
+<td>矩形区域</td>
+<td>房间</td>
+</tr>
+<tr>
+<td>Cone（锥）</td>
+<td>定向（声源朝向）</td>
+<td>喇叭&#x2F;枪口&#x2F;对话</td>
+</tr>
+</tbody></table>
+<p><strong>Cone 的玩法价值</strong>：对话只朝说话者前方传播（背后听不清）——这是”方向性”的一部分，与第 5 章的空间化互补（一个是音量、一个是声道）。</p>
+<h2 id="4-4-距离低通（空气吸收）"><a href="#4-4-距离低通（空气吸收）" class="headerlink" title="4.4 距离低通（空气吸收）"></a>4.4 距离低通（空气吸收）</h2><p><code>bAttenuateWithLPF</code>（<code>SoundAttenuation.h:162</code>）+ <code>LPFRadiusMin/Max</code>&#x2F;<code>LPFFrequencyAtMin/Max</code>（:281-293）：距离越远高频衰减越多（空气吸收低频穿透）——**远处的声音”闷”**，这是真实感的重要来源，也是遮挡之外第二个”低通”旋钮。</p>
+<h2 id="4-5-组件三级覆盖与热更新"><a href="#4-5-组件三级覆盖与热更新" class="headerlink" title="4.5 组件三级覆盖与热更新"></a>4.5 组件三级覆盖与热更新</h2><p><code>UAudioComponent::GetAttenuationSettingsToApply</code>（<code>AudioComponent.cpp:1342</code>）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">① bOverrideAttenuation = true → 用组件的 AttenuationOverrides（结构体覆盖）</span><br><span class="line">② 有 AttenuationSettings 资产 → 用资产</span><br><span class="line">③ 都无 → 回退到 Sound 资产自带的衰减设置</span><br></pre></td></tr></table></figure>
+
+<p><strong>热更新</strong>：播放中用 <code>SetAttenuationOverrides</code> 会通过 <code>SendCommandToActiveSounds</code>（:1367-1388）把新设置异步同步到正在播放的 FActiveSound——**”声音播着改衰减”是支持的**（比如角色进入水下把衰减整体调小）。</p>
+<h2 id="4-6-监听器与-Focus"><a href="#4-6-监听器与-Focus" class="headerlink" title="4.6 监听器与 Focus"></a>4.6 监听器与 Focus</h2><ul>
+<li><strong>监听器</strong>：<code>SetListenerFocusParameters</code>（<code>GameplayStatics.cpp:1390</code>）——“音频变焦”：把注意力集中在目标上，其他声音降权（第 10 章的玩法应用）；</li>
+<li><strong>距离优先级衰减</strong>：<code>bEnablePriorityAttenuation</code>（SoundAttenuation.h:383-401）——远处声音的<strong>优先级也降</strong>（与第 8 章并发联动）。</li>
+</ul>
+<h2 id="4-7-源码考古：UpdateAttenuation-求值"><a href="#4-7-源码考古：UpdateAttenuation-求值" class="headerlink" title="4.7 源码考古：UpdateAttenuation 求值"></a>4.7 源码考古：UpdateAttenuation 求值</h2><blockquote>
+<p><strong>源码考古</strong>：想看真东西的人进。</p>
+<p><code>ActiveSound.cpp:2053-2213</code>（要点）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">FActiveSound::UpdateAttenuation</span><span class="params">(...)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">// 形状求值：球走 AttenuationEval（快速路径），其他形状走 Evaluate（通用）</span></span><br><span class="line">	<span class="keyword">if</span> (AttenuationSettings-&gt;AttenuationShape == EAttenuationShape::Sphere)</span><br><span class="line">		VolumeMultiplier *= AttenuationSettings-&gt;<span class="built_in">AttenuationEval</span>(...);</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">		VolumeMultiplier *= AttenuationSettings-&gt;<span class="built_in">Evaluate</span>(Origin, Location, ...);</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 混响发送：按距离算 ReverbSendLevel（EReverbSendMethod）</span></span><br><span class="line">	<span class="comment">// 优先级衰减：远处降 Priority（与并发联动）</span></span><br><span class="line">	<span class="comment">// Focus：听者聚焦目标时调整</span></span><br><span class="line">	<span class="comment">// 遮挡：CheckOcclusion（第 6 章）</span></span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：<strong>衰减求值 &#x3D; 把”距离”翻译成四个参数</strong>（音量倍率、混响发送量、<br>优先级、遮挡量）。注意球形状走专门的快速路径（<code>AttenuationEval</code>）——球是最常用<br>形状，引擎为它优化。<strong>这一函数是第 4&#x2F;6&#x2F;7 章的交汇点</strong>：衰减、遮挡、混响、优先级<br>都在这里算好，渲染线程只消费结果。</p>
+</blockquote>
+<hr>
+<h1 id="第-5-章-空间化：把声音”放”进耳朵里"><a href="#第-5-章-空间化：把声音”放”进耳朵里" class="headerlink" title="第 5 章 空间化：把声音”放”进耳朵里"></a>第 5 章 空间化：把声音”放”进耳朵里</h1><blockquote>
+<p><strong>TL;DR</strong>｜空间化把”方位角”变成”左右耳的信号差”：默认走<strong>声像（Panning）</strong>——方位角在<br>相邻扬声器间插值（EqualPower 等功率&#x2F;Linear 线性）；<strong>双耳渲染（HRTF）完全交给插件</strong><br>（本 fork 无内置 HRTF DSP）。立体声声源用 <strong>StereoSpread</strong> 在空间里分开左右发射器；<br>近处声音用 <strong>NonSpatializedRadius</strong> 转 2D 防晕。类比：<strong>舞台音箱（Panning）vs<br>直接塞进耳朵的耳机（HRTF）</strong>。</p>
+</blockquote>
+<h2 id="5-1-从位置到方位角"><a href="#5-1-从位置到方位角" class="headerlink" title="5.1 从位置到方位角"></a>5.1 从位置到方位角</h2><p><code>FSoundSource::GetSpatializationParams</code>（<code>Audio.cpp:724</code>）把声源世界坐标 + 听者位置&#x2F;朝向 → 算出 <code>EmitterPosition</code>（声源相对听者的位置）、<code>EmitterAzimuth</code>（方位角）、<code>Distance</code>——<strong>空间化的全部输入</strong>。</p>
+<h2 id="5-2-Panning：相邻扬声器插值"><a href="#5-2-Panning：相邻扬声器插值" class="headerlink" title="5.2 Panning：相邻扬声器插值"></a>5.2 Panning：相邻扬声器插值</h2><p><code>FMixerDevice::Get3DChannelMap</code>（<code>AudioMixerDevice.cpp:2915</code>）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 方位角 → 相邻扬声器索引 + 插值比例</span></span><br><span class="line">...</span><br><span class="line"><span class="comment">// 等功率（EqualPower）：SinCos 插值，保证总功率恒定（声像移动不忽大忽小）</span></span><br><span class="line"><span class="keyword">if</span> (PanningMethod == EPanningMethod::EqualPower)</span><br><span class="line">&#123;</span><br><span class="line">	FMath::<span class="built_in">SinCos</span>(&amp;NextChannelPan, &amp;PrevChannelPan, Fraction * <span class="number">0.5f</span> * PI);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">else</span>  <span class="comment">// Linear：线性插值（简单但声像移动时有&quot;哑点&quot;）</span></span><br><span class="line">&#123;</span><br><span class="line">	NextChannelPan = Fraction;</span><br><span class="line">	PrevChannelPan = <span class="number">1.0f</span> - Fraction;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>扬声器方位角表</strong>：<code>InitializeChannelAzimuthMap</code>（<code>AudioMixerChannelMaps.cpp:147</code>）——立体声：左声道 270°、右声道 90°（从听者头部朝向算）；5.1&#x2F;7.1 有各自的表。<strong>声像 &#x3D; 按方位角在表里找相邻扬声器、按比例分增益</strong>。</p>
+<h2 id="5-3-HRTF-路线：插件体系"><a href="#5-3-HRTF-路线：插件体系" class="headerlink" title="5.3 HRTF 路线：插件体系"></a>5.3 HRTF 路线：插件体系</h2><p><code>IAudioSpatialization</code>（<code>IAudioExtensionPlugin.h:245-388</code>）是空间化插件接口：<code>ProcessAudio(InputData, OutputData)</code> 接收”单声道 + 位置参数”，输出”双声道”。什么时候走插件（<code>FMixerSource::UseObjectBasedSpatialization</code>，<code>AudioMixerSource.cpp:2337</code>）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">① 声道数 &lt;= 插件支持上限（默认 1，可扩展 stereo）</span><br><span class="line">② 空间化插件已启用（项目插件）</span><br><span class="line">③ SpatializationMethod == SPATIALIZATION_HRTF（衰减设置里选）</span><br></pre></td></tr></table></figure>
+
+<p><strong>本 fork 事实</strong>：<code>au.EnableBinauralAudioForAllSpatialSounds</code> &#x2F; <code>au.DisableBinauralSpatialization</code>（<code>AudioDevice.cpp:121/128</code>）只是开关——<strong>没有内置 HRTF DSP</strong>，双耳渲染完全由插件（Windows Spatial Audio &#x2F; ResonanceAudio &#x2F; Oculus 等）提供。<strong>没装插件 &#x3D; 选了 HRTF 也白选</strong>（回退 Panning）。</p>
+<h2 id="5-4-立体声-3D：StereoSpread"><a href="#5-4-立体声-3D：StereoSpread" class="headerlink" title="5.4 立体声 3D：StereoSpread"></a>5.4 立体声 3D：StereoSpread</h2><p><code>FSoundSource::UpdateStereoEmitterPositions</code>（<code>Audio.cpp:625</code>）：立体声声源的左右声道<strong>在空间里分开</strong>（<code>StereoSpread</code> 决定分离宽度，叉积求左右偏移 :644-651），然后左右各算一次方位角——**立体声不是”两个单声道”，而是”空间里左右分开的两个发射器”**。</p>
+<h2 id="5-5-近距转-2D：NonSpatializedRadius"><a href="#5-5-近距转-2D：NonSpatializedRadius" class="headerlink" title="5.5 近距转 2D：NonSpatializedRadius"></a>5.5 近距转 2D：NonSpatializedRadius</h2><p><code>NonSpatializedRadiusStart/End</code>（<code>SoundAttenuation.h:254/258</code>）→ <code>NonSpatializedAmount</code>（<code>Audio.cpp:739-779</code>）→ <code>Get3DChannelMap</code> 里 <code>Lerp(pan, omni, OmniAmount)</code>（:3051-3055）：<strong>声音离耳朵太近时，声像定位反而让人头晕</strong>（”声音贴脸转脑袋”）——近距转 2D 让声音”充满”双耳，防晕。</p>
+<h2 id="5-6-Ambisonics：环境声场"><a href="#5-6-Ambisonics：环境声场" class="headerlink" title="5.6 Ambisonics：环境声场"></a>5.6 Ambisonics：环境声场</h2><p><code>FWaveInstance::bIsAmbisonics</code>（<code>Audio.h:315</code>）：仅支持 <strong>FOA（一阶，4 声道）</strong>；编码走球坐标转换（<code>AudioMixerSourceOutputBuffer.cpp:385</code>），DSP 在 SignalProcessing&#x2F;DSP&#x2F;Ambisonics.h，解码由 SoundFieldRendering 模块完成。<strong>用途</strong>：环境底床（风&#x2F;雨&#x2F;人群）——用 Ambisonics 录制的声场比一堆单声道声源更真实。</p>
+<h2 id="5-7-源码考古：Get3DChannelMap"><a href="#5-7-源码考古：Get3DChannelMap" class="headerlink" title="5.7 源码考古：Get3DChannelMap"></a>5.7 源码考古：Get3DChannelMap</h2><blockquote>
+<p><strong>源码考古</strong>：想看真东西的人进。</p>
+<p><code>AudioMixerDevice.cpp:2915-3010</code>（要点）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">FMixerDevice::Get3DChannelMap</span><span class="params">(<span class="type">const</span> FWaveInstance* InWaveInstance, ...)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">// 1. 从方位角表找相邻扬声器（表在 InitializeChannelAzimuthMap）</span></span><br><span class="line">	<span class="comment">// 2. 算插值比例 Fraction（方位角在两扬声器之间的位置）</span></span><br><span class="line">	<span class="comment">// 3. 等功率/线性插值出两扬声器的增益</span></span><br><span class="line">	<span class="keyword">if</span> (PanningMethod == EPanningMethod::EqualPower)</span><br><span class="line">	&#123;</span><br><span class="line">		FMath::<span class="built_in">SinCos</span>(&amp;NextChannelPan, &amp;PrevChannelPan, Fraction * <span class="number">0.5f</span> * PI);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 4. 非空间化半径混合：Lerp(pan, omni, OmniAmount)</span></span><br><span class="line">	<span class="comment">// 5. 输出声道增益图（每个输出声道一个增益）</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：声像的全部数学——<strong>方位角 → 相邻扬声器 → 增益对</strong>。<br>EqualPower 的 SinCos 插值保证”声音从左到右移动时总响度不变”（线性插值在<br>45° 处会有-3dB 哑点）。这个函数是”空间化的默认实现”——HRTF 插件不存在时<br>它就是 UE 空间音频的全部。</p>
+</blockquote>
+<hr>
+<h1 id="第-6-章-遮挡：隔墙听声"><a href="#第-6-章-遮挡：隔墙听声" class="headerlink" title="第 6 章 遮挡：隔墙听声"></a>第 6 章 遮挡：隔墙听声</h1><blockquote>
+<p><strong>TL;DR</strong>｜遮挡让”墙后的声音”变<strong>闷</strong>（低通滤波）变<strong>轻</strong>（音量衰减）：<code>CheckOcclusion</code><br>用<strong>物理射线</strong>（LineTraceTestByChannel）检测声源与听者之间是否有墙，每 0.1 秒查一次，<br>结果用插值平滑（防”咔哒”）。类比：<strong>隔墙听邻居的电视——听得到在响，听不清在说啥</strong>。</p>
+</blockquote>
+<h2 id="6-1-双通道：闷-轻"><a href="#6-1-双通道：闷-轻" class="headerlink" title="6.1 双通道：闷 + 轻"></a>6.1 双通道：闷 + 轻</h2><p>遮挡的效果 &#x3D; 两个旋钮（<code>SoundAttenuation.h:345-353</code>）：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>OcclusionLowPassFilterFrequency</code></td>
+<td>低通频率（闷的程度）</td>
+</tr>
+<tr>
+<td><code>OcclusionVolumeAttenuation</code></td>
+<td>音量衰减（轻的程度）</td>
+</tr>
+<tr>
+<td><code>OcclusionInterpolationTime</code></td>
+<td>过渡时间（遮挡进出平滑）</td>
+</tr>
+</tbody></table>
+<h2 id="6-2-检测：物理射线"><a href="#6-2-检测：物理射线" class="headerlink" title="6.2 检测：物理射线"></a>6.2 检测：物理射线</h2><p><code>FActiveSound::CheckOcclusion</code>（<code>ActiveSound.cpp:1599</code>）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 每 OcclusionCheckInterval（默认 0.1s）做一次射线检测</span></span><br><span class="line"><span class="keyword">if</span> (!bAsyncOcclusionPending &amp;&amp; (bNeedsInitialOcclusionCheck || bOcclusionCheckDue))</span><br><span class="line">&#123;</span><br><span class="line">	LastOcclusionCheckTime = PlaybackTime;</span><br><span class="line">	<span class="function">FCollisionQueryParams <span class="title">Params</span><span class="params">(SCENE_QUERY_STAT(SoundOcclusion), bUseComplexCollisionForOcclusion)</span></span>;</span><br><span class="line">	<span class="keyword">if</span> (OwnerID &gt; <span class="number">0</span>) Params.<span class="built_in">AddIgnoredActor</span>(OwnerID);   <span class="comment">// 忽略自己</span></span><br><span class="line">	bIsOccluded = WorldPtr-&gt;<span class="built_in">LineTraceTestByChannel</span>(</span><br><span class="line">		SoundLocation, ListenerLocation, OcclusionTraceChannel, Params);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>要点</strong>：<code>OcclusionTraceChannel</code>（默认 Visibility 或 Camera）决定”什么算墙”；<code>bUseComplexCollisionForOcclusion</code> 决定用复杂碰撞还是简单盒；<strong>忽略属主 Actor</strong>（别被自己的身体挡住）。</p>
+<h2 id="6-3-异步路径与平滑"><a href="#6-3-异步路径与平滑" class="headerlink" title="6.3 异步路径与平滑"></a>6.3 异步路径与平滑</h2><ul>
+<li><strong>异步</strong>：<code>au.UseAsyncOcclusionTraces=1</code>（<code>ActiveSound.cpp:27</code>）时走 <code>AsyncLineTraceByChannel</code>（:1659）——射线在物理线程算，结果回调后应用到音频（避免音频线程被物理拖住）；</li>
+<li><strong>平滑</strong>：<code>CurrentOcclusionFilterFrequency</code>&#x2F;<code>CurrentOcclusionVolumeAttenuation</code> 按 <code>OcclusionInterpolationTime</code> 插值（:1674-1694）——**没有插值的话，声音进出墙会”咔哒咔哒”**；</li>
+<li><strong>落地</strong>：<code>FMixerSource::UpdateVolume</code> → <code>SetDistanceAttenuation</code>（<code>AudioMixerSource.cpp:1509</code>）+ 低通 <code>SetLPFFrequency</code>（<code>AudioMixerSourceManager.cpp:2053</code>）。</li>
+</ul>
+<h2 id="6-4-避坑与性能"><a href="#6-4-避坑与性能" class="headerlink" title="6.4 避坑与性能"></a>6.4 避坑与性能</h2><ol>
+<li><strong>被自己&#x2F;头顶遮挡</strong>：射线从声源位置到听者位置，如果声源在玩家自己身上（第一人称枪声），射线会被玩家自己的碰撞挡住——<code>AddIgnoredActor(OwnerID)</code> 解决了一半，另一半是<strong>把声源位置放在枪口而非玩家中心</strong>；</li>
+<li><strong>射线频率</strong>：0.1s 一次是默认——遮挡剧烈的场景（墙多）可以调 <code>OcclusionCheckInterval</code> 或组件级覆盖；</li>
+<li><strong>关闭</strong>：<code>au.DisableOcclusion=1</code>（<code>ActiveSound.cpp:20</code>）——移动端性能兜底。</li>
+</ol>
+<h2 id="6-5-源码考古：CheckOcclusion-三件事"><a href="#6-5-源码考古：CheckOcclusion-三件事" class="headerlink" title="6.5 源码考古：CheckOcclusion 三件事"></a>6.5 源码考古：CheckOcclusion 三件事</h2><blockquote>
+<p><strong>源码考古</strong>：想看真东西的人进。</p>
+<p><code>ActiveSound.cpp:1599-1694</code>（要点已在 6.2 展示）。补充插值段：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 用插值时间平滑遮挡结果（防咔哒）</span></span><br><span class="line"><span class="type">const</span> <span class="type">float</span> InterpTime = OcclusionInterpolationTime &gt; <span class="number">0.0f</span> ? OcclusionInterpolationTime : <span class="number">1.0f</span>;</span><br><span class="line">CurrentOcclusionFilterFrequency = FMath::<span class="built_in">FInterpTo</span>(CurrentOcclusionFilterFrequency, TargetFrequency, DeltaTime, InterpTime);</span><br><span class="line">CurrentOcclusionVolumeAttenuation = FMath::<span class="built_in">FInterpTo</span>(CurrentOcclusionVolumeAttenuation, TargetVolume, DeltaTime, InterpTime);</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：遮挡不是”开&#x2F;关”而是”渐变”——<code>FInterpTo</code> 让低通频率和音量<br>平滑过渡到目标值。**”进墙 0.3 秒内声音逐渐变闷变轻”就是这里实现的**。注意<br><code>InterpTime</code> 的兜底：设 0 时用 1 秒，防止除零。</p>
+</blockquote>
+<hr>
+<h1 id="第-7-章-混响与室内感"><a href="#第-7-章-混响与室内感" class="headerlink" title="第 7 章 混响与室内感"></a>第 7 章 混响与室内感</h1><blockquote>
+<p><strong>TL;DR</strong>｜混响把”房间”翻译成”回声指纹”：声音按距离算出一个 <strong>ReverbSendLevel</strong> 发送到<br><code>MasterReverbSubmix</code>（板式混响 FPlateReverbFast），<strong>AAudioVolume</strong> 按玩家所在的声学区域<br>覆盖混响参数（Priority 仲裁重叠区），<code>FInteriorSettings</code> 让室内外过渡带时间渐变。<br>类比：<strong>房间的回声指纹——山洞长回声、卫生间短回声、客厅没回声</strong>。</p>
+</blockquote>
+<h2 id="7-1-混响是什么：早反射-晚反射"><a href="#7-1-混响是什么：早反射-晚反射" class="headerlink" title="7.1 混响是什么：早反射 + 晚反射"></a>7.1 混响是什么：早反射 + 晚反射</h2><p>混响 &#x3D; 声源停止后房间里的声音残留：<strong>早反射</strong>（前 50ms，几面墙的直接反射，给人”房间大小”感）+ <strong>晚反射</strong>（多次反射的尾音，给”材质”感）。UE 用 <code>Audio::FPlateReverbFast</code>（板式混响算法）模拟。</p>
+<h2 id="7-2-发送链：从声源到混响子混音"><a href="#7-2-发送链：从声源到混响子混音" class="headerlink" title="7.2 发送链：从声源到混响子混音"></a>7.2 发送链：从声源到混响子混音</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">bEnableReverbSend（SoundAttenuation.h:182）</span><br><span class="line">  → UpdateAttenuation 按距离算 ReverbSendLevel（EReverbSendMethod: Linear/CustomCurve/Manual）</span><br><span class="line">  → FMixerSource::UpdateEffects（AudioMixerSource.cpp:1636）：</span><br><span class="line">       MixerSourceVoice-&gt;SetSubmixSendInfo(GetMasterReverbSubmix(), ReverbSendLevel);</span><br><span class="line">  → MasterReverbSubmix（AudioMixerDevice.cpp:2082，默认资产 &quot;MasterReverbSubmixDefault&quot;）</span><br><span class="line">  → FSubmixEffectReverbSettings 驱动 DSP（DecayTime=1.49s/Density=0.85 等）</span><br></pre></td></tr></table></figure>
+
+<p><strong>关键</strong>：混响是<strong>发送（Send）</strong>——原始声音直接进主混音，副本进混响子混音，混合后输出。<code>WetLevel</code>（干湿比）由 ReverbSendLevel 控制。</p>
+<h2 id="7-3-AAudioVolume：声学区域"><a href="#7-3-AAudioVolume：声学区域" class="headerlink" title="7.3 AAudioVolume：声学区域"></a>7.3 AAudioVolume：声学区域</h2><p><code>AAudioVolume</code>（<code>AudioVolume.h:152</code>）是<strong>声学区域</strong>（体积内生效）：</p>
+<table>
+<thead>
+<tr>
+<th>成员</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Priority</code></td>
+<td>重叠区域仲裁（高优先级胜出）</td>
+</tr>
+<tr>
+<td><code>FReverbSettings</code>（ReverbSettings.h:48）</td>
+<td>混响参数（ReverbEffect&#x2F;Volume&#x2F;FadeTime）</td>
+</tr>
+<tr>
+<td><code>FInteriorSettings</code>（:75）</td>
+<td>室内外音量&#x2F;LPF 渐变</td>
+</tr>
+<tr>
+<td><code>SubmixSendSettings</code></td>
+<td>区域内子混音发送切换</td>
+</tr>
+</tbody></table>
+<p><code>FAudioDevice::UpdateAudioVolumeEffects</code>（<code>AudioDevice.cpp:4923</code>）每帧按听者位置查询所在体积并插值。</p>
+<blockquote>
+<p><strong>避坑</strong>：老教程的 <code>AReverbVolume</code>（UE4 时代）在<strong>本 fork 已删除</strong>——功能并入<br><code>AAudioVolume</code>（<code>FReverbSettings</code> 管混响、<code>FInteriorSettings</code> 管室内外、<code>Priority</code><br>管仲裁）。<code>UAudioTrigger</code> 也已删除。见到这两个旧类名按”旧资料”处理。</p>
+</blockquote>
+<h2 id="7-4-室内外过渡"><a href="#7-4-室内外过渡" class="headerlink" title="7.4 室内外过渡"></a>7.4 室内外过渡</h2><p><code>FActiveSound::HandleInteriorVolumes</code>（<code>ActiveSound.cpp:1708</code>）：声源与听者是否同体积 → <code>InteriorVolume/ExteriorVolume/InteriorLPF</code> 带时间渐变（<code>InteriorTime/ExteriorTime</code>）——**”出门瞬间声音从闷变亮”是渐变的，不是跳变的**。</p>
+<h2 id="7-5-房间”指纹”配方表（供第-10-章玩法用）"><a href="#7-5-房间”指纹”配方表（供第-10-章玩法用）" class="headerlink" title="7.5 房间”指纹”配方表（供第 10 章玩法用）"></a>7.5 房间”指纹”配方表（供第 10 章玩法用）</h2><table>
+<thead>
+<tr>
+<th>空间</th>
+<th>DecayTime</th>
+<th>Density</th>
+<th>效果</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>小房间&#x2F;卫生间</td>
+<td>0.3~0.6s</td>
+<td>高</td>
+<td>清脆短回声</td>
+</tr>
+<tr>
+<td>大房间&#x2F;大厅</td>
+<td>1.0~1.5s</td>
+<td>中</td>
+<td>明显尾音</td>
+</tr>
+<tr>
+<td>山洞&#x2F;隧道</td>
+<td>2.0~3.0s</td>
+<td>低</td>
+<td>长而空旷</td>
+</tr>
+<tr>
+<td>室外（默认）</td>
+<td>0.2s</td>
+<td>高</td>
+<td>几乎无回声</td>
+</tr>
+</tbody></table>
+<h2 id="7-6-源码考古：发送点与室内外"><a href="#7-6-源码考古：发送点与室内外" class="headerlink" title="7.6 源码考古：发送点与室内外"></a>7.6 源码考古：发送点与室内外</h2><blockquote>
+<p><strong>源码考古</strong>：想看真东西的人进。</p>
+<p><strong>① 混响发送点</strong>，<code>AudioMixerSource.cpp:1636-1637</code>：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Send the source audio to the master reverb</span></span><br><span class="line">MixerSourceVoice-&gt;<span class="built_in">SetSubmixSendInfo</span>(MixerDevice-&gt;<span class="built_in">GetMasterReverbSubmix</span>(), WaveInstance-&gt;ReverbSendLevel);</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：每个声源在渲染线程把自己的<strong>副本</strong>发送到混响子混音——<br>“发送量（ReverbSendLevel）”是音频线程在 UpdateAttenuation 算好的（按距离&#x2F;曲线）。<br>**混响不改变原始声音，只叠加一个”回声副本”**。</p>
+<p><strong>② 室内外渐变</strong>，<code>ActiveSound.cpp:1708-1769</code>（要点）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 声源与听者是否在同一音量区域 → 决定用 InteriorVolume 还是 ExteriorVolume</span></span><br><span class="line"><span class="comment">// 带 InteriorTime/ExteriorTime 渐变（FInterpTo）</span></span><br><span class="line"><span class="comment">// 跨区时低通取更小者（最闷的规则生效）</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：”室内外”不是开关而是<strong>两组渐变参数</strong>——进门时音量与低通<br>平滑过渡到室内值。跨区取”更闷”的规则保证从亮处看暗处时声音不会突然变亮。</p>
+</blockquote>
+<hr>
+<h1 id="第-8-章-并发与优先级：电话占线"><a href="#第-8-章-并发与优先级：电话占线" class="headerlink" title="第 8 章 并发与优先级：电话占线"></a>第 8 章 并发与优先级：电话占线</h1><blockquote>
+<p><strong>TL;DR</strong>｜混音器有预算（<code>MaximumConcurrentStreams</code>），超预算时要裁决：<code>FSoundConcurrencySettings</code><br>的 <strong>MaxCount + 七种 ResolutionRule</strong>（阻止&#x2F;停最老&#x2F;停最远&#x2F;停最低优先级…）+ <strong>四种作用域</strong><br>（Group&#x2F;Owner&#x2F;OwnerPerSound&#x2F;Sound）；<code>Ducking</code> 是”不挂断只调小”（语音压 BGM）。<br>全局兜底：<code>GetVolumeWeightedPriority</code>（音量×优先级）排序截断。类比：<strong>电话占线——<br>挂谁由规则定</strong>。</p>
+</blockquote>
+<h2 id="8-1-问题：混音器预算"><a href="#8-1-问题：混音器预算" class="headerlink" title="8.1 问题：混音器预算"></a>8.1 问题：混音器预算</h2><p><code>AudioSettings-&gt;MaximumConcurrentStreams</code>（<code>AudioSettings.h:199</code>）是全局同时发声上限（默认约 32-128 视平台）。<code>GetSortedActiveWaveInstances</code>（AudioDevice.cpp:4159）按 <code>GetVolumeWeightedPriority()</code>（<code>Audio.h:482</code>，音量 × 优先级）排序，超出预算的低优先级 WaveInstance 直接不启动。</p>
+<h2 id="8-2-FSoundConcurrencySettings：并发组"><a href="#8-2-FSoundConcurrencySettings：并发组" class="headerlink" title="8.2 FSoundConcurrencySettings：并发组"></a>8.2 FSoundConcurrencySettings：并发组</h2><p><code>FSoundConcurrencySettings</code>（<code>SoundConcurrency.h:73</code>）：</p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>MaxCount</code> &#x2F; <code>PlatformMaxCount</code></td>
+<td>组内最大并发数（平台缩放）</td>
+</tr>
+<tr>
+<td><code>bLimitToOwner</code></td>
+<td>按发声 Actor 限流（每人只能有 N 个脚步声）</td>
+</tr>
+<tr>
+<td><code>ResolutionRule</code></td>
+<td>七种裁决规则（见 8.3）</td>
+</tr>
+<tr>
+<td><code>RetriggerTime</code></td>
+<td>拒播后的冷却（防连点刷屏）</td>
+</tr>
+<tr>
+<td><code>VolumeScale</code></td>
+<td>Ducking 音量（老声音避让）</td>
+</tr>
+<tr>
+<td><code>VoiceStealReleaseTime</code></td>
+<td>被偷声时的淡出时间（防咔哒）</td>
+</tr>
+</tbody></table>
+<h2 id="8-3-七种裁决规则（决策表）"><a href="#8-3-七种裁决规则（决策表）" class="headerlink" title="8.3 七种裁决规则（决策表）"></a>8.3 七种裁决规则（决策表）</h2><table>
+<thead>
+<tr>
+<th>ResolutionRule</th>
+<th>行为</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>PreventNew</code></td>
+<td>新声音直接拒播</td>
+<td>关键声音保护（不打断）</td>
+</tr>
+<tr>
+<td><code>StopOldest</code></td>
+<td>停最老的</td>
+<td>循环声（旧的停掉新的接上）</td>
+</tr>
+<tr>
+<td><code>StopFarthestThenPreventNew</code></td>
+<td>先停最远的，还满就拒新的</td>
+<td>通用</td>
+</tr>
+<tr>
+<td><code>StopFarthestThenOldest</code></td>
+<td>停最远的（默认）</td>
+<td>脚步声&#x2F;枪声</td>
+</tr>
+<tr>
+<td><code>StopLowestPriority</code></td>
+<td>停最低优先级的</td>
+<td>优先级体系完善时</td>
+</tr>
+<tr>
+<td><code>StopQuietest</code></td>
+<td>停最安静的</td>
+<td>保持”响的声音”</td>
+</tr>
+<tr>
+<td><code>StopLowestPriorityThenPreventNew</code></td>
+<td>停低的，还满就拒</td>
+<td>混合策略</td>
+</tr>
+</tbody></table>
+<h2 id="8-4-四种作用域"><a href="#8-4-四种作用域" class="headerlink" title="8.4 四种作用域"></a>8.4 四种作用域</h2><p><code>EConcurrencyMode</code>（<code>SoundConcurrency.h:233</code>）：<code>Group</code>（全局一组）&#x2F; <code>Owner</code>（每个发声 Actor 一组）&#x2F; <code>OwnerPerSound</code>（每个 Actor × 每个声音）&#x2F; <code>Sound</code>（每个声音全局）。**”每人最多 3 个脚步声”&#x3D; Owner 作用域**。</p>
+<h2 id="8-5-Ducking：不挂断只调小"><a href="#8-5-Ducking：不挂断只调小" class="headerlink" title="8.5 Ducking：不挂断只调小"></a>8.5 Ducking：不挂断只调小</h2><p><code>VolumeScale</code>（+ <code>EConcurrencyVolumeScaleMode</code>：Default&#x2F;Distance&#x2F;Priority）：同组声音达到上限时，<strong>老声音不停止而是被调小</strong>（Ducking）——“语音通话时 BGM 自动变小”的标准实现（第 10 章玩法）。</p>
+<h2 id="8-6-求值链"><a href="#8-6-求值链" class="headerlink" title="8.6 求值链"></a>8.6 求值链</h2><p><code>FSoundConcurrencyManager::EvaluateConcurrency</code>（<code>SoundConcurrency.cpp:818</code>）在 <code>AddNewActiveSound</code> 时求值：<code>CanPlaySound</code>（:654，MaxCount + RetriggerTime）→ 超限则 <code>CreateAndEvictActiveSounds</code>（:901，按规则挑选被驱逐者 + VoiceStealReleaseTime 淡出）。</p>
+<h2 id="8-7-全局预算与优先级"><a href="#8-7-全局预算与优先级" class="headerlink" title="8.7 全局预算与优先级"></a>8.7 全局预算与优先级</h2><ul>
+<li><code>Priority</code>：<code>USoundBase::Priority</code>（<code>SoundBase.h:218</code>）+ 组件 <code>bOverridePriority</code>（AudioComponent.cpp:776-783）+ 距离优先级衰减（第 4.6 章）——<strong>优先级 &#x3D; 被保住的资格</strong>；</li>
+<li><code>au.EnableRelativeRenderCostVoiceLimit</code>（<code>AudioDevice.cpp:205</code>）：按<strong>渲染成本</strong>（解码格式&#x2F;声道数）而非纯数量计预算——移动端关键优化项（ADPCM 便宜、PCM 贵，同样预算能装更多 ADPCM）；</li>
+<li><code>au.SetAudioChannelCount</code>（:44）：运行时改全局通道数（测试用）。</li>
+</ul>
+<h2 id="8-8-源码考古：EvaluateConcurrency"><a href="#8-8-源码考古：EvaluateConcurrency" class="headerlink" title="8.8 源码考古：EvaluateConcurrency"></a>8.8 源码考古：EvaluateConcurrency</h2><blockquote>
+<p><strong>源码考古</strong>：想看真东西的人进。</p>
+<p><code>SoundConcurrency.cpp:818-901</code>（要点）：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">bool</span> <span class="title">FSoundConcurrencyManager::EvaluateConcurrency</span><span class="params">(FActiveSound&amp; NewActiveSound, ...)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="comment">// 1. 找到/创建并发组（按 EConcurrencyMode 作用域）</span></span><br><span class="line">	<span class="comment">// 2. CanPlaySound：MaxCount 未满 → 直接通过</span></span><br><span class="line">	<span class="comment">// 3. 满了 → 按 ResolutionRule 挑被驱逐者：</span></span><br><span class="line">	<span class="comment">//    StopOldest → 最老的；StopFarthest → 最远的；</span></span><br><span class="line">	<span class="comment">//    StopLowestPriority → FCompareActiveSounds 排序取最低</span></span><br><span class="line">	<span class="comment">// 4. CreateAndEvictActiveSounds：停掉被驱逐者（带淡出）+ 新声音入组</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段代码在干什么</strong>：并发裁决 &#x3D; <strong>“组”（作用域）+”规则”（ResolutionRule）+”执行”<br>（偷声淡出）</strong>三段式。注意偷声带 <code>VoiceStealReleaseTime</code> 淡出——直接掐断会咔哒。<br><strong>这就是”同屏 50 个枪声只响 20 个”的机制</strong>：谁响由优先级+距离+新旧共同决定。</p>
+</blockquote>
+<h1 id="第-9-章-使用篇：从零开始配置一个-3D-声源"><a href="#第-9-章-使用篇：从零开始配置一个-3D-声源" class="headerlink" title="第 9 章 使用篇：从零开始配置一个 3D 声源"></a>第 9 章 使用篇：从零开始配置一个 3D 声源</h1><blockquote>
+<p><strong>TL;DR</strong>｜把一个声音变成”听声辨位”的 3D 声源需要五步：<strong>素材准备</strong>（单声道优先、压缩选型）<br>→ <strong>资产三件套</strong>（SoundWave → SoundCue → SoundAttenuation）→ <strong>衰减配置</strong>（曲线&#x2F;形状&#x2F;范围）<br>→ <strong>空间化配置</strong>（bSpatialize&#x2F;近距转 2D）→ <strong>摆放播放</strong>（组件 or 静态函数）。配完衰减后<br>再配遮挡与混响。本章末尾给一个”篝火声”完整配方。类比贯穿：<strong>音量地图 → 调音台推子 →<br>接线板</strong>。</p>
+</blockquote>
+<h2 id="9-1-素材准备：单声道是空间化的前提"><a href="#9-1-素材准备：单声道是空间化的前提" class="headerlink" title="9.1 素材准备：单声道是空间化的前提"></a>9.1 素材准备：单声道是空间化的前提</h2><p><strong>空间化 &#x3D; 把一个位置变成左右声道差</strong>——所以 <strong>3D 声源素材必须是单声道（Mono）</strong>。立体声素材做 3D 会用 StereoSpread 拆左右（第 5.4 章），效果不如单声道干净。多声道环绕素材不适合做 3D 声源。</p>
+<p><strong>压缩格式选型</strong>（内存估算公式：采样率 × 位深 × 声道 × 时长 &#x2F; 8，标注：社区实测数据，非本仓库实测）：</p>
+<table>
+<thead>
+<tr>
+<th>格式</th>
+<th>体积</th>
+<th>质量</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>未压缩 PCM</td>
+<td>10.5MB&#x2F;分钟（48kHz 16bit 单声道）</td>
+<td>最高</td>
+<td>极短关键音（枪声）</td>
+</tr>
+<tr>
+<td>ADPCM</td>
+<td>1&#x2F;4 体积</td>
+<td>可接受</td>
+<td>中短音效（脚步&#x2F;UI）</td>
+</tr>
+<tr>
+<td>Vorbis</td>
+<td>1&#x2F;10 体积</td>
+<td>好</td>
+<td>通用压缩</td>
+</tr>
+<tr>
+<td>Opus</td>
+<td>更小</td>
+<td>好（流送友好）</td>
+<td><strong>长环境音流送</strong></td>
+</tr>
+</tbody></table>
+<p><strong>流送开关</strong>：<code>USoundWave::bStreaming</code>（<code>SoundWave.h:455</code>，注释 “Here for legacy code”）——长音频（环境底床&#x2F;音乐）开流送，内存只占一小块缓冲；短音效预载（第 11 章详述）。</p>
+<h2 id="9-2-资产三件套"><a href="#9-2-资产三件套" class="headerlink" title="9.2 资产三件套"></a>9.2 资产三件套</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">USoundWave（波形数据）──引用──▶ USoundCue（播放编排：节点图）──引用──▶ USoundAttenuation（衰减/空间化/遮挡/混响配置）</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><code>USoundCue</code>（<code>SoundCue.h:90</code>）：<code>FirstNode</code>（:95）是节点图入口——放一个 WavePlayer 节点就成；</li>
+<li><code>USoundAttenuation</code>（<code>SoundAttenuation.h:453</code>）：纯配置资产，可被多个声音共享。</li>
+</ul>
+<p><strong>分层资产策略</strong>：<strong>通用衰减资产</strong>（”通用枪声衰减”）供同类声音共享——<strong>改一处，全局生效</strong>；特殊声音用专属资产。这比每声音手调强得多（第 12 章数据驱动的雏形）。</p>
+<h2 id="9-3-衰减资产配置"><a href="#9-3-衰减资产配置" class="headerlink" title="9.3 衰减资产配置"></a>9.3 衰减资产配置</h2><table>
+<thead>
+<tr>
+<th>设置</th>
+<th>推荐</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>DistanceAlgorithm</td>
+<td>枪声&#x2F;爆炸：Inverse；环境音：NaturalSound；通用：Logarithmic</td>
+<td>见第 4.2 章曲线表</td>
+</tr>
+<tr>
+<td>AttenuationShape</td>
+<td>通用 Sphere；定向声源 Cone</td>
+<td>Cone 给喇叭&#x2F;对话</td>
+</tr>
+<tr>
+<td>FalloffDistance</td>
+<td>按玩法定（射击 5000-10000；对话 1000-2000）</td>
+<td>衰减过渡带</td>
+</tr>
+<tr>
+<td>MaxDistance</td>
+<td>&#x3D; FalloffDistance 终点</td>
+<td><strong>同时是性能门控边界</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>避坑</strong>：<code>MaxDistance</code> 不只是”听不到就不响”——它同时决定 <code>SoundIsAudible</code> 的<br><strong>性能门控</strong>（听不见的声音引擎直接跳过创建）。<strong>衰减范围画大了，性能开销也大</strong><br>（更多声音进入”可听”范围）。大世界请给”远处也能听到”的声音单独设计（如<br>枪声用 Inverse 曲线天然远处小声，而不是把 MaxDistance 拉爆）。</p>
+</blockquote>
+<h2 id="9-4-空间化配置"><a href="#9-4-空间化配置" class="headerlink" title="9.4 空间化配置"></a>9.4 空间化配置</h2><table>
+<thead>
+<tr>
+<th>设置</th>
+<th>推荐</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>bSpatialize</code>（<code>SoundAttenuation.h:158</code>）</td>
+<td>true</td>
+<td>3D 声源总开关</td>
+</tr>
+<tr>
+<td><code>SpatializationAlgorithm</code>（:210）</td>
+<td>Panning（默认）或 HRTF</td>
+<td>HRTF 需要插件（第 5.3 章）</td>
+</tr>
+<tr>
+<td><code>BinauralRadius</code>（:218）</td>
+<td>视玩法</td>
+<td>HRTF 生效半径</td>
+</tr>
+<tr>
+<td><code>NonSpatializedRadiusStart/End</code>（:254&#x2F;:258）</td>
+<td>50&#x2F;100</td>
+<td><strong>近处转 2D 防晕</strong>（贴脸声音不转脑袋）</td>
+</tr>
+<tr>
+<td><code>StereoSpread</code>（:266）</td>
+<td>0.2~0.5</td>
+<td>立体声素材的左右分离宽度</td>
+</tr>
+</tbody></table>
+<p><strong>避坑</strong>：选了 <code>SPATIALIZATION_HRTF</code> 但没启用空间化插件 → 静默回退 Panning（第 5.3 章）——调试时用 <code>au.3dVisualize.SpatialSources</code>（AudioDebug.cpp:79）看哪些声源真的走了 HRTF。</p>
+<h2 id="9-5-遮挡与混响配置"><a href="#9-5-遮挡与混响配置" class="headerlink" title="9.5 遮挡与混响配置"></a>9.5 遮挡与混响配置</h2><ul>
+<li><strong>遮挡</strong>（<code>SoundAttenuation.h:345-353</code>）：<code>bEnableOcclusion=true</code> + <code>OcclusionTraceChannel</code>（选 Visibility 或自定义通道）+ 低通频率（<del>2000Hz）+ 音量衰减（</del>0.3）+ 插值时间（0.3s）；</li>
+<li><strong>混响</strong>：<code>bEnableReverbSend=true</code>（:182）——声音自动按距离发送到 MasterReverbSubmix（第 7 章）。</li>
+</ul>
+<p><strong>避坑</strong>：遮挡射线通道别用 <code>ECC_WorldStatic</code> 以外的奇怪通道——射线只测<strong>配置的通道</strong>，墙的碰撞通道必须匹配，否则”穿了墙还清脆”。</p>
+<h2 id="9-6-摆放与播放：组件-vs-静态函数"><a href="#9-6-摆放与播放：组件-vs-静态函数" class="headerlink" title="9.6 摆放与播放：组件 vs 静态函数"></a>9.6 摆放与播放：组件 vs 静态函数</h2><table>
+<thead>
+<tr>
+<th>场景</th>
+<th>用</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>一次性事件（开火&#x2F;拾取）</td>
+<td><code>PlaySoundAtLocation</code></td>
+<td>无需持有，播完自动清理</td>
+</tr>
+<tr>
+<td>持续声音（引擎&#x2F;环境&#x2F;对话）</td>
+<td><code>UAudioComponent</code></td>
+<td>需要停止&#x2F;淡出&#x2F;换声&#x2F;参数</td>
+</tr>
+<tr>
+<td>需要参数化（音量&#x2F;音高&#x2F;自定义参数）</td>
+<td><code>UAudioComponent</code></td>
+<td>完整参数接口</td>
+</tr>
+</tbody></table>
+<p><strong>组件挂法</strong>：附加到发声 Actor（枪口组件、引擎位置）——<code>Sound</code> 属性 + <code>bAutoActivate</code>；代码用 <code>Play</code>&#x2F;<code>Stop</code>&#x2F;<code>FadeIn</code>&#x2F;<code>FadeOut</code>（<code>AudioComponent.h:500-583</code>）。</p>
+<h2 id="9-7-SoundCue-节点图：播放编排"><a href="#9-7-SoundCue-节点图：播放编排" class="headerlink" title="9.7 SoundCue 节点图：播放编排"></a>9.7 SoundCue 节点图：播放编排</h2><p><code>USoundNode</code>（<code>SoundNode.h:57</code>）节点体系（<code>ChildNodes</code> + <code>DECLARE_SOUNDNODE_ELEMENT</code> 每实例状态 :26-54）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">WavePlayer（基础播放）</span><br><span class="line">  + Random（随机选变体）        → 脚步声多样化</span><br><span class="line">  + Looping（循环）             → 环境声/引擎</span><br><span class="line">  + DistanceCrossFade（距离交叉淡化）→ 脚步声音量随距离渐变而非硬切</span><br><span class="line">  + Attenuation（节点级衰减覆盖）  → 同一 Cue 不同场景用不同衰减</span><br><span class="line">  + ParamCrossFade（参数驱动交叉淡化）→ 转速参数切换引擎低/高转速声</span><br><span class="line">  + Doppler（多普勒）           → 高速经过的&quot;嗡——&quot;</span><br><span class="line">  + Modulator（随机音量/音高）   → 每次播放略不同</span><br></pre></td></tr></table></figure>
+
+<p><strong>玩法技巧</strong>：<code>USoundNodeDistanceCrossFade</code>（<code>SoundNodeDistanceCrossFade.h:82</code>）——脚步声的近&#x2F;远两个变体交叉淡化，比单一声音+衰减真实得多。</p>
+<h2 id="9-8-参数化：运行时的”旋钮”"><a href="#9-8-参数化：运行时的”旋钮”" class="headerlink" title="9.8 参数化：运行时的”旋钮”"></a>9.8 参数化：运行时的”旋钮”</h2><p><code>ISoundParameterControllerInterface</code>（<code>SoundParameterControllerInterface.h:24</code>）是统一的参数接口：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// AudioComponent 上直接用：</span></span><br><span class="line">AudioComp-&gt;<span class="built_in">SetFloatParameter</span>(<span class="string">&quot;EngineRPM&quot;</span>, CurrentRPM);   <span class="comment">// AudioComponent.h:548</span></span><br><span class="line">AudioComp-&gt;<span class="built_in">SetIntParameter</span>(<span class="string">&quot;Gear&quot;</span>, <span class="number">3</span>);                    <span class="comment">// :541</span></span><br><span class="line">AudioComp-&gt;<span class="built_in">SetTriggerParameter</span>(<span class="string">&quot;ShiftUp&quot;</span>);                <span class="comment">// :534</span></span><br></pre></td></tr></table></figure>
+
+<p><code>FAudioParameter</code>（<code>AudioParameter.h:92</code>，5.9 已迁到 AudioExtensions 模块）是参数的传输结构。<strong>同一套参数通路</strong>：SoundCue 的 <code>WaveParam</code>&#x2F;<code>ParamCrossFade</code> 节点消费它，MetaSound 的 <code>FRuntimeInput</code> 也消费它——<strong>换引擎系统不改玩法代码</strong>。</p>
+<h2 id="9-9-音量分层：调音台推子"><a href="#9-9-音量分层：调音台推子" class="headerlink" title="9.9 音量分层：调音台推子"></a>9.9 音量分层：调音台推子</h2><p><strong>SoundClass 树</strong>（<code>SoundClass.h:208</code>）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Master</span><br><span class="line">├─ SFX（音效）     ← 3D 声源都挂这里</span><br><span class="line">├─ Music（音乐）   ← bIsMusic=true（:107）</span><br><span class="line">├─ Voice（语音）   ← 对话/语音聊天</span><br><span class="line">└─ UI（界面）      ← bIsUISound=true（:103，不衰减不空间化）</span><br></pre></td></tr></table></figure>
+
+<p><strong>动态混音</strong>（<code>GameplayStatics.h:881-937</code>）：<code>SetBaseSoundMix</code> &#x2F; <code>PushSoundMixModifier</code> &#x2F; <code>PopSoundMixModifier</code> &#x2F; <code>SetSoundMixClassOverride</code>（带 <code>bApplyToChildren=true</code>）——进战斗推一个 Mix（音乐 -50%），出战斗 Pop。</p>
+<h2 id="9-10-动手实验室：篝火声（五步完整配方）"><a href="#9-10-动手实验室：篝火声（五步完整配方）" class="headerlink" title="9.10 动手实验室：篝火声（五步完整配方）"></a>9.10 动手实验室：篝火声（五步完整配方）</h2><table>
+<thead>
+<tr>
+<th>步骤</th>
+<th>资产&#x2F;设置</th>
+<th>验收标准</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>① 素材</td>
+<td>火苗 loop（单声道、Opus、流送）+ 2~3 个噼啪 one-shot（单声道、Vorbis）</td>
+<td>素材可独立播放</td>
+</tr>
+<tr>
+<td>② Cue</td>
+<td><code>Cue_Fire</code>：Looping 包火苗；<code>Cue_Crackle</code>：Random 包噼啪</td>
+<td>两 Cue 均响</td>
+</tr>
+<tr>
+<td>③ 衰减</td>
+<td><code>Atten_Fire</code>：Sphere、NaturalSound、FalloffDistance&#x3D;1500、bSpatialize&#x3D;true、NonSpatializedRadius 50&#x2F;100、bEnableOcclusion&#x3D;true、bEnableReverbSend&#x3D;true</td>
+<td>走近变响、绕圈方向感正确、隔墙变闷</td>
+</tr>
+<tr>
+<td>④ 摆放</td>
+<td>篝火 Actor 上挂 AudioComponent（Sound&#x3D;Cue_Fire，bAutoActivate）；噼啪用蓝图定时 <code>PlaySoundAtLocation(Cue_Crackle, 火堆位置)</code></td>
+<td>火苗持续响，噼啪随机响</td>
+</tr>
+<tr>
+<td>⑤ 验收</td>
+<td>玩家绕篝火走一圈：音量渐变、方向清晰、隔墙闷、室内回声</td>
+<td>全部符合 &#x3D; 空间音频四件套全生效</td>
+</tr>
+</tbody></table>
+<p><strong>检查清单</strong>：<code>au.3dVisualize.Attenuation=1</code> 看衰减球；<code>stat audio</code> 看这个声音占了几个 WaveInstance；确认没被并发规则吞掉（第 8 章）。</p>
+<hr>
+<h1 id="第-10-章-玩法结合篇：事件驱动音频、多人同步、环境与区域"><a href="#第-10-章-玩法结合篇：事件驱动音频、多人同步、环境与区域" class="headerlink" title="第 10 章 玩法结合篇：事件驱动音频、多人同步、环境与区域"></a>第 10 章 玩法结合篇：事件驱动音频、多人同步、环境与区域</h1><blockquote>
+<p><strong>TL;DR</strong>｜音频与玩法结合的三原则：<strong>事件驱动</strong>（玩法发事件，音频响应——不轮询）、<br><strong>多人同步</strong>（UAudioComponent 无复制——用 unreliable NetMulticast RPC 播声音，服务器<br>只裁剪广播，不占游戏带宽）、<strong>环境区域</strong>（AAudioVolume 让”进山洞声音就变”自动发生）。<br>类比：<strong>音频是玩法的”信号灯”——玩家靠耳朵判断局势，你的代码负责让信号灯亮对</strong>。</p>
+</blockquote>
+<h2 id="10-1-事件驱动哲学：谁触发声音"><a href="#10-1-事件驱动哲学：谁触发声音" class="headerlink" title="10.1 事件驱动哲学：谁触发声音"></a>10.1 事件驱动哲学：谁触发声音</h2><p><strong>原则</strong>：玩法逻辑<strong>发事件</strong>，音频系统<strong>响应事件</strong>——而不是音频自己轮询状态。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">✅ 推荐：伤害结算 → OnDamaged 事件 → PlaySoundAtLocation(命中音, 位置)</span><br><span class="line">❌ 避免：音频每帧检查&quot;玩家血量 &lt; 50 了吗&quot;→ 决定播不播心跳声</span><br></pre></td></tr></table></figure>
+
+<p><code>PlaySound2D</code> &#x2F; <code>PlaySoundAtLocation</code>（<code>GameplayStatics.h:629/681</code>）就是”事件出口”。<strong>一音多用</strong>：同一个枪声 Cue 被开火&#x2F;命中&#x2F;敌人&#x2F;队友共用——资产复用是音频的带宽（这里指内容量）。</p>
+<h2 id="10-2-音频与玩法解耦：接口层"><a href="#10-2-音频与玩法解耦：接口层" class="headerlink" title="10.2 音频与玩法解耦：接口层"></a>10.2 音频与玩法解耦：接口层</h2><p>玩法代码不应该贴资产名（”PlaySoundAtLocation 传那个枪声资产”）——<strong>玩法发语义事件，音频层映射资产</strong>（第 12 章封装详述）。中间层方案：事件分发器（GameplayMessage 模式）、接口（IAbilityAudioEvent）、或简单的枚举参数。</p>
+<p><strong>“音频即信号”<strong>：玩家凭声音判断局势——脚步渐近（方向+距离）、枪声方位（听声辨位）、Boss 技能前摇音（预警）。</strong>空间音频做得好的游戏 &#x3D; 玩家可以闭眼打</strong>。Friendslop 这类多人射击正是这个理念的极致。</p>
+<h2 id="10-3-多人同步：UAudioComponent-没有复制（本章核心）"><a href="#10-3-多人同步：UAudioComponent-没有复制（本章核心）" class="headerlink" title="10.3 多人同步：UAudioComponent 没有复制（本章核心）"></a>10.3 多人同步：UAudioComponent 没有复制（本章核心）</h2><p><strong>已实测</strong>：<code>UAudioComponent</code> <strong>没有</strong> <code>GetLifetimeReplicatedProps</code>&#x2F;<code>DOREPLIFETIME</code>——声音不会自动同步。标准做法：</p>
+<figure>
+<figcaption>图 F3　多人音频同步：服务器发事件，各客户端本地播放（unreliable NetMulticast RPC）</figcaption>
+<pre>
+ 服务器（事件发生：玩家 A 开火）            客户端 B（听到）
+    │                                        │
+    │ ① Multicast_PlaySound（unreliable RPC）│
+    │ ────────────────────────────────────▶  │
+    │   参数：Cue 引用 + 世界位置             │ ② 本地 PlaySoundAtLocation
+    │                                        │    → 衰减/空间化/遮挡全套本地计算
+    │   （服务器本地也播——Multicast 语义）     │    → 音画同步（各自本地计算延迟最低）
+</pre>
+</figure>
+
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">UFUNCTION</span>(NetMulticast, Unreliable)</span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">Multicast_PlaySoundAtLocation</span><span class="params">(USoundBase* Sound, FVector Location)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p><strong>要点</strong>（与《UE 网络架构完全教程》Ch6 呼应）：</p>
+<ol>
+<li><strong>Unreliable</strong>：声音事件丢了就丢了（下一秒可能又来一个）——别用 Reliable 占游戏可靠带宽；</li>
+<li><strong>只传”事件 + 位置”<strong>：声音内容各客户端本地有（资产）——</strong>不占游戏带宽</strong>（声音数据不走网络，走资产分发）；</li>
+<li><strong>OwningActor 参数</strong>：<code>PlaySoundAtLocation</code> 的 OwningActor 影响服务器相关性裁剪（第 7 章 Relevancy）——<strong>传对 OwningActor，不然服务器会漏广播</strong>；</li>
+<li><strong>策略差异</strong>：一次性事件（枪声）用 RPC；持续声音（引擎轰鸣）用”拥有者的 AudioComponent + 位置属性复制”或本地预测——<strong>别把循环声也 RPC 每帧发</strong>。</li>
+</ol>
+<h2 id="10-4-听者管理"><a href="#10-4-听者管理" class="headerlink" title="10.4 听者管理"></a>10.4 听者管理</h2><ul>
+<li><strong>Listener 绑玩家 Pawn</strong>：默认监听器跟随主玩家——切观战&#x2F;死亡时 <code>SetListener</code> 切到目标；</li>
+<li><strong>2D UI 音</strong>：<code>bIsUISound=true</code>（SoundClass.h:103）的声音不空间化不衰减——菜单点击、血条警告走 UI SoundClass。</li>
+</ul>
+<h2 id="10-5-环境与区域：AAudioVolume"><a href="#10-5-环境与区域：AAudioVolume" class="headerlink" title="10.5 环境与区域：AAudioVolume"></a>10.5 环境与区域：AAudioVolume</h2><p><strong>AAudioVolume</strong>（<code>AudioVolume.h:152</code>）是”声学区域”：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">山洞体积（Priority=10）：ReverbSettings=长回声（DecayTime 2.5s）+ InteriorSettings=闷</span><br><span class="line">室外默认（Priority=0）： 无混响、无遮挡</span><br><span class="line">重叠区：Priority 高者胜出（山洞 &gt; 室外）</span><br></pre></td></tr></table></figure>
+
+<p><strong>玩法价值</strong>：玩家进洞瞬间声音自动”变山洞”——<strong>空间感是自动的</strong>（UpdateAudioVolumeEffects 每帧按听者位置插值），不需要代码。水下（全部声音低通+慢速）、密闭舱室（强混响）、走廊（中混响+轻微遮挡）都是同一个配方。</p>
+<h2 id="10-6-空间化的玩法价值：听声辨位"><a href="#10-6-空间化的玩法价值：听声辨位" class="headerlink" title="10.6 空间化的玩法价值：听声辨位"></a>10.6 空间化的玩法价值：听声辨位</h2><table>
+<thead>
+<tr>
+<th>玩法</th>
+<th>音频实现</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>敌我定位</td>
+<td>脚步声&#x2F;枪声走完整空间化（HRTF 插件效果最佳）</td>
+</tr>
+<tr>
+<td>注意力引导</td>
+<td><code>SetGlobalListenerFocusParameters</code>（<code>GameplayStatics.cpp:1390</code>）：聚焦目标 → 其他声音降权（”音频变焦”）</td>
+</tr>
+<tr>
+<td>预警</td>
+<td>远处枪声 &#x3D; Inverse 衰减 + 低通（先听到闷响，近了才清脆）</td>
+</tr>
+<tr>
+<td>状态提示</td>
+<td>心跳声（低血量）用 2D 但带节奏变化——“状态信号”与”空间信号”分开</td>
+</tr>
+</tbody></table>
+<h2 id="10-7-动态混音：Boss-战压低-BGM"><a href="#10-7-动态混音：Boss-战压低-BGM" class="headerlink" title="10.7 动态混音：Boss 战压低 BGM"></a>10.7 动态混音：Boss 战压低 BGM</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">进战斗：PushSoundMixModifier(Mix_Combat)   → Music -50%，SFX +20%</span><br><span class="line">Boss 战：SetSoundMixClassOverride(Mix_Combat, MusicClass, Volume=-80%, bApplyToChildren=true)</span><br><span class="line">结束：   PopSoundMixModifier(Mix_Combat)</span><br></pre></td></tr></table></figure>
+
+<p><strong>语音 Ducking</strong>（第 8.5 章）：语音 SoundClass 与 BGM 同组 Concurrency + VolumeScale——<strong>语音一响，BGM 自动变小</strong>（不挂断只调小）。</p>
+<h2 id="10-8-语音聊天：多人游戏的”最后一层空间音频”"><a href="#10-8-语音聊天：多人游戏的”最后一层空间音频”" class="headerlink" title="10.8 语音聊天：多人游戏的”最后一层空间音频”"></a>10.8 语音聊天：多人游戏的”最后一层空间音频”</h2><ul>
+<li><strong>网络层</strong>：<code>UVoiceChannel</code>（<code>VoiceChannel.h:19</code>）——网络文档里”Voice 通道”的实体；</li>
+<li><strong>采集&#x2F;编解码</strong>：<code>FVoiceModule::CreateVoiceCapture/Encoder/Decoder</code>（<code>VoiceModule.h:70-91</code>，Opus 实现）；</li>
+<li><strong>音频侧</strong>：<code>VoiPSoundClass</code>（<code>AudioSettings.h:156</code>）——语音独立 SoundClass，可单独调音量。</li>
+</ul>
+<p><strong>玩法</strong>：队友语音做<strong>空间化</strong>（队友在左边说话，声音从左边来）——Friendslop 类游戏的沉浸感关键。</p>
+<h2 id="10-9-音乐系统"><a href="#10-9-音乐系统" class="headerlink" title="10.9 音乐系统"></a>10.9 音乐系统</h2><ul>
+<li><strong>bIsMusic</strong>（SoundClass.h:107）：音乐独立 SoundClass 层（不衰减不遮挡）；</li>
+<li><strong>2D 音乐 + 3D 环境音分层</strong>：音乐永远 2D（全景），环境音 3D（空间）——混音台思路；</li>
+<li><strong>状态驱动切换</strong>：低血量→紧张音乐、Boss→战斗音乐——用 SoundMix 渐变而非硬切（硬切 &#x3D; 音乐”啪”地换，出戏）。</li>
+</ul>
+<h2 id="10-10-动手实验室：多人射击脚步声方案"><a href="#10-10-动手实验室：多人射击脚步声方案" class="headerlink" title="10.10 动手实验室：多人射击脚步声方案"></a>10.10 动手实验室：多人射击脚步声方案</h2><table>
+<thead>
+<tr>
+<th>需求</th>
+<th>方案</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>脚步声事件</td>
+<td>移动组件在”落地&#x2F;步进”事件时触发（不轮询）</td>
+</tr>
+<tr>
+<td>多样化</td>
+<td>Cue：Random 包 3~4 个脚步变体</td>
+</tr>
+<tr>
+<td>距离与方向</td>
+<td>完整衰减（FalloffDistance 按步频调）+ 空间化（HRTF 插件）</td>
+</tr>
+<tr>
+<td>并发控制</td>
+<td>Concurrency：Owner 作用域、MaxCount&#x3D;2、StopFarthestThenOldest（每人最多 2 个脚步同时响）</td>
+</tr>
+<tr>
+<td>蹲伏&#x2F;奔跑</td>
+<td>SetFloatParameter(“StepSpeed”) 驱动 ParamCrossFade 切换变体</td>
+</tr>
+<tr>
+<td>多人同步</td>
+<td>NetMulticast Unreliable RPC（第 10.3 章）</td>
+</tr>
+<tr>
+<td>队友&#x2F;敌人区分</td>
+<td>敌人脚步 Focus 高亮（SetGlobalListenerFocusParameters）、队友脚步降权</td>
+</tr>
+<tr>
+<td>区域</td>
+<td>门内门外 AAudioVolume：遮挡+混响自动</td>
+</tr>
+</tbody></table>
+<hr>
+<h1 id="第-11-章-优化篇：并发预算、流送、虚拟循环、移动端"><a href="#第-11-章-优化篇：并发预算、流送、虚拟循环、移动端" class="headerlink" title="第 11 章 优化篇：并发预算、流送、虚拟循环、移动端"></a>第 11 章 优化篇：并发预算、流送、虚拟循环、移动端</h1><blockquote>
+<p><strong>TL;DR</strong>｜音频优化的三道闸：<strong>并发预算</strong>（设计期 Concurrency + 运行时通道上限，按渲染<br>成本计权重）、<strong>流送</strong>（长音流送短音预载，au.streamcaching 缓存）、<strong>虚拟循环</strong>（远处<br>循环声降频更新——“放假”）。移动端还有中断处理与低延迟路径。类比：<strong>电话占线 →<br>仓库管理 → 远处声音放假</strong>。</p>
+</blockquote>
+<h2 id="11-1-性能账本：音频-CPU-三花销"><a href="#11-1-性能账本：音频-CPU-三花销" class="headerlink" title="11.1 性能账本：音频 CPU 三花销"></a>11.1 性能账本：音频 CPU 三花销</h2><table>
+<thead>
+<tr>
+<th>花销</th>
+<th>内容</th>
+<th>看什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>解码</td>
+<td>压缩音频 → PCM（CPU 最重项）</td>
+<td>Opus&#x2F;Vorbis 解码开销</td>
+</tr>
+<tr>
+<td>逐源 DSP</td>
+<td>衰减增益 + 滤波 + 空间化 + 混响发送</td>
+<td>每源固定成本</td>
+</tr>
+<tr>
+<td>插件</td>
+<td>HRTF 等双耳渲染</td>
+<td>每源 3-5ms 预算（社区数据，非本仓库实测）</td>
+</tr>
+</tbody></table>
+<p><code>stat audio</code>（<code>Audio.h:32-39</code>）：<code>ActiveSounds</code>（活动声音数）&#x2F; <code>Sources</code>（实际发声数）&#x2F; <code>VirtualLoops</code>（虚拟循环数）&#x2F; <code>MaxChannels</code>（上限）——<strong>第一眼就看这四个数</strong>。</p>
+<h2 id="11-2-并发预算（第一道闸）"><a href="#11-2-并发预算（第一道闸）" class="headerlink" title="11.2 并发预算（第一道闸）"></a>11.2 并发预算（第一道闸）</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">设计期：每个声音资产配 Concurrency（MaxCount + 规则）——&quot;枪声最多 8 个同时&quot;</span><br><span class="line">运行期：MaximumConcurrentStreams（AudioSettings.h:199）全局上限</span><br><span class="line">  + au.EnableRelativeRenderCostVoiceLimit（AudioDevice.cpp:205）按渲染成本计权重</span><br><span class="line">  → 超预算：GetVolumeWeightedPriority 排序截断（第 8.7 章）</span><br></pre></td></tr></table></figure>
+
+<p><strong>实践</strong>：50 个敌人同时开枪 &#x3D; 50 个枪声请求 → 并发组截到 8 个 + 全局预算再截——**玩家听到的永远是”最近的 + 最重要的”**。</p>
+<h2 id="11-3-流送（第二道闸）"><a href="#11-3-流送（第二道闸）" class="headerlink" title="11.3 流送（第二道闸）"></a>11.3 流送（第二道闸）</h2><ul>
+<li><strong>原则</strong>：<strong>长环境音全部流送、短事件音全部预载</strong>（社区实测经验，非本仓库实测）；</li>
+<li><code>bStreaming</code>（<code>SoundWave.h:455</code>）开流送；</li>
+<li><code>FAudioChunkCache</code>（<code>AudioStreamingCache.cpp</code>）管理流送缓存，<code>au.streamcaching.*</code> CVar 家族（<code>StreamCacheSizeOverrideMB</code> :139 等）控制缓存大小；</li>
+<li><strong>避坑</strong>：流送声音有”首次播放延迟”（读盘）——<strong>关键音效（枪声）千万别流送</strong>，开局爆音。</li>
+</ul>
+<h2 id="11-4-虚拟循环（第三道闸）"><a href="#11-4-虚拟循环（第三道闸）" class="headerlink" title="11.4 虚拟循环（第三道闸）"></a>11.4 虚拟循环（第三道闸）</h2><p><code>FAudioVirtualLoop</code>（<code>AudioVirtualLoop.cpp</code>）：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">远处循环声（瀑布/风声/远处引擎）：</span><br><span class="line">  → Virtualize（:60）：逻辑上继续&quot;播着&quot;</span><br><span class="line">  → CalculateUpdateInterval（:96）：更新间隔按距离插值</span><br><span class="line">       (DistanceToListener - MaxDistance) / PerfDistance</span><br><span class="line">       → au.VirtualLoops.UpdateRate.Min（0.1s）~ Max（3.0s）</span><br><span class="line">  → 玩家靠近 → 恢复全职更新（VirtualizeInactiveLoops，AudioDevice.cpp:3250）</span><br></pre></td></tr></table></figure>
+
+<p><strong>收益</strong>：100 个远处循环声 × 每帧更新 &#x3D; 灾难；100 个 × 每 3 秒一次 &#x3D; 几乎免费。<strong>虚拟循环是”大世界环境音”的默认解</strong>。</p>
+<h2 id="11-5-内存：预载-vs-流送"><a href="#11-5-内存：预载-vs-流送" class="headerlink" title="11.5 内存：预载 vs 流送"></a>11.5 内存：预载 vs 流送</h2><ul>
+<li><strong>预载</strong>：<code>FAudioDevice::Precache</code>（<code>AudioDevice.h:625</code>）——启动&#x2F;关卡加载时把短音效解压进内存；</li>
+<li><strong>FActiveSound 无对象池</strong>：<code>new FMixerSource</code>（<code>AudioMixerDevice.cpp:1546</code>）直接堆分配——引擎不做池（生命周期差异大&#x2F;线程交接复杂），<strong>高频创建销毁（枪声连发）时自建池</strong>（第 12.10 章的 AudioManager 里做）。</li>
+</ul>
+<h2 id="11-6-遮挡与混响开销"><a href="#11-6-遮挡与混响开销" class="headerlink" title="11.6 遮挡与混响开销"></a>11.6 遮挡与混响开销</h2><ul>
+<li><code>OcclusionCheckInterval</code>（<code>ActiveSound.cpp:197</code>，默认 0.1s）：墙多场景调大到 0.2-0.3s；</li>
+<li><code>au.UseAsyncOcclusionTraces=1</code>（:27）：射线走异步（物理线程算，不卡音频）；</li>
+<li>混响发送是”每源一次 SetSubmixSendInfo”——批量不会太贵，但<strong>别给装饰声开混响</strong>。</li>
+</ul>
+<h2 id="11-7-移动端"><a href="#11-7-移动端" class="headerlink" title="11.7 移动端"></a>11.7 移动端</h2><ul>
+<li><strong>中断处理</strong>：来电&#x2F;挂断自动静音（<code>FCoreDelegates::AudioInterruptionDelegate</code>，<code>CoreDelegates.h:394</code>；<code>au.DisableAudioSuspendOnAudioInterrupt</code> 可关）；</li>
+<li><strong>预算</strong>：移动端 HRTF 每源 3-5ms（社区数据）——<strong>移动端优先 Panning</strong>，HRTF 只给关键声源（队友语音）；</li>
+<li><strong>渲染成本计权</strong>：<code>au.EnableRelativeRenderCostVoiceLimit=1</code> 让 ADPCM 声源”便宜”（同预算装更多）。</li>
+</ul>
+<h2 id="11-8-调试工具链"><a href="#11-8-调试工具链" class="headerlink" title="11.8 调试工具链"></a>11.8 调试工具链</h2><table>
+<thead>
+<tr>
+<th>工具</th>
+<th>看什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>au.3dVisualize.ActiveSounds</code>（<code>AudioDebug.cpp:55</code>）</td>
+<td>场景里活动声音的 3D 球体（5 种显示模式）</td>
+</tr>
+<tr>
+<td><code>au.3dVisualize.Attenuation</code>（:744）</td>
+<td>衰减形状（配合 SoundBase::bDebug 标记单个声音）</td>
+</tr>
+<tr>
+<td><code>au.3dVisualize.SpatialSources</code>（:79）</td>
+<td>空间化声源</td>
+</tr>
+<tr>
+<td><code>au.DumpActiveSounds</code>（:676）</td>
+<td>全部活动声音清单（并发&#x2F;预算诊断）</td>
+</tr>
+<tr>
+<td><code>stat audio</code></td>
+<td>核心计数器（11.1）</td>
+</tr>
+<tr>
+<td>Audio Insights 插件</td>
+<td>UE_TRACE 时间线（声音生命周期&#x2F;线程分布）</td>
+</tr>
+</tbody></table>
+<h2 id="11-9-症状-→-定位表"><a href="#11-9-症状-→-定位表" class="headerlink" title="11.9 症状 → 定位表"></a>11.9 症状 → 定位表</h2><table>
+<thead>
+<tr>
+<th>症状</th>
+<th>大概率原因</th>
+<th>检查</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>声音被吞</td>
+<td>并发规则（PreventNew）或预算截断</td>
+<td><code>au.DumpActiveSounds</code> + Concurrency 设置</td>
+</tr>
+<tr>
+<td>爆音&#x2F;卡顿</td>
+<td>流送饥饿（流送缓存太小&#x2F;磁盘慢）</td>
+<td><code>au.streamcaching.*</code> + 日志</td>
+</tr>
+<tr>
+<td>掉帧</td>
+<td>插件 DSP 太重（HRTF 全开）</td>
+<td>统计插件耗时 + 降级 Panning</td>
+</tr>
+<tr>
+<td>内存上涨</td>
+<td>流送覆盖不全（长音没流送）</td>
+<td>检查 bStreaming 覆盖</td>
+</tr>
+<tr>
+<td>方向感丢失</td>
+<td>bSpatialize 没开 &#x2F; HRTF 插件没启用</td>
+<td><code>au.3dVisualize.SpatialSources</code></td>
+</tr>
+<tr>
+<td>遮挡不生效</td>
+<td>射线通道不匹配</td>
+<td>OcclusionTraceChannel vs 墙的碰撞通道</td>
+</tr>
+</tbody></table>
+<h2 id="11-10-动手实验室：开放世界-500-声源预算分解"><a href="#11-10-动手实验室：开放世界-500-声源预算分解" class="headerlink" title="11.10 动手实验室：开放世界 500 声源预算分解"></a>11.10 动手实验室：开放世界 500 声源预算分解</h2><table>
+<thead>
+<tr>
+<th>类别</th>
+<th>数量</th>
+<th>策略</th>
+<th>预算</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>关键事件（枪声&#x2F;命中&#x2F;语音）</td>
+<td>~20</td>
+<td>预载 + 高优先级 + HRTF</td>
+<td>全量保</td>
+</tr>
+<tr>
+<td>近处环境（脚步&#x2F;道具）</td>
+<td>~50</td>
+<td>预载 + Concurrency 组</td>
+<td>正常</td>
+</tr>
+<tr>
+<td>中距（敌人动作）</td>
+<td>~100</td>
+<td>预载 + 并发截断</td>
+<td>截到 40</td>
+</tr>
+<tr>
+<td>远处循环（瀑布&#x2F;风声）</td>
+<td>~300</td>
+<td><strong>流送 + 虚拟循环</strong></td>
+<td>几乎免费</td>
+</tr>
+</tbody></table>
+<p><strong>性能测试五步法</strong>：① 基线（空场景 stat audio）→ ② 加压（500 声源场景）→ ③ 定位（DumpActiveSounds 找吞声）→ ④ 调参（并发&#x2F;流送&#x2F;虚拟循环）→ ⑤ 回归（对比基线）。</p>
+<hr>
+<h1 id="第-12-章-封装篇：AudioManager-设计模式、数据驱动、接口抽象"><a href="#第-12-章-封装篇：AudioManager-设计模式、数据驱动、接口抽象" class="headerlink" title="第 12 章 封装篇：AudioManager 设计模式、数据驱动、接口抽象"></a>第 12 章 封装篇：AudioManager 设计模式、数据驱动、接口抽象</h1><blockquote>
+<p><strong>TL;DR</strong>｜引擎没有”音频管理器”——只有设备层（FAudioDeviceManager&#x2F;FAudioDevice&#x2F;FAudioThread）<br>三件套。游戏需要自己的封装，分三层：<strong>配置数据层</strong>（UDeveloperSettings&#x2F;DataAsset 存<br>“事件 → 资产”映射）、<strong>运行时调度层</strong>（WorldSubsystem 管生命周期与混音）、<strong>接口抽象层</strong><br>（玩法代码只调 Play2D&#x2F;PlayAtLocation&#x2F;StopByTag，不贴资产名）。参考 Lyra 的<br>ULyraAudioSettings + ULyraAudioMixEffectsSubsystem。类比：**音频管家——玩法说<br>“我要脚步声”，管家负责”放哪个资产、多大声、什么时候停”**。</p>
+</blockquote>
+<h2 id="12-1-引擎里没有”音频管理器”"><a href="#12-1-引擎里没有”音频管理器”" class="headerlink" title="12.1 引擎里没有”音频管理器”"></a>12.1 引擎里没有”音频管理器”</h2><table>
+<thead>
+<tr>
+<th>引擎组件</th>
+<th>角色</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>FAudioDeviceManager</code>（<code>AudioDeviceManager.h</code>）</td>
+<td>多音频设备生命周期管理</td>
+</tr>
+<tr>
+<td><code>FAudioDevice</code>（非 UObject）</td>
+<td>单设备的音频引擎（播放&#x2F;求值&#x2F;混合）</td>
+</tr>
+<tr>
+<td><code>FAudioThread</code>（<code>AudioThread.h:21</code>）</td>
+<td>线程命令队列（RunCommandOnAudioThread :58）</td>
+</tr>
+</tbody></table>
+<p>**引擎给的是”设备”不是”服务”**——就像网络篇说”引擎没有网关服务器”：设备层管”怎么响”，”什么时候响、响哪个、多大声”是游戏的责任。</p>
+<h2 id="12-2-为什么游戏需要封装"><a href="#12-2-为什么游戏需要封装" class="headerlink" title="12.2 为什么游戏需要封装"></a>12.2 为什么游戏需要封装</h2><p>三个理由（对应三层）：</p>
+<ol>
+<li><strong>玩法代码不该贴资产名</strong>（”PlaySoundAtLocation(枪声_Cue)”在 50 个地方 &#x3D; 换枪声改 50 处）→ <strong>配置数据层</strong>；</li>
+<li><strong>生命周期要管理</strong>（场景切换清场、Travel 清场、音量分层状态）→ <strong>运行时调度层</strong>；</li>
+<li><strong>玩法只要语义</strong>（”我要脚步声”而不是”播这个资产”）→ <strong>接口抽象层</strong>。</li>
+</ol>
+<h2 id="12-3-配置数据层：事件-→-资产映射"><a href="#12-3-配置数据层：事件-→-资产映射" class="headerlink" title="12.3 配置数据层：事件 → 资产映射"></a>12.3 配置数据层：事件 → 资产映射</h2><p><strong>Lyra 实证</strong>：<code>ULyraAudioSettings</code>（<code>LyraAudioSettings.h:31</code>，<code>UDeveloperSettings</code>，config&#x3D;Game）——开发者设置存软引用（延迟加载，不拖慢启动）。</p>
+<p><strong>通用设计</strong>：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">UCLASS</span>(config=Game, defaultconfig)</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">UGameAudioSettings</span> : <span class="keyword">public</span> UDeveloperSettings</span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// 事件名 → 声音资产（软引用，延迟加载）</span></span><br><span class="line">	<span class="built_in">UPROPERTY</span>(EditAnywhere, config)</span><br><span class="line">	TMap&lt;FGameplayTag, TSoftObjectPtr&lt;USoundBase&gt;&gt; EventSounds;</span><br><span class="line">	<span class="comment">// 事件名 → 衰减资产</span></span><br><span class="line">	<span class="built_in">UPROPERTY</span>(EditAnywhere, config)</span><br><span class="line">	TMap&lt;FGameplayTag, TSoftObjectPtr&lt;USoundAttenuation&gt;&gt; EventAttenuations;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p><strong>注意</strong>：引擎没有 UDataAsset 音频资产先例（<code>USoundConcurrency</code>&#x2F;<code>USoundAttenuation</code> 是纯 UObject 配置资产）——<strong>数据驱动用 DeveloperSettings + 软引用</strong>（Lyra 模式），或自建 UDataAsset。</p>
+<h2 id="12-4-运行时调度层：WorldSubsystem"><a href="#12-4-运行时调度层：WorldSubsystem" class="headerlink" title="12.4 运行时调度层：WorldSubsystem"></a>12.4 运行时调度层：WorldSubsystem</h2><p><strong>Lyra 实证</strong>：<code>ULyraAudioMixEffectsSubsystem</code>（<code>LyraAudioMixEffectsSubsystem.h:41</code>，<code>UWorldSubsystem</code>）——世界生命周期里应用 Mix。</p>
+<p><strong>通用设计</strong>：<code>UGameAudioSubsystem : UWorldSubsystem</code>（<strong>注意：引擎没有 AudioSubsystem 基类，用 UWorldSubsystem</strong>）——持有当前 Mix 状态、管理全局听者、处理场景切换清场。</p>
+<h2 id="12-5-统一事件-API：玩法只调语义"><a href="#12-5-统一事件-API：玩法只调语义" class="headerlink" title="12.5 统一事件 API：玩法只调语义"></a>12.5 统一事件 API：玩法只调语义</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 接口层：玩法代码只认识这些</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">UGameAudioSubsystem::Play2D</span><span class="params">(FGameplayTag Event)</span></span>;</span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">UGameAudioSubsystem::PlayAtLocation</span><span class="params">(FGameplayTag Event, FVector Location, AActor* OwningActor = <span class="literal">nullptr</span>)</span></span>;</span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">UGameAudioSubsystem::PlayAttached</span><span class="params">(FGameplayTag Event, USceneComponent* AttachTo, FName Socket = NAME_None)</span></span>;</span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">UGameAudioSubsystem::StopByTag</span><span class="params">(FGameplayTag Event, AActor* Owner = <span class="literal">nullptr</span>)</span></span>;</span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">UGameAudioSubsystem::FadeAll</span><span class="params">(<span class="type">float</span> Duration, <span class="type">float</span> TargetVolume)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>内部路由：查配置层映射 → <code>UGameplayStatics::PlaySoundAtLocation</code> 或 <code>UAudioComponent</code>——<strong>换资产只改配置，不动玩法代码</strong>。</p>
+<h2 id="12-6-参数路由：事件参数-→-FAudioParameter"><a href="#12-6-参数路由：事件参数-→-FAudioParameter" class="headerlink" title="12.6 参数路由：事件参数 → FAudioParameter"></a>12.6 参数路由：事件参数 → FAudioParameter</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">玩法：PlayAtLocation(Event_Footstep, Pos) + SetParam(&quot;StepSpeed&quot;, 2.0f)</span><br><span class="line">  → 配置层查资产</span><br><span class="line">  → ISoundParameterControllerInterface（SoundParameterControllerInterface.h:24）</span><br><span class="line">  → FAudioParameter（AudioParameter.h:92）</span><br><span class="line">  → SoundCue 的 ParamCrossFade 或 MetaSound 的 FRuntimeInput</span><br></pre></td></tr></table></figure>
+
+<p><strong>玩法语义与音频参数解耦</strong>：玩法说”奔跑”，音频层翻译成”StepSpeed&#x3D;2.0”。</p>
+<h2 id="12-7-生命周期管理"><a href="#12-7-生命周期管理" class="headerlink" title="12.7 生命周期管理"></a>12.7 生命周期管理</h2><table>
+<thead>
+<tr>
+<th>时机</th>
+<th>动作</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>场景切换&#x2F;ServerTravel</td>
+<td><code>FadeAll</code>（0.5s 淡出）+ 停止非持久声音</td>
+</tr>
+<tr>
+<td>玩家死亡&#x2F;观战</td>
+<td>听者切到目标 + 停止玩家专属声音</td>
+</tr>
+<tr>
+<td>暂停菜单</td>
+<td>音乐继续（2D）+ 音效暂停（按 SoundClass 分组控制）</td>
+</tr>
+<tr>
+<td>世界清理</td>
+<td>Subsystem 的 OnWorldBeginPlay&#x2F;Deinitialize 挂钩</td>
+</tr>
+</tbody></table>
+<h2 id="12-8-混音层封装：场景函数"><a href="#12-8-混音层封装：场景函数" class="headerlink" title="12.8 混音层封装：场景函数"></a>12.8 混音层封装：场景函数</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">进战斗：ApplyCombatMix()   → PushSoundMixModifier(Mix_Combat)</span><br><span class="line">Boss：   ApplyBossMix()    → SetSoundMixClassOverride(Mix_Combat, Music, -80%)</span><br><span class="line">退出：   RevertCombatMix() → PopSoundMixModifier(Mix_Combat)</span><br></pre></td></tr></table></figure>
+
+<p><strong>音量分级表</strong>（社区经验，非本仓库实测）：整体&#x2F;音乐&#x2F;音效&#x2F;语音四档独立音量（存 ini）——对应 SoundClass 树的四个推子。</p>
+<h2 id="12-9-数据驱动与热更新"><a href="#12-9-数据驱动与热更新" class="headerlink" title="12.9 数据驱动与热更新"></a>12.9 数据驱动与热更新</h2><ul>
+<li><strong>热更新</strong>（引擎机制）：播放中 <code>SetAttenuationOverrides</code> 走 <code>SendCommandToActiveSounds</code>（<code>AudioComponent.cpp:1367-1388</code>）——游戏侧复刻：改配置 → 通知 AudioManager → 广播到活动声音；</li>
+<li><strong>开发工具</strong>：控制台命令 <code>Audio.Debug.Event &lt;Event&gt;</code> 显示”这个事件 → 哪个资产 → 哪个 Concurrency”——<strong>配置层可查性</strong>是音频封装的隐藏价值。</li>
+</ul>
+<h2 id="12-10-动手实验室：200-行-AudioManager-骨架"><a href="#12-10-动手实验室：200-行-AudioManager-骨架" class="headerlink" title="12.10 动手实验室：200 行 AudioManager 骨架"></a>12.10 动手实验室：200 行 AudioManager 骨架</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// ===== 配置数据层 =====</span></span><br><span class="line"><span class="built_in">UCLASS</span>(config=Game, defaultconfig)</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">UGameAudioSettings</span> : <span class="keyword">public</span> UDeveloperSettings</span><br><span class="line">&#123;</span><br><span class="line">	<span class="built_in">GENERATED_BODY</span>()</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="built_in">UPROPERTY</span>(EditAnywhere, config, Category=<span class="string">&quot;Audio&quot;</span>)</span><br><span class="line">	TMap&lt;FGameplayTag, TSoftObjectPtr&lt;USoundBase&gt;&gt; EventSounds;</span><br><span class="line">	<span class="built_in">UPROPERTY</span>(EditAnywhere, config, Category=<span class="string">&quot;Audio&quot;</span>)</span><br><span class="line">	TMap&lt;FGameplayTag, TSoftObjectPtr&lt;USoundAttenuation&gt;&gt; EventAttenuations;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ===== 运行时调度层 =====</span></span><br><span class="line"><span class="built_in">UCLASS</span>()</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">UGameAudioSubsystem</span> : <span class="keyword">public</span> UWorldSubsystem</span><br><span class="line">&#123;</span><br><span class="line">	<span class="built_in">GENERATED_BODY</span>()</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">PlayAtLocation</span><span class="params">(FGameplayTag Event, FVector Location, AActor* OwningActor = <span class="literal">nullptr</span>)</span></span>;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">Play2D</span><span class="params">(FGameplayTag Event)</span></span>;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">StopByTag</span><span class="params">(FGameplayTag Event, AActor* Owner = <span class="literal">nullptr</span>)</span></span>;</span><br><span class="line">	<span class="function"><span class="type">void</span> <span class="title">FadeAll</span><span class="params">(<span class="type">float</span> Duration, <span class="type">float</span> TargetVolume)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span>:</span><br><span class="line">	<span class="function">USoundBase* <span class="title">ResolveSound</span><span class="params">(FGameplayTag Event)</span> <span class="type">const</span></span>;   <span class="comment">// 配置层查表 + 软引用加载</span></span><br><span class="line">	<span class="function">USoundAttenuation* <span class="title">ResolveAttenuation</span><span class="params">(FGameplayTag Event)</span> <span class="type">const</span></span>;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="comment">// ===== 实现：接口层路由到引擎 API =====</span></span><br><span class="line"><span class="function"><span class="type">void</span> <span class="title">UGameAudioSubsystem::PlayAtLocation</span><span class="params">(FGameplayTag Event, FVector Location, AActor* OwningActor)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	USoundBase* Sound = <span class="built_in">ResolveSound</span>(Event);</span><br><span class="line">	<span class="keyword">if</span> (!Sound) &#123; <span class="built_in">UE_LOG</span>(LogAudio, Warning, <span class="built_in">TEXT</span>(<span class="string">&quot;Audio event %s not configured&quot;</span>), *Event.<span class="built_in">ToString</span>()); <span class="keyword">return</span>; &#125;</span><br><span class="line">	UGameplayStatics::<span class="built_in">PlaySoundAtLocation</span>(<span class="built_in">GetWorld</span>(), Sound, Location,</span><br><span class="line">		FRotator::ZeroRotator, <span class="number">1.0f</span>, <span class="number">1.0f</span>, <span class="number">0.0f</span>,</span><br><span class="line">		<span class="built_in">ResolveAttenuation</span>(Event), <span class="literal">nullptr</span>, OwningActor);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>与 Lyra 结构对照</strong>：配置层 ↔ <code>ULyraAudioSettings</code>；调度层 ↔ <code>ULyraAudioMixEffectsSubsystem</code>；接口层 ↔ Lyra 的玩法侧调用点。</p>
+<p><strong>反模式清单</strong>：① God Object（一个类管所有音频逻辑）；② 字符串拼资产路径（<code>LoadObject&lt;USoundBase&gt;(nullptr, TEXT(&quot;/Game/Audio/...&quot;))</code>——用软引用映射）；③ 玩法代码直接 new AudioComponent 不回收（生命周期泄漏）；④ 每个声音单独手调衰减（不建共享资产）。</p>
+<h1 id="第-13-章-平台支持与性能调优"><a href="#第-13-章-平台支持与性能调优" class="headerlink" title="第 13 章 平台支持与性能调优"></a>第 13 章 平台支持与性能调优</h1><blockquote>
+<p><strong>TL;DR</strong>｜音频 CVar 分七组：空间化 &#x2F; 遮挡 &#x2F; 混响 &#x2F; 流送 &#x2F; 虚拟循环 &#x2F; 并发 &#x2F; 调试。<br>调优三板斧：<code>stat audio</code> 看数字 → <code>au.3dVisualize</code> 看画面 → 单旋钮调参。<br>常见坑十条（从”听不见”到”CPU 爆炸”）。</p>
+</blockquote>
+<h2 id="13-1-CVar-速查表（七组，写作时已-grep-核实默认值）"><a href="#13-1-CVar-速查表（七组，写作时已-grep-核实默认值）" class="headerlink" title="13.1 CVar 速查表（七组，写作时已 grep 核实默认值）"></a>13.1 CVar 速查表（七组，写作时已 grep 核实默认值）</h2><p><strong>空间化</strong>：<code>au.EnableBinauralAudioForAllSpatialSounds</code>&#x3D;0（AudioDevice.cpp:121）、<code>au.DisableBinauralSpatialization</code>&#x3D;0（:128）、<code>au.spatialization.SetCurrentSpatialPlugin</code>（控制台命令，:179）</p>
+<p><strong>遮挡</strong>：<code>au.DisableOcclusion</code>&#x3D;0（ActiveSound.cpp:20）、<code>au.UseAsyncOcclusionTraces</code>&#x3D;false（:27）</p>
+<p><strong>混响</strong>：<code>au.DisableReverbSubmix</code>&#x3D;0（AudioMixerSubmixEffectReverb.cpp:24）</p>
+<p><strong>流送</strong>：<code>au.streamcaching.StreamCacheSizeOverrideMB</code>&#x3D;0（AudioStreamingCache.cpp:139）、<code>au.streamcache.SoundWaveDefaultLoadingBehavior</code>（SoundWave.cpp:65）、<code>au.DisableAutomaticPrecache</code>（AudioDevice.cpp:75）</p>
+<p><strong>虚拟循环</strong>：<code>au.VirtualLoops.UpdateRate.Min/Max</code>&#x3D;0.1&#x2F;3.0（AudioVirtualLoop.cpp:30-40）</p>
+<p><strong>并发&#x2F;预算</strong>：<code>au.SetAudioChannelCount</code>&#x3D;0（AudioDevice.cpp:44）、<code>au.EnableRelativeRenderCostVoiceLimit</code>&#x3D;1（:205）、<code>au.DisableStoppingVoices</code>&#x3D;0（:59）</p>
+<p><strong>调试</strong>：<code>au.3dVisualize.Enabled</code>&#x3D;0（AudioDeviceManager.cpp:49）、<code>au.3dVisualize.ActiveSounds</code>&#x3D;0（AudioDebug.cpp:55）、<code>au.3dVisualize.Attenuation</code>&#x3D;0（:744）、<code>au.DumpActiveSounds</code>（:676，命令）</p>
+<h2 id="13-2-调优工作流：三板斧"><a href="#13-2-调优工作流：三板斧" class="headerlink" title="13.2 调优工作流：三板斧"></a>13.2 调优工作流：三板斧</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">1. 看数字    stat audio（ActiveSounds/Sources/VirtualLoops/MaxChannels）</span><br><span class="line">             + au.DumpActiveSounds（谁在响、谁被吞）</span><br><span class="line">2. 看画面    au.3dVisualize.Enabled 1 + ActiveSounds 1（3D 球体）</span><br><span class="line">             + 单个声音 bDebug 标记看衰减形状</span><br><span class="line">3. 调参数    每次只动一个旋钮：</span><br><span class="line">             被吞声 → 并发规则/优先级（第 8 章）</span><br><span class="line">             远处循环贵 → 虚拟循环（第 11.4 章）</span><br><span class="line">             内存涨 → 流送覆盖（第 11.3 章）</span><br><span class="line">             掉帧 → HRTF 降级 Panning / 遮挡异步（第 11.6 章）</span><br></pre></td></tr></table></figure>
+
+<h2 id="13-3-常见坑清单"><a href="#13-3-常见坑清单" class="headerlink" title="13.3 常见坑清单"></a>13.3 常见坑清单</h2><ol>
+<li><strong>听不见</strong>：<code>MaxDistance</code> 太小 &#x2F; 并发 <code>PreventNew</code> 吞了 &#x2F; 音量被 SoundClass 层叠压低——三步排查（先 <code>au.DumpActiveSounds</code> 看有没有创建）；</li>
+<li><strong>方向感丢失</strong>：<code>bSpatialize</code> 没开，或 HRTF 选了但插件没启用（第 5.3 章静默回退）；</li>
+<li><strong>爆音</strong>：流送缓存不足 &#x2F; 大量同帧预载——枪声别流送；</li>
+<li>**遮挡”穿了墙”**：射线通道与墙碰撞通道不匹配（第 6.4 章）；</li>
+<li><strong>进房间没混响</strong>：MasterReverbSubmix 默认资产没建 &#x2F; <code>bEnableReverbSend</code> 没开 &#x2F; AAudioVolume 没放；</li>
+<li><strong>立体声素材空间化效果差</strong>：3D 声源用单声道素材（第 9.1 章）；</li>
+<li><strong>多人声音不同步</strong>：UAudioComponent 不复制——忘了 RPC 广播（第 10.3 章）；</li>
+<li><strong>切场景声音残留</strong>：AudioManager 没清场（第 12.7 章）；</li>
+<li><strong>每帧改音量</strong>：<code>SetVolumeMultiplier</code> 高频调用走命令队列——批量&#x2F;用插值（引擎有 Fade 内置）；</li>
+<li><strong>移动端爆 CPU</strong>：HRTF 全开 + 流送不足——移动端 Panning 优先 + ADPCM（第 11.7 章）。</li>
+</ol>
+<hr>
+<h1 id="第-14-章-局限、替代方案与展望"><a href="#第-14-章-局限、替代方案与展望" class="headerlink" title="第 14 章 局限、替代方案与展望"></a>第 14 章 局限、替代方案与展望</h1><blockquote>
+<p><strong>TL;DR</strong>｜UE 空间音频的局限：<strong>无内置 HRTF&#x2F;ITD</strong>（双耳渲染靠插件）、<strong>单一听者</strong>（分屏&#x2F;观战<br>需手动切换）、<strong>Ambisonics 仅 FOA</strong>、<strong>无引擎级音频管理器</strong>（游戏自建）、<strong>FActiveSound<br>无池</strong>。替代路径：Wwise&#x2F;FMOD 中间件、ResonanceAudio、Windows Spatial Audio。方向：<br>MetaSound 程序化音频 + Audio Gameplay Volumes 区域化。</p>
+</blockquote>
+<h2 id="14-1-局限与对策"><a href="#14-1-局限与对策" class="headerlink" title="14.1 局限与对策"></a>14.1 局限与对策</h2><table>
+<thead>
+<tr>
+<th>局限</th>
+<th>表现</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>无内置 HRTF&#x2F;ITD</td>
+<td>双耳渲染依赖插件</td>
+<td>启用 Windows Spatial Audio&#x2F;ResonanceAudio 插件；移动端 Panning 兜底</td>
+</tr>
+<tr>
+<td>单一听者</td>
+<td>分屏&#x2F;观战只跟主玩家</td>
+<td><code>SetListener</code> 手动切换（第 10.4 章）</td>
+</tr>
+<tr>
+<td>Ambisonics 仅 FOA</td>
+<td>环境声场只有一阶</td>
+<td>高阶声场用中间件</td>
+</tr>
+<tr>
+<td>无引擎级音频管理器</td>
+<td>生命周期&#x2F;数据驱动要自建</td>
+<td>第 12 章三层封装</td>
+</tr>
+<tr>
+<td>FActiveSound 无池</td>
+<td>高频创建销毁有分配开销</td>
+<td>AudioManager 里自建池（第 11.5 章）</td>
+</tr>
+</tbody></table>
+<h2 id="14-2-替代路径"><a href="#14-2-替代路径" class="headerlink" title="14.2 替代路径"></a>14.2 替代路径</h2><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>定位</th>
+<th>与 UE 内置的关系</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Wwise &#x2F; FMOD</td>
+<td>专业音频中间件（音频管线&#x2F;混音&#x2F;素材管理）</td>
+<td>通过 AudioLink 接入（引擎无内置集成）</td>
+</tr>
+<tr>
+<td>ResonanceAudio</td>
+<td>谷歌空间音频插件（HRTF&#x2F;反射）</td>
+<td>UE 插件（Plugins&#x2F;Runtime&#x2F;ResonanceAudio）</td>
+</tr>
+<tr>
+<td>MicrosoftSpatialAudio</td>
+<td>Windows 空间音频（HRTF）</td>
+<td>UE 插件</td>
+</tr>
+<tr>
+<td>AudioModulation</td>
+<td>参数调制（引擎插件）</td>
+<td>声音参数的数据驱动调制</td>
+</tr>
+</tbody></table>
+<h2 id="14-3-演进时间线与阅读进阶"><a href="#14-3-演进时间线与阅读进阶" class="headerlink" title="14.3 演进时间线与阅读进阶"></a>14.3 演进时间线与阅读进阶</h2><table>
+<thead>
+<tr>
+<th>时间</th>
+<th>里程碑</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>UE4 早期</td>
+<td>平台专属音频（XAudio2&#x2F;OpenAL 等）</td>
+</tr>
+<tr>
+<td>4.20+</td>
+<td>AudioMixer 统一渲染器</td>
+</tr>
+<tr>
+<td>5.0~5.3</td>
+<td>MetaSound 引入、Audio Gameplay Volumes 起步</td>
+</tr>
+<tr>
+<td>5.4~5.9</td>
+<td>音频流缓存、Audio Insights、区域音频成熟</td>
+</tr>
+<tr>
+<td>未来</td>
+<td>MetaSound 转正、空间音频插件生态（Oculus&#x2F;PS5 3D Audio）</td>
+</tr>
+</tbody></table>
+<p><strong>进阶路线</strong>：Epic 官方文档（Sound Concurrency → MetaSounds → Audio Gameplay Volumes → 流缓存）→ 中文深挖（附录 C）→ 本仓库源码（附录 A 指路）→ 中间件对比（Wwise 的 Spatial Audio 文档）。</p>
+<hr>
+<h1 id="附录-A-源码地图"><a href="#附录-A-源码地图" class="headerlink" title="附录 A 源码地图"></a>附录 A 源码地图</h1><blockquote>
+<p>全部路径基于本仓库快照（2026-08-26，HEAD <code>6cea9bd20f8f</code>）。行号只用于定位；代码演进后以函数名为准。<br>阅读顺序建议：先 <code>ActiveSound.cpp</code>（求值核心）→ <code>AudioDevice.cpp</code>（播放链路）→ <code>AudioMixerDevice.cpp</code>（渲染线程）→ 按章节深入。</p>
+</blockquote>
+<h2 id="A-1-引擎核心（Runtime-Engine）"><a href="#A-1-引擎核心（Runtime-Engine）" class="headerlink" title="A.1 引擎核心（Runtime&#x2F;Engine）"></a>A.1 引擎核心（Runtime&#x2F;Engine）</h2><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>关键内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Private/ActiveSound.cpp</code></td>
+<td><strong>FActiveSound 求值核心</strong>：UpdateWaveInstances :1081、UpdateAttenuation :2053、CheckOcclusion :1599、HandleInteriorVolumes :1708、OcclusionCheckInterval :197、au.DisableOcclusion :20、au.UseAsyncOcclusionTraces :27</td>
+</tr>
+<tr>
+<td><code>Private/AudioDevice.cpp</code></td>
+<td><strong>播放链路</strong>：PlaySoundAtLocation :6705、Update :4725、GetSortedActiveWaveInstances :4159、SoundIsAudible :6318、LocationIsAudible :6380、StartSources :4541、UpdateAudioVolumeEffects :4923、au.* CVar 区 :44-205</td>
+</tr>
+<tr>
+<td><code>Public/AudioDevice.h</code></td>
+<td>FAudioDevice 声明、AddNewActiveSound :763、Precache :625&#x2F;:639</td>
+</tr>
+<tr>
+<td><code>Public/ActiveSound.h</code></td>
+<td>FActiveSound 类（音频线程声音实例）</td>
+</tr>
+<tr>
+<td><code>Public/Audio.h</code></td>
+<td>FWaveInstance :315（bIsAmbisonics）、GetVolumeWeightedPriority :482、STAT_* 计数器 :32-39</td>
+</tr>
+<tr>
+<td><code>Public/AudioThread.h</code></td>
+<td><strong>FAudioThread</strong> :21、RunCommandOnAudioThread :58、STATGROUP_AudioThreadCommands :19</td>
+</tr>
+<tr>
+<td><code>Public/AudioDeviceManager.h</code></td>
+<td>FAudioDeviceManager（多设备管理）、au.3dVisualize.Enabled :49</td>
+</tr>
+<tr>
+<td><code>Private/Audio.cpp</code></td>
+<td>FSoundSource：GetSpatializationParams :724、UpdateStereoEmitterPositions :625、NonSpatializedAmount :739-779</td>
+</tr>
+<tr>
+<td><code>Private/AudioVirtualLoop.cpp</code></td>
+<td><strong>FAudioVirtualLoop</strong>：Virtualize :60、CalculateUpdateInterval :96、UpdateRate CVar :30-40</td>
+</tr>
+<tr>
+<td><code>Private/AudioStreamingCache.cpp</code></td>
+<td>FAudioChunkCache、au.streamcaching.* :32-91（StreamCacheSizeOverrideMB :139）</td>
+</tr>
+<tr>
+<td><code>Private/AudioDebug.cpp</code></td>
+<td>au.3dVisualize.ActiveSounds :55 &#x2F; SpatialSources :79 &#x2F; Attenuation :744、au.DumpActiveSounds :676</td>
+</tr>
+</tbody></table>
+<h2 id="A-2-组件与游戏性（Runtime-Engine）"><a href="#A-2-组件与游戏性（Runtime-Engine）" class="headerlink" title="A.2 组件与游戏性（Runtime&#x2F;Engine）"></a>A.2 组件与游戏性（Runtime&#x2F;Engine）</h2><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>关键内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Classes/Components/AudioComponent.h</code></td>
+<td><strong>UAudioComponent :167</strong>：Play :517、Stop :583、FadeIn :500、FadeOut :511、SetVolumeMultiplier :626、SetPitchMultiplier :630、SetFloatParameter :548、SetIntParameter :541、SetTriggerParameter :534、UInitialActiveSoundParams :146</td>
+</tr>
+<tr>
+<td><code>Private/Components/AudioComponent.cpp</code></td>
+<td>PlayInternal :673、GetAttenuationSettingsToApply :1342（三级覆盖）、SetAttenuationOverrides 热更新 :1367-1388、bOverridePriority :776-783</td>
+</tr>
+<tr>
+<td><code>Private/GameplayStatics.cpp</code></td>
+<td><strong>PlaySoundAtLocation :1526</strong>、LocationIsAudible :1316、SetListenerFocusParameters :1390、SetBaseSoundMix :1752、SetSoundMixClassOverride :1877、PushSoundMixModifier :1771、PopSoundMixModifier :1915</td>
+</tr>
+<tr>
+<td><code>Classes/Kismet/GameplayStatics.h</code></td>
+<td>音频静态入口：PlaySound2D :629、PlaySoundAtLocation :681、PlayDialogue2D :746、SetBaseSoundMix :881、SetSoundMixClassOverride :917、Push&#x2F;PopSoundMixModifier :931&#x2F;:937</td>
+</tr>
+<tr>
+<td><code>Classes/Sound/SoundBase.h</code></td>
+<td><strong>USoundBase :108</strong>：SoundClassObject :117、Priority :218、AttenuationSettings :222、ConcurrencySet :188、VirtualizationMode :170、bDebug :127</td>
+</tr>
+<tr>
+<td><code>Classes/Sound/SoundWave.h</code></td>
+<td>USoundWave、bStreaming :455、au.streamcache.SoundWaveDefaultLoadingBehavior :65</td>
+</tr>
+<tr>
+<td><code>Classes/Sound/SoundCue.h</code></td>
+<td>USoundCue :90、FirstNode :95</td>
+</tr>
+<tr>
+<td><code>Classes/Sound/SoundNode.h</code></td>
+<td><strong>USoundNode :57</strong>（ChildNodes :64、DECLARE_SOUNDNODE_ELEMENT :26-54）；子类：WavePlayer&#x2F;Attenuation&#x2F;Random&#x2F;Looping&#x2F;Modulator&#x2F;Oscillator&#x2F;Concatenator&#x2F;DistanceCrossFade :82&#x2F;ParamCrossFade&#x2F;Switch&#x2F;Branch&#x2F;Enveloper&#x2F;Doppler&#x2F;QualityLevel</td>
+</tr>
+<tr>
+<td><code>Classes/Sound/SoundAttenuation.h</code></td>
+<td><strong>FSoundAttenuationSettings :148</strong>（bAttenuate :154、bSpatialize :158、bAttenuateWithLPF :162、bEnableOcclusion :174、bEnableReverbSend :182、SpatializationAlgorithm :210、BinauralRadius :218、OcclusionTraceChannel :234、NonSpatializedRadiusStart&#x2F;End :254&#x2F;:258、StereoSpread :266、LPF :281-293、Occlusion :345-353、ReverbSend :365-377、PriorityAttenuation :383-401）、USoundAttenuation :452</td>
+</tr>
+<tr>
+<td><code>Classes/Engine/Attenuation.h</code></td>
+<td><strong>FBaseAttenuationSettings :56</strong>（DistanceAlgorithm :63、AttenuationShape :68、FalloffDistance :95）</td>
+</tr>
+<tr>
+<td><code>Classes/Sound/SoundConcurrency.h</code></td>
+<td><strong>FSoundConcurrencySettings :73</strong>（MaxCount :89、bLimitToOwner :93、ResolutionRule :109、RetriggerTime :113、VolumeScale :139、VoiceStealReleaseTime :170）、EMaxConcurrentResolutionRule :30-58、EConcurrencyMode :233</td>
+</tr>
+<tr>
+<td><code>Private/SoundConcurrency.cpp</code></td>
+<td><strong>FSoundConcurrencyManager</strong>：EvaluateConcurrency :818、CanPlaySound :654、CreateAndEvictActiveSounds :901</td>
+</tr>
+<tr>
+<td><code>Classes/Sound/SoundClass.h</code></td>
+<td><strong>USoundClass :208</strong>、FSoundClassProperties :54（Volume :60、bIsUISound :103、bIsMusic :107、bReverb :119）</td>
+</tr>
+<tr>
+<td><code>Classes/Sound/SoundMix.h</code></td>
+<td><strong>USoundMix :170</strong>、FSoundClassAdjuster :129（bApplyToChildren :151）</td>
+</tr>
+<tr>
+<td><code>Classes/Sound/AudioVolume.h</code></td>
+<td><strong>AAudioVolume :152</strong>（Priority :142、FReverbSettings :170、FInteriorSettings :174、SubmixSendSettings :178、SubmixOverrideSettings :182）</td>
+</tr>
+<tr>
+<td><code>Classes/Sound/ReverbSettings.h</code></td>
+<td>FReverbSettings :48</td>
+</tr>
+<tr>
+<td><code>Classes/Sound/AudioBus.h</code></td>
+<td>UAudioBus :87</td>
+</tr>
+<tr>
+<td><code>Classes/Sound/SoundSubmix.h</code></td>
+<td>USoundSubmixBase :173、USoundSubmix :339</td>
+</tr>
+<tr>
+<td><code>Classes/Sound/AudioSettings.h</code></td>
+<td>MaximumConcurrentStreams :199、DefaultSoundClassName :140、VoiPSoundClass :156、MasterSubmix :160、ReverbSubmix :168</td>
+</tr>
+<tr>
+<td><code>Classes/Sound/AmbientSound.h</code></td>
+<td>AAmbientSound :12</td>
+</tr>
+<tr>
+<td><code>Classes/Engine/VoiceChannel.h</code></td>
+<td>UVoiceChannel :19（网络语音通道）</td>
+</tr>
+<tr>
+<td><code>Public/Audio/SoundParameterControllerInterface.h</code></td>
+<td><strong>ISoundParameterControllerInterface :24</strong>（SetTriggerParameter :32、SetFloatParameter :42 等）</td>
+</tr>
+</tbody></table>
+<h2 id="A-3-音频混合器（Runtime-AudioMixer）"><a href="#A-3-音频混合器（Runtime-AudioMixer）" class="headerlink" title="A.3 音频混合器（Runtime&#x2F;AudioMixer）"></a>A.3 音频混合器（Runtime&#x2F;AudioMixer）</h2><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>关键内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Private/AudioMixerDevice.cpp</code></td>
+<td><strong>FMixerDevice</strong>：OnProcessAudioStream :1599、new FMixerSource :1546、FMixerSourceVoice :2888、<strong>Get3DChannelMap :2915</strong>（EqualPower :2997&#x2F;Linear :3007、NonSpatialized Lerp :3051-3055）、PanningMethod :1173、MasterReverbSubmix :2082（默认资产 “MasterReverbSubmixDefault” :1891）</td>
+</tr>
+<tr>
+<td><code>Private/AudioMixerChannelMaps.cpp</code></td>
+<td>InitializeChannelAzimuthMap :147（扬声器方位角表）</td>
+</tr>
+<tr>
+<td><code>Private/AudioMixerSource.cpp</code></td>
+<td><strong>FMixerSource</strong>：UseObjectBasedSpatialization :2337、UpdateEffects :1636（SetSubmixSendInfo）、UpdateVolume :1509</td>
+</tr>
+<tr>
+<td><code>Private/AudioMixerSourceManager.cpp</code></td>
+<td><strong>FMixerSourceManager</strong>：ComputeNextBlockOfSamples :3919、SetLPFFrequency :2053、au.* :42-106</td>
+</tr>
+<tr>
+<td><code>Private/AudioMixerSourceOutputBuffer.cpp</code></td>
+<td>EncodeToSoundfieldFormats :385（Ambisonics 编码）</td>
+</tr>
+<tr>
+<td><code>Classes/SubmixEffects/AudioMixerSubmixEffectReverb.h</code></td>
+<td><strong>FSubmixEffectReverbSettings :23</strong>（DecayTime&#x3D;1.49s 等）</td>
+</tr>
+<tr>
+<td><code>Private/AudioMixerSubmix.cpp</code></td>
+<td>FMixerSubmix、au.BypassAllSubmixEffects :37</td>
+</tr>
+</tbody></table>
+<h2 id="A-4-扩展与插件"><a href="#A-4-扩展与插件" class="headerlink" title="A.4 扩展与插件"></a>A.4 扩展与插件</h2><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>关键内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Runtime/AudioExtensions/Public/IAudioExtensionPlugin.h</code></td>
+<td><strong>IAudioSpatialization :245-388</strong>（ProcessAudio :357）、FSpatializationParams :68-124</td>
+</tr>
+<tr>
+<td><code>Runtime/AudioExtensions/Public/AudioParameter.h</code></td>
+<td><strong>FAudioParameter :92</strong>（5.9 迁至此模块）</td>
+</tr>
+<tr>
+<td><code>Runtime/Online/Voice/Public/VoiceModule.h</code></td>
+<td>FVoiceModule：CreateVoiceCapture :70、CreateVoiceEncoder :81、CreateVoiceDecoder :91</td>
+</tr>
+<tr>
+<td><code>Plugins/Runtime/Metasound/Source/MetasoundEngine/Public/MetasoundSource.h</code></td>
+<td><strong>UMetaSoundSource :89</strong></td>
+</tr>
+<tr>
+<td><code>Plugins/Runtime/Metasound/Source/MetasoundEngine/Public/MetasoundBuilderBase.h</code></td>
+<td>UMetaSoundBuilderBase：AddNode :174、ConnectNodes :197</td>
+</tr>
+<tr>
+<td><code>Samples/Games/Lyra/Source/LyraGame/Audio/</code></td>
+<td><strong>ULyraAudioSettings :31</strong>、ULyraAudioMixEffectsSubsystem :41（封装范例）</td>
+</tr>
+</tbody></table>
+<h1 id="附录-B-术语表（中英对照）"><a href="#附录-B-术语表（中英对照）" class="headerlink" title="附录 B 术语表（中英对照）"></a>附录 B 术语表（中英对照）</h1><table>
+<thead>
+<tr>
+<th>英文</th>
+<th>中文（本文用词）</th>
+<th>一句话解释</th>
+<th>首次出现</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Attenuation</td>
+<td>衰减</td>
+<td>距离 → 音量映射</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>Spatialization</td>
+<td>空间化</td>
+<td>方位角 → 声道增益</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>Panning</td>
+<td>声像</td>
+<td>扬声器之间的增益分配</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>Occlusion</td>
+<td>遮挡</td>
+<td>隔墙：低通 + 音量</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>Reverb</td>
+<td>混响</td>
+<td>房间回声（早反射+晚反射）</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>Decay</td>
+<td>衰变</td>
+<td>混响衰减时间（勿与 Attenuation 混）</td>
+<td>Ch7</td>
+</tr>
+<tr>
+<td>Concurrency</td>
+<td>并发</td>
+<td>同时发声裁决</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>ResolutionRule</td>
+<td>裁决规则</td>
+<td>超限时挂谁（七种）</td>
+<td>Ch8</td>
+</tr>
+<tr>
+<td>Ducking</td>
+<td>避让</td>
+<td>不挂断只调小</td>
+<td>Ch8</td>
+</tr>
+<tr>
+<td>Listener</td>
+<td>听者</td>
+<td>耳朵的位置与朝向</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>SoundClass</td>
+<td>（不译）</td>
+<td>音量分层推子树</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>SoundMix</td>
+<td>（不译）</td>
+<td>推子预设快照</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>Submix</td>
+<td>子混音</td>
+<td>音频处理链节点</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>Bus</td>
+<td>总线</td>
+<td>音频接线板</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>HRTF</td>
+<td>（不译）</td>
+<td>头部相关传输函数（双耳滤波）</td>
+<td>Ch1</td>
+</tr>
+<tr>
+<td>ITD &#x2F; ILD</td>
+<td>（不译）</td>
+<td>双耳时间差 &#x2F; 响度差</td>
+<td>Ch1</td>
+</tr>
+<tr>
+<td>Ambisonics</td>
+<td>（不译）</td>
+<td>球谐声场（环境底床）</td>
+<td>Ch5</td>
+</tr>
+<tr>
+<td>FOA</td>
+<td>（不译）</td>
+<td>一阶 Ambisonics（4 声道）</td>
+<td>Ch5</td>
+</tr>
+<tr>
+<td>Focus</td>
+<td>（不译）</td>
+<td>听者聚焦（音频变焦）</td>
+<td>Ch4</td>
+</tr>
+<tr>
+<td>Virtualization</td>
+<td>虚拟化</td>
+<td>远处循环声降频（放假）</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>Streaming</td>
+<td>流送</td>
+<td>音频按需加载</td>
+<td>Ch9</td>
+</tr>
+<tr>
+<td>Precache</td>
+<td>预载</td>
+<td>启动&#x2F;加载时解压进内存</td>
+<td>Ch11</td>
+</tr>
+<tr>
+<td>FActiveSound</td>
+<td>（不译）</td>
+<td>音频线程上的声音实例</td>
+<td>Ch3</td>
+</tr>
+<tr>
+<td>FWaveInstance</td>
+<td>（不译）</td>
+<td>展开出的可播放流</td>
+<td>Ch3</td>
+</tr>
+<tr>
+<td>Voice</td>
+<td>语音</td>
+<td>语音聊天（VoiceChannel + Opus）</td>
+<td>Ch10</td>
+</tr>
+<tr>
+<td>MetaSound</td>
+<td>（不译）</td>
+<td>程序化音频 DSP 图</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>AudioManager</td>
+<td>音频管理器</td>
+<td>游戏侧封装（引擎无内置）</td>
+<td>Ch2</td>
+</tr>
+<tr>
+<td>bIsUISound</td>
+<td>（不译）</td>
+<td>UI 音（不衰减不空间化）</td>
+<td>Ch9</td>
+</tr>
+<tr>
+<td>bIsMusic</td>
+<td>（不译）</td>
+<td>音乐（独立分层）</td>
+<td>Ch9</td>
+</tr>
+</tbody></table>
+<h1 id="附录-C-参考资料"><a href="#附录-C-参考资料" class="headerlink" title="附录 C 参考资料"></a>附录 C 参考资料</h1><p><strong>Epic 官方（dev.epicgames.com）</strong>：</p>
+<ol>
+<li><em>Sound Concurrency Reference Guide</em>（5.6）—— 并发资产权威说明；</li>
+<li><em>Audio in Unreal Engine 5</em>（5.8）—— 音频总览（Mixer 管线&#x2F;SoundCue&#x2F;Class&#x2F;Mix&#x2F;MetaSound）；</li>
+<li><em>MetaSounds: The Next Generation Sound Sources</em>（5.8）—— DSP 渲染图而非播放器；</li>
+<li><em>Audio Gameplay Volumes Overview</em>（5.4）—— 新一代区域音频（组件化行为&#x2F;优先级仲裁）；</li>
+<li><em>Sound Attenuation in Unreal Engine</em>（5.0）—— 衰减&#x2F;非空间化半径&#x2F;3D 立体声扩展&#x2F;空气吸收；</li>
+<li><em>音频流缓存概述</em>（5.5 中文）—— 流缓存架构与 PrimeSoundForPlayback；</li>
+<li>*Console Variables Reference — au.*<em>（5.8）—— 全部 au.</em> CVar 索引；</li>
+<li><em>Audio Mixer Overview</em>（4.27 中文）—— 统一跨平台渲染器背景。</li>
+</ol>
+<p><strong>中文社区</strong>（标注：以下数据非本仓库实测，写作时未能逐一访问核实）：</p>
+<ol start="9">
+<li>ixueyouxi《UE5.8 音频性能与内存优化：从一次池溢出说起》—— SoundCue 实例池溢出案例、内存估算公式、ADPCM&#x2F;Vorbis&#x2F;Opus 选型、长环境音流送；</li>
+<li>CSDN《UE5 Lyra 源码分析——Audio_Analysis 音频模块》（chouchouxia）—— 配置层+调度层分离的音频管理器范本（本文第 12 章参考）；</li>
+<li>语雀《游戏项目音频管理系统代码框架的认知与思考》—— 预加载&#x2F;延迟释放&#x2F;音量分级&#x2F;SoundBank；</li>
+<li>k7dj《空间音频技术在游戏音效设计中的应用》—— HRTF 方向精度、移动端 3-5ms 预算、Ambisonics 环境+HRTF 对象混合方案；</li>
+<li>知乎《Object-Based Audio 音频设计与混音案例》—— OBA 管线（资源制作与实时定位分离）。</li>
+</ol>
+<h1 id="附录-D-自测练习"><a href="#附录-D-自测练习" class="headerlink" title="附录 D 自测练习"></a>附录 D 自测练习</h1><p><strong>入门级</strong>：</p>
+<ol>
+<li>用三句话 + 一个类比向同事解释空间音频四件套（衰减&#x2F;空间化&#x2F;遮挡&#x2F;混响各管什么）。</li>
+<li>立体声素材和单声道素材做 3D 声源的区别是什么？为什么推荐单声道？</li>
+<li><code>MaxDistance</code> 在音频里有两个作用——分别是什么？</li>
+</ol>
+<p><strong>进阶级</strong>：</p>
+<ol start="4">
+<li>画出从 <code>PlaySoundAtLocation</code> 到扬声器的完整链路，标注三个线程各干了什么。</li>
+<li>解释”衰减范围 &#x3D; 性能门控”：为什么 MaxDistance 拉大性能会变差？</li>
+<li>多人游戏里枪声怎么同步？为什么用 Unreliable 而不是 Reliable 的 RPC？</li>
+<li>远处 300 个循环声怎么优化？虚拟循环的更新间隔怎么算？</li>
+<li>为什么游戏需要自建 AudioManager？三层封装各解决什么问题？</li>
+</ol>
+<p><strong>源码级</strong>：</p>
+<ol start="9">
+<li>在 <code>ActiveSound.cpp:1599</code>（CheckOcclusion）找到射线检测的三个参数，解释 <code>AddIgnoredActor(OwnerID)</code> 的作用。</li>
+<li>在 <code>AudioMixerDevice.cpp:2915</code>（Get3DChannelMap）推导：立体声（FL&#x3D;270°&#x2F;FR&#x3D;90°）下方位角 0°（正前方）的增益对。</li>
+<li>在 <code>SoundConcurrency.cpp:818</code>（EvaluateConcurrency）找到七种裁决规则的实现分支，解释 <code>StopFarthestThenOldest</code> 的”最远”怎么判定。</li>
+<li>实验：配一个 3D 声源，用 <code>au.3dVisualize.Attenuation=1</code> 看衰减形状；把它放进 AAudioVolume 后听混响变化；开 50 个并发声音用 <code>au.DumpActiveSounds</code> 观察被吞的规则。</li>
+</ol>
+</div></section><ul class="post-copyright"><li class="post-copyright-author"><strong>Post author: </strong>mx</li><li class="post-copyright-link"><strong>Post link: </strong><a href="https://1393650770.github.io/2026/08/26/2026-8-26-UESpatialAudio/" title="Unreal Engine 空间音频完全教程">https://1393650770.github.io/2026/08/26/2026-8-26-UESpatialAudio/</a></li><li class="post-copyright-license"><strong>Copyright Notice: </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank" rel="noopener" title="CC BY-NC-SA 4.0 "><span class="icon iconify" data-icon="ri:creative-commons-line"></span><span class="icon iconify" data-icon="ri:creative-commons-by-line"></span><span class="icon iconify" data-icon="ri:creative-commons-nc-line"></span><span class="icon iconify" data-icon="ri:creative-commons-sa-line"></span></a> unless otherwise stated.</li></ul></article><div class="post-nav"><div class="post-nav-item"></div><div class="post-nav-item"><a class="post-nav-next" href="/2026/08/26/2026-8-26-UENetworkArchitecture/" rel="next" title="Unreal Engine 网络架构完全教程"><span class="post-nav-text">Unreal Engine 网络架构完全教程</span><span class="icon iconify" data-icon="ri:arrow-right-s-line"></span></a></div></div></div><div class="hty-card" id="comment"><style>.utterances {
+  max-width: 100%;
+}</style><script src="https://utteranc.es/client.js" repo="1393650770/1393650770.github.io" issue-term="title" label="comment" theme="dark-blue" crossorigin="anonymous" async></script></div></main><footer class="sidebar-translate" id="footer"><div class="copyright"><span>&copy; 2019 – 2026 </span><span class="with-love" id="animate"><span class="icon iconify" data-icon="ri:cloud-line"></span></span><span class="author"> mx</span></div><div class="powered"><span>Powered by <a href="https://hexo.io" target="_blank" rel="noopener">Hexo</a> v6.3.0</span><span class="footer-separator">|</span><span>Theme - <a rel="noopener" href="https://github.com/YunYouJun/hexo-theme-yun" target="_blank"><span>Yun</span></a> v1.10.9</span></div></footer></div><a class="hty-icon-button" id="back-to-top" aria-label="back-to-top" href="#"><span class="icon iconify" data-icon="ri:arrow-up-s-line"></span><svg class="progress-circle-container" viewBox="0 0 100 100"><circle class="progress-circle" id="progressCircle" cx="50" cy="50" r="48" fill="none" stroke="#0078E7" stroke-width="2" stroke-linecap="round"></circle></svg></a><a class="popup-trigger hty-icon-button icon-search" id="search" target="_blank" rel="noopener" href="https://www.google.com/search?q=site:https://1393650770.github.io/" title="Search"><span class="site-state-item-icon"><span class="icon iconify" data-icon="ri:search-line"></span></span></a></body></html>
